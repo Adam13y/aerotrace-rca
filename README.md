@@ -79,6 +79,27 @@ ollama pull qwen2.5:14b-instruct-q4_K_M
 
 ---
 
+## Docker (zero-setup)
+
+Everything runs locally: the app container plus an Ollama container with **Qwen 2.5 14B and nomic-embed-text baked
+into the image**, so nothing is downloaded at run time and no API keys are needed.
+
+```bash
+docker compose build                       # once: pulls ~9.5 GB of models into the Ollama image
+docker compose run --rm aerotrace          # full RCA on data/raw/ (a sample flight is generated if empty)
+docker compose run --rm aerotrace python -m src.main data/raw/my_flight.csv --report
+docker compose run --rm aerotrace python scripts/run_pipeline.py --kb-stats
+```
+
+- **Input and output:** put telemetry files in `./data/raw/`; reports, plots and decision logs appear in `./data/reports/`.
+- **First run:** the app container builds the RAG vector store (about 1 minute) into a persistent volume. It is rebuilt
+  automatically when `data/historical_failures/` changes.
+- **GPU:** needs an NVIDIA GPU with the NVIDIA Container Toolkit (Linux) or Docker Desktop with WSL2 GPU support
+  (Windows). Qwen 14B Q4 with a 10,240-token context fits in 12 GB of VRAM.
+- **CPU only:** `docker compose -f docker-compose.yml -f docker-compose.cpu.yml run --rm aerotrace` (much slower).
+- **Settings:** `OLLAMA_REPRODUCIBLE`, `OLLAMA_NUM_CTX`, `OLLAMA_VERSION` (Ollama image tag) and the optional
+  `ANTHROPIC_API_KEY` can be set in the shell or in `.env` next to `docker-compose.yml`.
+
 ## Usage
 
 ```bash

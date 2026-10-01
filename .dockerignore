@@ -1,0 +1,21 @@
+# Never send secrets, environments or local state into the build context.
+.env
+.git
+.venv
+venv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.idea/
+
+# Generated / per-machine data (mounted as volumes at runtime)
+data/raw/*
+data/processed/*
+data/reports/*
+data/vector_store/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/reports/.gitkeep

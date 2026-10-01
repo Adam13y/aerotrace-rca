@@ -1,0 +1,6 @@
+# Shell scripts and Dockerfiles run inside Linux containers: they must keep LF line endings even when
+# the repository is checked out on Windows (a CRLF shebang fails with "/bin/sh^M: not found").
+*.sh             text eol=lf
+Dockerfile       text eol=lf
+Dockerfile.*     text eol=lf
+docker-compose*.yml text eol=lf

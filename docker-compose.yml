@@ -1,0 +1,59 @@
+# AeroTrace-RCA: application + local Ollama (models baked into the image, no API keys needed).
+#
+#   docker compose build                    # first time: downloads ~9.5 GB of models into the Ollama image
+#   docker compose run --rm aerotrace       # full pipeline on data/raw (sample flight generated if empty)
+#   docker compose run --rm aerotrace python -m src.main data/raw/my_flight.csv --report
+#   docker compose run --rm aerotrace python scripts/run_pipeline.py --kb-stats
+#
+# Needs an NVIDIA GPU with the NVIDIA Container Toolkit (or Docker Desktop's WSL2 GPU support).
+# CPU-only machines:  docker compose -f docker-compose.yml -f docker-compose.cpu.yml run --rm aerotrace
+name: aerotrace-rca
+
+services:
+  ollama:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ollama
+      args:
+        OLLAMA_VERSION: ${OLLAMA_VERSION:-latest}
+        MODELS: ${OLLAMA_MODELS:-qwen2.5:14b-instruct-q4_K_M nomic-embed-text}
+    image: aerotrace-rca-ollama:latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  aerotrace:
+    build: .
+    image: aerotrace-rca:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:14b-instruct-q4_K_M}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-10240}
+      OLLAMA_REPRODUCIBLE: ${OLLAMA_REPRODUCIBLE:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Optional: enables Claude for hypothesis generation. Leave empty to stay fully local.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./data/raw:/app/data/raw                    # put your telemetry here
+      - ./data/reports:/app/data/reports            # reports, plots and decision logs appear here
+      - processed:/app/data/processed               # normalised data + past-anomaly memory
+      - vector-store:/app/data/vector_store         # RAG embeddings (built on first run)
+
+volumes:
+  processed:
+  vector-store:

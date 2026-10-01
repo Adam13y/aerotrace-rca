@@ -1,0 +1,6 @@
+# CPU-only override (no NVIDIA GPU). Qwen 14B on CPU is slow: expect several minutes per LLM call.
+#   docker compose -f docker-compose.yml -f docker-compose.cpu.yml run --rm aerotrace
+# Requires Docker Compose 2.24+ for the !reset tag.
+services:
+  ollama:
+    deploy: !reset {}

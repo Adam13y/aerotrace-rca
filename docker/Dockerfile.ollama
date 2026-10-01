@@ -1,0 +1,13 @@
+# Ollama image with the AeroTrace-RCA models baked in, so containers work offline with no first-run download.
+#   qwen2.5:14b-instruct-q4_K_M  (~9 GB)  - triage and hypothesis generation
+#   nomic-embed-text             (~0.3 GB) - knowledge-base embeddings
+# Override with: docker compose build --build-arg MODELS="..." ollama
+ARG OLLAMA_VERSION=latest
+FROM ollama/ollama:${OLLAMA_VERSION}
+
+ARG MODELS="qwen2.5:14b-instruct-q4_K_M nomic-embed-text"
+
+COPY docker/pull-models.sh /usr/local/bin/pull-models.sh
+RUN chmod +x /usr/local/bin/pull-models.sh && /usr/local/bin/pull-models.sh ${MODELS}
+
+# Keep the base image's ENTRYPOINT (/bin/ollama) and CMD (serve).
