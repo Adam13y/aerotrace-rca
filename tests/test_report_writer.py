@@ -572,7 +572,7 @@ def test_ollama_client_sends_seed_and_temperature() -> None:
             sent.update(kwargs)
             return {"message": {"content": "{}"}}
 
-    client = OllamaClient("http://localhost:1", "qwen", seed=42)
+    client = OllamaClient("http://localhost:1", "qwen", seed=42, num_ctx=10240)
     client._client = Stub()
     client.chat("sys", "prompt", temperature=0.0)
-    assert sent["options"] == {"temperature": 0.0, "seed": 42}
+    assert sent["options"] == {"temperature": 0.0, "seed": 42, "num_ctx": 10240}

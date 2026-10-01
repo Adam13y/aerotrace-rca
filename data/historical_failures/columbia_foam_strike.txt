@@ -1,0 +1,22 @@
+Title: Space Shuttle Columbia STS-107 - thermal protection breach from launch foam strike
+Date: 16 January 2003 (launch) / 1 February 2003 (loss during re-entry)
+Vehicle: Space Shuttle Columbia
+Sources: Columbia Accident Investigation Board Report, Volume I (2003)
+
+FAILURE MODE
+A breach in the reinforced carbon-carbon (RCC) thermal protection on the left wing leading edge let superheated air into the wing structure during re-entry, causing loss of control and vehicle breakup.
+
+CAUSAL CHAIN
+About 82 seconds after launch, a piece of insulating foam of about 1.7 lb broke off the external tank's left bipod ramp. It struck the left wing leading edge near RCC panel 8 at a relative speed of roughly 545 mph, creating a breach that went unrecognised during the 16-day mission. During re-entry on 1 February, hot plasma entered through the breach and progressively melted the aluminium structure and wiring inside the left wing. Growing aerodynamic asymmetry eventually exceeded the flight control system's ability to compensate, and the orbiter broke up about 16 minutes before its scheduled landing.
+
+TELEMETRY SIGNATURES
+- Unusual temperature rises on sensors inside the left wing (leading edge spar, wheel well, hydraulic lines) early in re-entry, while right-wing sensors stayed nominal.
+- A spatial sequence of left-wing sensors failing off-scale low as their wiring burned through. Off-scale-low readings here meant destroyed wiring, not real cold.
+- Rising drag on the left side, seen as growing aileron trim and yaw-jet activity to hold attitude.
+- Loss of left main landing gear tire pressure indications shortly before loss of signal.
+
+ROOT CAUSE
+Physical cause: the foam strike breached RCC panel 8 at launch. Organisational causes included the normalisation of foam shedding as an accepted risk.
+
+LESSON FOR ANOMALY ANALYSIS
+A launch-phase event can cause a failure much later in the mission, so sensors dropping off-scale in a spatial pattern should be read as physical damage spreading. Left/right asymmetry between symmetric sensors is a strong localisation clue.

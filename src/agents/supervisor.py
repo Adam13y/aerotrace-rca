@@ -29,6 +29,7 @@ from src.agents.report_writer import ReportConfig, ReportWriter
 from src.agents.sensor_fault_classifier import SENSOR_FAULT, SensorFaultClassifier, SensorFaultConfig
 from src.agents.telemetry_analyst import AnalystConfig, TelemetryAnalyst
 from src.ingestion import CSVParserConfig, export_normalized_csv, load_telemetry
+from src.memory.historical_rag import HistoricalRAG, OllamaEmbedder
 from src.memory.knowledge_base import KnowledgeBase
 from src.models.telemetry_schema import AnomalyEvent, Hypothesis, RCAReport, TelemetryAnalysis, TelemetryReading
 from src.utils.helpers import LLMRouter
@@ -120,8 +121,18 @@ class Supervisor:
         self.detector = AnomalyDetector(
             DetectorConfig.from_dict(self.config.get("anomaly_detector")), router=self.router, use_llm=self.use_llm
         )
+        rag_cfg = self.config.get("historical_rag", {}) or {}
+        self.historical_rag: HistoricalRAG | None = None
+        if self.use_llm and rag_cfg.get("enabled", True):
+            self.historical_rag = HistoricalRAG(
+                self.settings.historical_store_dir,
+                OllamaEmbedder(self.settings.ollama_base_url, self.settings.embedding_model),
+                chunk_tokens=int(rag_cfg.get("chunk_tokens", 500)),
+                overlap_tokens=int(rag_cfg.get("overlap_tokens", 50)),
+            )
         self.hypothesis_generator = HypothesisGenerator(
             self.knowledge_base,
+            historical_rag=self.historical_rag,
             router=self.router,
             config=HypothesisConfig.from_dict(
                 self.config.get("hypothesis_generator"),
@@ -307,6 +318,13 @@ class Supervisor:
             errors=result.errors,
         )
         generator = self.hypothesis_generator
+        if generator.last_historical_cases:
+            self.log_decision(
+                "historical_rag", f"Injected {len(generator.last_historical_cases)} historical cases into the prompt",
+                "; ".join(f"{c.title} [{c.source_file}] similarity={c.score:.3f}" for c in generator.last_historical_cases),
+            )
+        elif generator.last_historical_error:
+            self.log_decision("historical_rag", "Historical context skipped", generator.last_historical_error)
         for drop in generator.last_drops:
             self.log_decision(
                 "hypothesis_validator", f"Dropped citation '{drop.reference}' from '{drop.title}'",
@@ -345,7 +363,14 @@ class Supervisor:
             errors=result.errors,
         )
 
-        metadata = {"run_id": run_id, "source_file": input_path.name}
+        metadata = {
+            "run_id": run_id,
+            "source_file": input_path.name,
+            "historical_cases": [
+                {"title": c.title, "source_file": c.source_file, "similarity": round(c.score, 3)}
+                for c in self.hypothesis_generator.last_historical_cases
+            ],
+        }
         result.report = self._step(
             "build_report",
             lambda: self.report_writer.build_report(result.anomalies, result.hypotheses, result.analysis, metadata),

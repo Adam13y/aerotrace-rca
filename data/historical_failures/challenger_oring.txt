@@ -1,0 +1,22 @@
+Title: Space Shuttle Challenger STS-51-L - solid rocket booster field joint seal failure
+Date: 28 January 1986
+Vehicle: Space Shuttle Challenger
+Sources: Report of the Presidential Commission on the Space Shuttle Challenger Accident (Rogers Commission, 1986)
+
+FAILURE MODE
+Hot combustion gas blew past the O-ring seals of the right solid rocket booster's aft field joint, impinged on the external tank and its attachment hardware, and led to structural failure and vehicle breakup about 73 seconds after launch.
+
+CAUSAL CHAIN
+The launch was unusually cold: ambient temperature was about 36 deg F, far colder than any previous launch. Cold reduced the resilience of the rubber O-rings, so they could not follow the joint's opening ("joint rotation") at ignition. Puffs of black smoke from the right booster's aft field joint at about 0.7 seconds showed early blow-by. Combustion products temporarily plugged the gap. Around 37 seconds the vehicle flew through strong wind shear, and the resulting loads likely disturbed the temporary seal. A flame plume became visible at about 59 seconds, grew, and impinged on the external tank and the booster's aft attach strut. The external tank's hydrogen tank began leaking, the aft attachment failed, and the external tank failed structurally, breaking up the vehicle.
+
+TELEMETRY SIGNATURES
+- Near 60 seconds, the right booster's chamber pressure began falling below the left booster's: an asymmetry between nominally identical units.
+- Around 64-66 seconds, external tank liquid hydrogen ullage pressure dropped, indicating a leak.
+- Increased steering and gimbal activity counteracting asymmetric thrust and wind loads.
+- The first physical cue (smoke at ignition) appeared only in imagery, about a minute before the first telemetry anomaly.
+
+ROOT CAUSE
+Failure of the pressure seal in the right booster's aft field joint. The joint design was unacceptably sensitive to temperature, dimensions, reuse, processing and loads.
+
+LESSON FOR ANOMALY ANALYSIS
+The initiating event can precede the first telemetry anomaly by a long time, and environmental conditions such as temperature belong in the hypothesis. Compare redundant or symmetric units for divergence.

@@ -161,6 +161,24 @@ MECO at ~285 s, sensor noise and 0.4 % missing samples. It also injects these kn
 
 ---
 
+## Historical failure RAG
+
+Before Qwen writes hypotheses, the pipeline retrieves the 3 most similar past aerospace failures and adds them
+to the prompt as **Historical Context**. Qwen treats them as prior art, not as evidence about the current flight.
+
+```bash
+ollama pull nomic-embed-text                 # local embedding model (~270 MB)
+python scripts/build_knowledge_base.py       # embeds data/historical_failures/*.txt into data/vector_store/
+```
+
+- **Add cases:** drop `.txt` files into `data/historical_failures/`. Start each with `Title:`/`Date:`/`Sources:`
+  header lines and a blank line, then re-run the build script. Files are chunked at ~500 tokens with 50 tokens of overlap.
+- **Graceful degradation:** if the store is missing or the embedding model is unavailable, the pipeline logs
+  "Historical context skipped" and continues without RAG.
+- **Context window:** the hypothesis prompt is about 7k tokens with RAG. Ollama's default 4,096-token window truncates
+  it silently, so `OLLAMA_NUM_CTX` defaults to 10240, the largest window that keeps Qwen 14B Q4 fully on a 12 GB GPU.
+  A warning is logged if a prompt comes close to filling the window.
+
 ## Adding your own telemetry
 
 Put files in `data/raw/` (or pass any path). The format is detected automatically.

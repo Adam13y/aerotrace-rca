@@ -317,6 +317,17 @@ class ReportWriter:
                 lines += ["**Supporting evidence**", ""] + [f"- {e}" for e in h.supporting_evidence or ["None listed."]] + [""]
                 lines += ["**Counter-evidence / open questions**", ""] + [f"- {e}" for e in h.counter_evidence or ["None listed."]] + [""]
 
+        cases = meta.get("historical_cases") or []
+        if cases:
+            lines += [
+                "### Historical context consulted (RAG)",
+                "",
+                "Similar past failures retrieved from `data/historical_failures/` and given to the model as prior art:",
+                "",
+            ]
+            lines += [f"- {c['title']} - similarity {c['similarity']:.2f} (`{c['source_file']}`)" for c in cases]
+            lines.append("")
+
         lines += ["## 7. Recommendations", ""]
         lines += [f"{i}. {r}" for i, r in enumerate(report.recommendations, 1)] or ["None."]
         lines.append("")

@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from src.agents.sensor_fault_classifier import SENSOR_FAULT
 from src.agents.telemetry_analyst import FlightPhase, TelemetryAnalyst
+from src.memory.historical_rag import HistoricalCase, HistoricalRAG, format_historical_context
 from src.memory.knowledge_base import KnowledgeBase
 from src.memory.vector_store import SearchResult
 from src.models.telemetry_schema import AnomalyEvent, Hypothesis, Severity, TelemetryAnalysis, anomaly_labels
@@ -66,6 +67,13 @@ HYPOTHESIS_PROMPT_TEMPLATE = """## Mission context
 ## Knowledge-base matches (prior failure modes and past anomalies)
 {kb_matches}
 
+## Historical Context (most similar past aerospace failures, retrieved from the failure database)
+Use these as prior art to recognise causal chains and telemetry signatures. They are NOT evidence about this
+flight: every claim must be supported by this flight's telemetry, and never cite a historical case in
+"related_anomalies".
+
+{historical_context}
+
 Generate up to {max_hypotheses} root-cause hypotheses covering every correlation group, ranked by confidence.
 
 IMPORTANT: When building causal chains, anomalies must be ordered by time. The FIRST anomaly in time is the most likely root cause. Do not connect anomalies more than 30 seconds apart unless there is a clear physical mechanism connecting them.
@@ -106,6 +114,9 @@ COVERAGE_PROMPT_TEMPLATE = """## Mission context
 
 ## Knowledge-base matches for the unexplained anomaly
 {kb_matches}
+
+## Historical Context (similar past aerospace failures - prior art only, never cite them as anomalies)
+{historical_context}
 
 ## Why earlier hypotheses for this flight were rejected or trimmed
 {reasons}
@@ -316,6 +327,7 @@ class CoverageRetry:
     attempt: int
     reasons_sent: list[str]
     accepted: list[str] = field(default_factory=list)
+    historical_cases: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -338,6 +350,7 @@ class HypothesisConfig:
     knowledge_base_matches: int = 3
     temperature: float = 0.0
     coverage_retries: int = 1
+    historical_cases: int = 3
     correlation_window_seconds: float = 5.0
     flight_phases: list[FlightPhase] = field(default_factory=list)
 
@@ -360,6 +373,7 @@ class HypothesisConfig:
             knowledge_base_matches=int(data.get("knowledge_base_matches", 3)),
             temperature=float(data.get("temperature", 0.0)),
             coverage_retries=int(data.get("coverage_retries", 1)),
+            historical_cases=int(data.get("historical_cases", 3)),
             correlation_window_seconds=correlation_window,
             flight_phases=list(flight_phases or []),
         )
@@ -374,6 +388,7 @@ class HypothesisGenerator:
         router: LLMRouter | None = None,
         config: HypothesisConfig | None = None,
         use_llm: bool = True,
+        historical_rag: HistoricalRAG | None = None,
     ) -> None:
         """Create the agent.
 
@@ -382,8 +397,12 @@ class HypothesisGenerator:
             router: LLM router (Claude preferred); ``None`` means rule-based only.
             config: Agent configuration.
             use_llm: Disable LLM use even if a router is supplied.
+            historical_rag: Optional retriever of historical failure cases (RAG).
         """
         self.kb = knowledge_base
+        self.historical_rag = historical_rag
+        self.last_historical_cases: list[HistoricalCase] = []
+        self.last_historical_error: str | None = None
         self.router = router
         self.config = config or HypothesisConfig()
         self.use_llm = use_llm and router is not None
@@ -412,6 +431,7 @@ class HypothesisGenerator:
         """
         actionable = sorted((a for a in anomalies if not a.expected), key=lambda a: a.timestamp)
         self.last_rejections, self.last_flags, self.last_drops, self.last_retries = [], [], [], []
+        self.last_historical_cases, self.last_historical_error = [], None
         if not actionable:
             logger.info("No actionable anomalies - no hypotheses generated")
             self.last_source = "none"
@@ -428,6 +448,7 @@ class HypothesisGenerator:
         if physical:
             kb_matches = {a.id: self.kb.context_for(a, k=self.config.knowledge_base_matches) for a in physical}
             if self.use_llm and self.router is not None:
+                self.last_historical_cases = self._retrieve_history(physical, self.config.historical_cases)
                 try:
                     hypotheses = self._llm_hypotheses(anomalies, physical, kb_matches, analysis, mission_context)
                     if hypotheses:
@@ -442,6 +463,19 @@ class HypothesisGenerator:
         ranked = sorted(kept + glitches, key=lambda h: h.confidence, reverse=True)
         logger.info("Generated %d hypotheses via %s (+%d instrumentation glitch)", len(kept), self.last_source, len(glitches))
         return ranked
+
+    def _retrieve_history(self, anomalies: list[AnomalyEvent], k: int) -> list[HistoricalCase]:
+        """Retrieve similar historical cases; RAG is optional, so failures only log a warning."""
+        if self.historical_rag is None or k <= 0:
+            return []
+        try:
+            cases = self.historical_rag.search_for_anomalies(anomalies, k=k)
+        except Exception as exc:  # retrieval is best-effort context (embedder/Chroma errors vary)
+            self.last_historical_error = str(exc)
+            logger.warning("Historical RAG unavailable: %s", exc)
+            return []
+        logger.info("Historical context: %s", "; ".join(f"{c.title} ({c.score:.2f})" for c in cases))
+        return cases
 
     @staticmethod
     def _select(hypotheses: list[Hypothesis], physical: list[AnomalyEvent], slots: int) -> list[Hypothesis]:
@@ -467,6 +501,7 @@ class HypothesisGenerator:
         kb_matches: dict[str, list[SearchResult]],
         analysis: TelemetryAnalysis | None,
         mission_context: str,
+        historical: list[HistoricalCase] | None = None,
     ) -> str:
         """Render the hypothesis prompt (exposed for inspection and testing)."""
         labels = anomaly_labels(anomalies)
@@ -497,6 +532,7 @@ class HypothesisGenerator:
             phases=self._phase_lines(),
             expected="\n".join(f"- {a.label}: {a.description}" for a in expected) or "- none",
             kb_matches="\n".join(kb_lines) or "- none",
+            historical_context=format_historical_context(historical or []),
             max_hypotheses=self.config.max_hypotheses,
         )
 
@@ -509,7 +545,9 @@ class HypothesisGenerator:
         mission_context: str,
     ) -> list[Hypothesis]:
         """Run the main hypothesis prompt and return the hypotheses that pass validation."""
-        prompt = self.build_prompt(anomalies, actionable, kb_matches, analysis, mission_context)
+        prompt = self.build_prompt(
+            anomalies, actionable, kb_matches, analysis, mission_context, self.last_historical_cases
+        )
         return self._ask_and_validate(prompt, anomalies, actionable)
 
     def _ask_and_validate(
@@ -559,7 +597,11 @@ class HypothesisGenerator:
                 record = CoverageRetry(target.id, target.label, attempt, reasons)
                 self.last_retries.append(record)
                 logger.info("Coverage retry %d for unexplained anomaly %s", attempt, target.label)
-                prompt = self._coverage_prompt(target, physical, kb_matches.get(target.id, []), reasons, mission_context)
+                history = self._retrieve_history([target], min(2, self.config.historical_cases))
+                record.historical_cases = [c.title for c in history]
+                prompt = self._coverage_prompt(
+                    target, physical, kb_matches.get(target.id, []), reasons, mission_context, history
+                )
                 try:
                     candidates = self._ask_and_validate(prompt, anomalies, physical)
                 except (LLMUnavailableError, ValueError) as exc:
@@ -595,6 +637,7 @@ class HypothesisGenerator:
         kb_hits: list[SearchResult],
         reasons: list[str],
         mission_context: str,
+        history: list[HistoricalCase] | None = None,
     ) -> str:
         """Render the focused prompt for one unexplained anomaly."""
         labels = anomaly_labels(physical)
@@ -608,6 +651,7 @@ class HypothesisGenerator:
                 for h in kb_hits
             ) or "- none",
             reasons="\n".join(f"- {r}" for r in reasons) or "- no hypothesis cited this anomaly",
+            historical_context=format_historical_context(history or []),
             label=target.label,
         )
 

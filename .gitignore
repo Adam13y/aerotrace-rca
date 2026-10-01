@@ -15,6 +15,7 @@ venv/
 data/raw/*
 data/processed/*
 data/reports/*
+data/vector_store/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/reports/.gitkeep

@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     claude_model: str = Field(default="claude-opus-5-5")
     ollama_timeout: float = Field(default=120.0, gt=0)
     ollama_seed: int | None = Field(default=42)
+    #: Qwen 14B Q4 fits fully in a 12 GB GPU at 10240 tokens; Ollama's default (4096) truncates our prompts.
+    ollama_num_ctx: int = Field(default=10240, gt=0)
+    embedding_model: str = Field(default="nomic-embed-text")
     claude_max_tokens: int = Field(default=4096, gt=0)
     data_dir: Path = Field(default=PROJECT_ROOT / "data")
     report_dir: Path = Field(default=PROJECT_ROOT / "data" / "reports")
@@ -72,6 +75,16 @@ class Settings(BaseSettings):
     def processed_dir(self) -> Path:
         """Directory for normalised telemetry and the vector store."""
         return self.data_dir / "processed"
+
+    @property
+    def historical_docs_dir(self) -> Path:
+        """Folder of historical aerospace failure reports used for RAG."""
+        return self.data_dir / "historical_failures"
+
+    @property
+    def historical_store_dir(self) -> Path:
+        """ChromaDB folder holding the embedded historical failure reports."""
+        return self.data_dir / "vector_store"
 
     @property
     def vector_store_dir(self) -> Path:

@@ -297,7 +297,14 @@ def ollama_model_installed(model: str, installed: Sequence[str]) -> bool:
 class OllamaClient:
     """Thin wrapper around the local Ollama chat API."""
 
-    def __init__(self, base_url: str, model: str, timeout: float = 120.0, seed: int | None = 42) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        timeout: float = 120.0,
+        seed: int | None = 42,
+        num_ctx: int | None = 10240,
+    ) -> None:
         """Create a client.
 
         Args:
@@ -305,11 +312,14 @@ class OllamaClient:
             model: Installed model tag.
             timeout: Request timeout in seconds.
             seed: Fixed sampling seed for repeatable output (``None`` = random).
+            num_ctx: Context window in tokens (``None`` = Ollama default, usually 4096).
         """
         self.base_url = base_url
         self.model = model
         self.timeout = timeout
         self.seed = seed
+        self.num_ctx = num_ctx
+        self.last_prompt_tokens: int | None = None
         self._available: bool | None = None
         self._client: Any = None
 
@@ -351,12 +361,33 @@ class OllamaClient:
                     {"role": "user", "content": prompt},
                 ],
                 format="json" if json_mode else "",
-                options={"temperature": temperature, **({"seed": self.seed} if self.seed is not None else {})},
+                options={
+                    "temperature": temperature,
+                    **({"seed": self.seed} if self.seed is not None else {}),
+                    **({"num_ctx": self.num_ctx} if self.num_ctx else {}),
+                },
             )
         except Exception as exc:  # ollama raises httpx / ResponseError variants
             self._available = None
             raise LLMUnavailableError(f"Ollama request failed: {exc}") from exc
+        self._check_truncation(response, len(system) + len(prompt))
         return str(response["message"]["content"])
+
+    def _check_truncation(self, response: Any, prompt_chars: int) -> None:
+        """Warn when the prompt (nearly) filled the context window - Ollama truncates silently."""
+        try:
+            tokens = int(response["prompt_eval_count"] or 0)
+        except (KeyError, TypeError, ValueError):
+            return
+        self.last_prompt_tokens = tokens
+        limit = self.num_ctx or 4096
+        if tokens >= 0.95 * limit:
+            logger.warning(
+                "Prompt used %d of %d context tokens (%d chars) - it was probably TRUNCATED by Ollama. "
+                "Increase OLLAMA_NUM_CTX or shorten the prompt.", tokens, limit, prompt_chars,
+            )
+        elif tokens >= 0.75 * limit:
+            logger.info("Prompt used %d of %d context tokens", tokens, limit)
 
 
 class ClaudeClient:
@@ -436,7 +467,10 @@ class LLMRouter:
     def from_settings(cls, settings: Any) -> LLMRouter:
         """Build a router from a :class:`config.settings.Settings` instance."""
         return cls(
-            OllamaClient(settings.ollama_base_url, settings.ollama_model, settings.ollama_timeout, settings.ollama_seed),
+            OllamaClient(
+                settings.ollama_base_url, settings.ollama_model, settings.ollama_timeout,
+                settings.ollama_seed, settings.ollama_num_ctx,
+            ),
             ClaudeClient(settings.claude_api_key, settings.claude_model, settings.claude_max_tokens),
         )
 
