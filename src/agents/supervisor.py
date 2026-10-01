@@ -26,6 +26,7 @@ from config.settings import Settings, get_settings
 from src.agents.anomaly_detector import AnomalyDetector, DetectorConfig
 from src.agents.hypothesis_generator import HypothesisConfig, HypothesisGenerator
 from src.agents.report_writer import ReportConfig, ReportWriter
+from src.agents.sensor_fault_classifier import SENSOR_FAULT, SensorFaultClassifier, SensorFaultConfig
 from src.agents.telemetry_analyst import AnalystConfig, TelemetryAnalyst
 from src.ingestion import CSVParserConfig, export_normalized_csv, load_telemetry
 from src.memory.knowledge_base import KnowledgeBase
@@ -113,6 +114,9 @@ class Supervisor:
 
         analyst_cfg = AnalystConfig.from_dict(self.config.get("telemetry_analyst"))
         self.analyst = TelemetryAnalyst(analyst_cfg)
+        self.sensor_fault_classifier = SensorFaultClassifier(
+            SensorFaultConfig.from_dict(self.config.get("sensor_fault_classifier"))
+        )
         self.detector = AnomalyDetector(
             DetectorConfig.from_dict(self.config.get("anomaly_detector")), router=self.router, use_llm=self.use_llm
         )
@@ -267,6 +271,23 @@ class Supervisor:
         )
         self.log_decision("anomaly_detector", "Triage complete", f"classifier={self.detector.last_classifier}")
 
+        # Deterministic sensor-fault screen: runs after triage, before any hypothesis generation.
+        result.anomalies = self._step(
+            "sensor_fault_screen",
+            lambda: self.sensor_fault_classifier.classify(result.anomalies),
+            fallback=lambda: result.anomalies,
+            errors=result.errors,
+        )
+        for anomaly in result.anomalies:
+            fault_class = anomaly.classification.get("fault_class")
+            if fault_class:
+                previous = anomaly.classification.get("triage_category")
+                relabel = f" (triage said '{previous}')" if previous else ""
+                self.log_decision(
+                    "sensor_fault_classifier", f"{anomaly.label}: {fault_class}{relabel}",
+                    f"id={anomaly.id}; {anomaly.classification.get('fault_class_reason', '')}",
+                )
+
         if mode == "analyze":
             result.duration_s = time.perf_counter() - started
             self.log_decision("supervisor", f"Analysis-only run finished in {result.duration_s:.1f}s")
@@ -281,6 +302,11 @@ class Supervisor:
             .generate(result.anomalies, result.analysis, context),
             errors=result.errors,
         )
+        for flag in self.hypothesis_generator.last_flags:
+            self.log_decision(
+                "hypothesis_validator", f"Flagged hypothesis '{flag.title}' as low-confidence",
+                f"{flag.reason}; cited_ids={flag.cited_ids}",
+            )
         for rejection in self.hypothesis_generator.last_rejections:
             self.log_decision(
                 "hypothesis_validator", f"Rejected hypothesis '{rejection.title}'",
@@ -290,6 +316,8 @@ class Supervisor:
             "hypothesis_generator", f"Generated {len(result.hypotheses)} hypotheses",
             f"source={self.hypothesis_generator.last_source}, "
             f"rejected={len(self.hypothesis_generator.last_rejections)}, "
+            f"flagged={len(self.hypothesis_generator.last_flags)}, "
+            f"sensor_faults={sum(a.classification.get('fault_class') == SENSOR_FAULT for a in result.anomalies)}, "
             "anomaly_ids=" + "; ".join(f"{h.title}: {h.related_anomalies}" for h in result.hypotheses),
         )
 

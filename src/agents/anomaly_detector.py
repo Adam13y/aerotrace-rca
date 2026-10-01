@@ -235,6 +235,7 @@ class AnomalyDetector:
         cfg = self.config
         scores = self._score_sensor(group, t0, sensor_id)
         z_flag = np.abs(scores.zscore) >= cfg.zscore_threshold
+        amplitude_flag = z_flag | scores.limit_breach
         d_flag = np.abs(scores.derivative) >= cfg.derivative_threshold
         m_flag = np.abs(scores.moving_average) >= cfg.moving_average_threshold
         flagged = z_flag | d_flag | m_flag | scores.limit_breach
@@ -316,6 +317,7 @@ class AnomalyDetector:
                     baseline_value=baseline,
                     score=round(score, 2),
                     detection_methods=methods,
+                    consecutive_samples=_longest_run(amplitude_flag[sl]),
                     expected=expected,
                 )
             )
@@ -448,6 +450,15 @@ class AnomalyDetector:
 # ---------------------------------------------------------------------- #
 # Module helpers
 # ---------------------------------------------------------------------- #
+def _longest_run(mask: np.ndarray) -> int:
+    """Length of the longest run of ``True`` values."""
+    longest = current = 0
+    for flag in mask:
+        current = current + 1 if flag else 0
+        longest = max(longest, current)
+    return longest
+
+
 def _robust_sigma(values: np.ndarray) -> float:
     """MAD-based sigma estimate with sensible fallbacks."""
     finite = values[np.isfinite(values)]

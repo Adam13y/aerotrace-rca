@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from config.settings import Settings
-from src.agents.hypothesis_generator import HypothesisGenerator, citation_problem
+from src.agents.hypothesis_generator import HypothesisGenerator, citation_problem, max_time_gap
 from src.agents.report_writer import ReportConfig, ReportWriter
 from src.agents.supervisor import Supervisor
 from src.ingestion import write_sample_files
@@ -262,3 +262,133 @@ def test_supervisor_analyze_mode(tmp_path: Path) -> None:
     kb = KnowledgeBase(tmp_path, store=VectorStore(tmp_path / "kb", prefer_chroma=False))
     result = Supervisor(settings=settings, use_llm=False, knowledge_base=kb).run(sample, mode="analyze")
     assert result.anomalies and not result.hypotheses and result.report is None
+
+
+# --------------------------------------------------------------------------- #
+# Fix 5: correlated-group and temporal-proximity validation
+# --------------------------------------------------------------------------- #
+def _single_hypothesis_run(kb: KnowledgeBase, events: list[AnomalyEvent], hypothesis: dict) -> HypothesisGenerator:
+    router = LLMRouter(FakeClient("qwen", json.dumps({"hypotheses": [hypothesis]})), None)  # type: ignore[arg-type]
+    generator = HypothesisGenerator(kb, router=router)
+    generator.generate(events)
+    return generator
+
+
+@pytest.fixture()
+def voltage() -> AnomalyEvent:
+    return _anomaly("avionics_bus_voltage", 209.9, Severity.CRITICAL)
+
+
+def test_cross_group_citation_without_times_rejected(kb: KnowledgeBase, anomalies: list[AnomalyEvent], voltage: AnomalyEvent) -> None:
+    vib = anomalies[2]
+    generator = _single_hypothesis_run(kb, [*anomalies, voltage], {
+        "title": "Turbopump Rotor Dynamic Instability", "confidence": 0.55,
+        "description": "Turbopump vibration from rotor instability caused a temporary avionics bus voltage drop.",
+        "related_anomalies": [vib.label, voltage.label],
+    })
+    assert generator.last_source == "rule-based"  # the only LLM hypothesis was rejected
+    assert "different correlated groups" in generator.last_rejections[0].reason
+    assert voltage.label in generator.last_rejections[0].reason
+
+
+def test_cross_group_quoted_but_unexplained_gap_is_flagged(kb: KnowledgeBase, anomalies: list[AnomalyEvent], voltage: AnomalyEvent) -> None:
+    lox = anomalies[1]
+    generator = _single_hypothesis_run(kb, [*anomalies, voltage], {
+        "title": "Common electrical fault", "confidence": 0.8,
+        "description": "LOX tank pressure dropped at T+142s and the avionics bus voltage dropped at T+209.9s.",
+        "related_anomalies": [lox.label, voltage.label],
+    })
+    assert not generator.last_rejections
+    assert len(generator.last_flags) == 1 and "66s apart" in generator.last_flags[0].reason
+    # Accepted, not rejected - but with reduced confidence and a counter-evidence note.
+    router = LLMRouter(FakeClient("qwen", json.dumps({"hypotheses": [{
+        "title": "Common electrical fault", "confidence": 0.8,
+        "description": "LOX tank pressure dropped at T+142s and the avionics bus voltage dropped at T+209.9s.",
+        "related_anomalies": [lox.label, voltage.label]}]})), None)  # type: ignore[arg-type]
+    hypothesis = HypothesisGenerator(kb, router=router).generate([*anomalies, voltage])[0]
+    assert hypothesis.title == "Common electrical fault"
+    assert hypothesis.confidence == pytest.approx(0.3)
+    assert any(note.startswith("Validator:") for note in hypothesis.counter_evidence)
+
+
+def test_explained_gap_is_not_flagged(kb: KnowledgeBase, anomalies: list[AnomalyEvent], voltage: AnomalyEvent) -> None:
+    lox = anomalies[1]
+    generator = _single_hypothesis_run(kb, [*anomalies, voltage], {
+        "title": "Heat soak into harness", "confidence": 0.8,
+        "description": "LOX tank pressure dropped at T+142s; the avionics bus voltage dropped at T+209.9s, 66 seconds "
+                       "later, as heat propagated into the harness.",
+        "related_anomalies": [lox.label, voltage.label],
+    })
+    assert not generator.last_flags and not generator.last_rejections
+
+
+def test_same_group_citation_needs_no_times(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
+    lox, vib = anomalies[1], anomalies[2]
+    generator = _single_hypothesis_run(kb, anomalies, {
+        "title": "Cavitation", "confidence": 0.6,
+        "description": "Low LOX tank pressure starved the turbopump inlet, causing cavitation vibration.",
+        "related_anomalies": [lox.label, vib.label],
+    })
+    assert not generator.last_rejections and not generator.last_flags
+
+
+def test_max_time_gap(anomalies: list[AnomalyEvent], voltage: AnomalyEvent) -> None:
+    assert max_time_gap([anomalies[1], anomalies[2]]) == 0.0  # overlapping intervals
+    assert max_time_gap([anomalies[1], voltage]) == pytest.approx(209.9 - 144.0)
+
+
+# --------------------------------------------------------------------------- #
+# Fix 6: sensor faults get an instrumentation-glitch hypothesis
+# --------------------------------------------------------------------------- #
+@pytest.fixture()
+def fuel_glitch() -> AnomalyEvent:
+    return _anomaly(
+        "fuel_tank_pressure", 230, Severity.WARNING,
+        classification={"category": "sensor_fault", "fault_class": "sensor_fault",
+                        "fault_class_reason": "single-sample spike that returned to baseline"},
+    )
+
+
+def test_sensor_fault_gets_glitch_hypothesis_offline(kb: KnowledgeBase, anomalies: list[AnomalyEvent], fuel_glitch: AnomalyEvent) -> None:
+    generated = HypothesisGenerator(kb, use_llm=False).generate([*anomalies, fuel_glitch])
+    glitch = [h for h in generated if h.related_anomalies == [fuel_glitch.id]]
+    assert len(glitch) == 1
+    assert glitch[0].title == "Instrumentation glitch on fuel tank pressure"
+    assert glitch[0].source == "sensor-fault-classifier"
+    assert "single-sample spike" in glitch[0].description
+
+
+def test_sensor_fault_excluded_from_llm_reasoning(kb: KnowledgeBase, anomalies: list[AnomalyEvent], fuel_glitch: AnomalyEvent) -> None:
+    lox = anomalies[1]
+    prompts: list[str] = []
+
+    class Capture(FakeClient):
+        def chat(self, system: str, prompt: str, *, json_mode: bool = False, temperature: float = 0.2) -> str:
+            prompts.append(prompt)
+            return super().chat(system, prompt, json_mode=json_mode, temperature=temperature)
+
+    payload = {"hypotheses": [
+        {"title": "Pressurisation leak", "confidence": 0.6, "description": "LOX tank pressure leak at T+142s.",
+         "related_anomalies": [lox.label]},
+        {"title": "Fuel leak", "confidence": 0.5, "description": "Fuel tank pressure spike at T+230s.",
+         "related_anomalies": [fuel_glitch.label]},
+    ]}
+    generator = HypothesisGenerator(kb, router=LLMRouter(Capture("qwen", json.dumps(payload)), None))  # type: ignore[arg-type]
+    generated = generator.generate([*anomalies, fuel_glitch])
+    assert f'"anomaly": "{fuel_glitch.label}"' not in prompts[0]  # not offered as a physical anomaly
+    assert "Instrumentation glitches" in prompts[0] and fuel_glitch.label in prompts[0]
+    assert "instrumentation glitch (explained separately)" in generator.last_rejections[0].reason
+    assert {h.title for h in generated} == {"Pressurisation leak", "Instrumentation glitch on fuel tank pressure"}
+
+
+# --------------------------------------------------------------------------- #
+# Fix 7: temporal ordering rule in the prompt
+# --------------------------------------------------------------------------- #
+def test_prompt_contains_temporal_ordering_rule(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
+    actionable = [a for a in anomalies if not a.expected]
+    prompt = HypothesisGenerator(kb, use_llm=False).build_prompt(anomalies, actionable, {}, None, "")
+    assert (
+        "IMPORTANT: When building causal chains, anomalies must be ordered by time. The FIRST anomaly in time is the "
+        "most likely root cause. Do not connect anomalies more than 30 seconds apart unless there is a clear physical "
+        "mechanism connecting them."
+    ) in prompt

@@ -11,6 +11,7 @@ import pytest
 import yaml
 
 from src.agents.anomaly_detector import AnomalyDetector, DetectorConfig, PlannedEvent
+from src.agents.sensor_fault_classifier import SensorFaultClassifier
 from src.agents.telemetry_analyst import AnalystConfig, TelemetryAnalyst
 from src.ingestion import load_telemetry, write_sample_files
 from src.ingestion.csv_parser import INJECTED_ANOMALIES, split_sensor_header
@@ -277,3 +278,47 @@ def test_extract_json_handles_prose() -> None:
     assert extract_json('Sure! Here you go: {"a": [1, 2]} hope this helps') == {"a": [1, 2]}
     with pytest.raises(ValueError):
         extract_json("no json here")
+
+
+# --------------------------------------------------------------------------- #
+# Fix 6: sensor-fault classifier
+# --------------------------------------------------------------------------- #
+def test_consecutive_samples_recorded(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    events = {e.sensor_id: e for e in detector.detect(readings) if not e.expected}
+    assert events["fuel_tank_pressure"].consecutive_samples == 1
+    for sensor in ("lox_tank_pressure", "turbopump_vibration", "engine_bay_temp", "avionics_bus_voltage"):
+        assert events[sensor].consecutive_samples > 3, sensor
+
+
+def test_sensor_fault_classifier_verdicts(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    classified = SensorFaultClassifier().classify(detector.detect(readings))
+    verdicts = {e.sensor_id: e.classification.get("fault_class") for e in classified if not e.expected}
+    assert verdicts == {
+        "lox_tank_pressure": "real_event", "turbopump_vibration": "real_event", "engine_bay_temp": "real_event",
+        "avionics_bus_voltage": "real_event", "fuel_tank_pressure": "sensor_fault",
+    }
+    assert all("fault_class" not in e.classification for e in classified if e.expected)
+
+
+def test_classifier_overrides_triage_mislabel(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    events = detector.detect(readings)
+    fuel = next(e for e in events if e.sensor_id == "fuel_tank_pressure")
+    lox = next(e for e in events if e.sensor_id == "lox_tank_pressure")
+    mislabelled = [
+        fuel.model_copy(update={"classification": {"category": "pressurisation"}}),  # what Qwen did
+        lox.model_copy(update={"classification": {"category": "sensor_fault"}}),
+    ]
+    fuel_out, lox_out = SensorFaultClassifier().classify(mislabelled)
+    assert fuel_out.classification["category"] == "sensor_fault"
+    assert fuel_out.classification["triage_category"] == "pressurisation"
+    assert fuel_out.severity == Severity.WARNING  # CRITICAL glitch capped
+    assert lox_out.classification["category"] == "pressurisation"
+    assert lox_out.classification["triage_category"] == "sensor_fault"
+
+
+def test_two_sample_excursion_is_indeterminate() -> None:
+    rng = np.random.default_rng(3)
+    values = 20 + rng.normal(0, 0.05, 1000)
+    values[500:502] += 3.0
+    event = next(e for e in AnomalyDetector(use_llm=False).detect(_series(values)) if e.consecutive_samples == 2)
+    assert SensorFaultClassifier().verdict(event)[0] == "indeterminate"

@@ -96,6 +96,8 @@ class AnomalyEvent(BaseModel):
     peak_value: float | None = None
     baseline_value: float | None = None
     score: float = 0.0
+    #: Longest run of consecutive samples whose amplitude exceeded the z-score threshold or a hard limit.
+    consecutive_samples: int = 0
     detection_methods: list[str] = Field(default_factory=list)
     expected: bool = False
     flight_phase: str | None = None

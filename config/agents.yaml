@@ -38,6 +38,12 @@ anomaly_detector:
     - { name: "Throttle up", start: 77, end: 84, sensors: ["chamber_pressure", "turbopump_vibration"] }
     - { name: "Main engine cutoff (MECO)", start: 282, end: 300, sensors: ["*"] }
 
+sensor_fault_classifier:
+  max_spike_samples: 1           # <= this many consecutive over-threshold samples ...
+  recovery_window_s: 1.0         # ... and back at baseline within this window -> sensor_fault
+  recovery_ratio: 0.25           # "back at baseline" = median post-spike deviation <= 25% of the spike
+  min_real_event_samples: 4      # > 3 consecutive over-threshold samples -> real_event
+
 hypothesis_generator:
   provider_preference: cloud        # cloud = Claude first, Ollama as fallback
   max_hypotheses: 6

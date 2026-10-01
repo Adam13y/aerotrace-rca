@@ -168,6 +168,15 @@ def run_self_test() -> int:
         checks.append(("Fuel-pressure spike triaged as sensor fault",
                        glitch is not None and glitch.classification.get("category") == "sensor_fault", ""))
         checks.append(("Hypotheses generated", bool(result.hypotheses), f"{len(result.hypotheses)} hypotheses"))
+        explained = {aid for h in result.hypotheses for aid in h.related_anomalies}
+        unexplained = [a.label for a in actionable if a.id not in explained]
+        checks.append(("Every actionable anomaly explained by a hypothesis", not unexplained, "; ".join(unexplained)))
+        fuel = next((a for a in result.anomalies if a.sensor_id == "fuel_tank_pressure" and not a.expected), None)
+        checks.append(("Sensor-fault classifier: fuel spike is sensor_fault",
+                       fuel is not None and fuel.classification.get("fault_class") == "sensor_fault", ""))
+        real = [a for a in actionable if a.sensor_id != "fuel_tank_pressure"]
+        checks.append(("Sensor-fault classifier: other anomalies are real events",
+                       all(a.classification.get("fault_class") == "real_event" for a in real), ""))
         for kind in ("report", "summary", "json", "decision_log"):
             path = result.output_paths.get(kind)
             checks.append((f"Wrote {kind}", bool(path and path.exists() and path.stat().st_size > 0), path.name if path else "missing"))

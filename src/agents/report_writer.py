@@ -282,6 +282,9 @@ class ReportWriter:
                 f"- **Triage:** {cls.get('category', '-')} / {cls.get('subsystem', '-')} "
                 f"(confidence {float(cls.get('confidence', 0)):.0%}, by {cls.get('source', '-')})",
             ]
+            if cls.get("fault_class"):
+                retagged = f" (triage had labelled it '{cls['triage_category']}')" if cls.get("triage_category") else ""
+                lines.append(f"- **Signal check:** {cls['fault_class']} - {cls.get('fault_class_reason', '')}{retagged}")
             if cls.get("original_severity"):
                 lines.append(
                     f"- **Severity adjusted:** {cls['original_severity']} → {a.severity.value} "

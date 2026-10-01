@@ -15,6 +15,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from src.agents.sensor_fault_classifier import SENSOR_FAULT
 from src.agents.telemetry_analyst import TelemetryAnalyst
 from src.memory.knowledge_base import KnowledgeBase
 from src.memory.vector_store import SearchResult
@@ -47,8 +48,11 @@ HYPOTHESIS_PROMPT_TEMPLATE = """## Mission context
 ## Data quality notes
 {quality_notes}
 
-## Detected anomalies (non-expected)
+## Detected anomalies (non-expected, ordered by time)
 {anomalies}
+
+## Instrumentation glitches (already explained by the sensor-fault classifier - do NOT cite or use in causal chains)
+{sensor_faults}
 
 ## Correlation groups (anomalies within {window}s of each other on different sensors)
 {groups}
@@ -61,10 +65,13 @@ HYPOTHESIS_PROMPT_TEMPLATE = """## Mission context
 
 Generate up to {max_hypotheses} root-cause hypotheses covering every correlation group, ranked by confidence.
 
+IMPORTANT: When building causal chains, anomalies must be ordered by time. The FIRST anomaly in time is the most likely root cause. Do not connect anomalies more than 30 seconds apart unless there is a clear physical mechanism connecting them.
+
 Citation rules (hypotheses that break them are rejected automatically):
 - In "related_anomalies", copy anomaly labels EXACTLY as written in the "anomaly" field above.
 - Cite only anomalies that your description and supporting evidence actually discuss, naming their sensors.
-- Do not cite anomalies that are far apart in time unless the causal chain explicitly links them.
+- Cite anomalies from different correlation groups only if you quote each one's time (e.g. "at T+142.4s").
+- If you link anomalies more than 30 seconds apart, state the delay and the mechanism that explains it.
 
 Respond with JSON exactly in this shape:
 {{"hypotheses": [{{
@@ -93,6 +100,37 @@ _SENSOR_SYNONYMS: dict[str, tuple[str, ...]] = {
 #: How far (s) a time quoted in the hypothesis may be from a cited anomaly and still be consistent.
 _TIME_TOLERANCE_S = 10.0
 _MET_PATTERN = re.compile(r"T\s*\+\s*(\d+(?:\.\d+)?)")
+#: How close (s) a quoted time must be to an anomaly's interval to count as quoting that anomaly.
+_QUOTE_TOLERANCE_S = 1.0
+#: Cited anomalies further apart than this (s) need an explicit explanation of the delay.
+_MAX_UNEXPLAINED_GAP_S = 30.0
+#: Penalty for hypotheses that link distant anomalies without explaining the gap.
+_GAP_CONFIDENCE_FACTOR = 0.5
+_GAP_CONFIDENCE_CAP = 0.3
+_GAP_EXPLANATION = re.compile(
+    r"\b(?:\d+(?:\.\d+)?\s*(?:s|sec|secs|seconds)\s+(?:later|after|delay|lag|gap)"
+    r"|delay(?:ed)?|latency|lag(?:ged)?|time gap|propagat\w*|accumulat\w*|gradual\w*|build-?up"
+    r"|over (?:the )?(?:following|next) \d+)",
+    re.IGNORECASE,
+)
+
+
+def quotes_time_of(anomaly: AnomalyEvent, text: str) -> bool:
+    """Whether ``text`` quotes a mission time (``T+...``) inside the anomaly's interval (+/-1 s)."""
+    start = anomaly.mission_elapsed_s or 0.0
+    end = start + anomaly.duration_s
+    return any(
+        start - _QUOTE_TOLERANCE_S <= float(t) <= end + _QUOTE_TOLERANCE_S for t in _MET_PATTERN.findall(text)
+    )
+
+
+def max_time_gap(anomalies: list[AnomalyEvent]) -> float:
+    """Largest gap (s) between the intervals of any two anomalies (0 if they overlap)."""
+    if len(anomalies) < 2:
+        return 0.0
+    starts = [a.mission_elapsed_s or 0.0 for a in anomalies]
+    ends = [s + a.duration_s for s, a in zip(starts, anomalies)]
+    return max(0.0, max(starts) - min(ends))
 
 
 def sensor_phrases(sensor_id: str) -> set[str]:
@@ -136,6 +174,17 @@ class HypothesisRejection:
     title: str
     reason: str
     cited: list[str] = field(default_factory=list)
+    cited_ids: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class HypothesisFlag:
+    """A hypothesis accepted with reduced confidence by the validation layer."""
+
+    title: str
+    reason: str
+    original_confidence: float
+    adjusted_confidence: float
     cited_ids: list[str] = field(default_factory=list)
 
 
@@ -186,6 +235,7 @@ class HypothesisGenerator:
         self.use_llm = use_llm and router is not None
         self.last_source = "none"
         self.last_rejections: list[HypothesisRejection] = []
+        self.last_flags: list[HypothesisFlag] = []
 
     def generate(
         self,
@@ -200,25 +250,38 @@ class HypothesisGenerator:
             analysis: Optional dataset overview for context.
             mission_context: Free-text description of the vehicle and mission.
         """
-        actionable = [a for a in anomalies if not a.expected]
+        actionable = sorted((a for a in anomalies if not a.expected), key=lambda a: a.timestamp)
         self.last_rejections = []
+        self.last_flags = []
         if not actionable:
             logger.info("No actionable anomalies - no hypotheses generated")
             self.last_source = "none"
             return []
-        kb_matches = {a.id: self.kb.context_for(a, k=self.config.knowledge_base_matches) for a in actionable}
+
+        # Sensor faults (from the sensor-fault classifier) get a dedicated instrumentation hypothesis
+        # and are kept out of the physical root-cause reasoning.
+        faults = [a for a in actionable if a.classification.get("fault_class") == SENSOR_FAULT]
+        physical = [a for a in actionable if a not in faults]
+        glitches = [self._sensor_fault_hypothesis(a) for a in faults]
 
         hypotheses: list[Hypothesis] = []
-        if self.use_llm and self.router is not None:
-            try:
-                hypotheses = self._llm_hypotheses(anomalies, actionable, kb_matches, analysis, mission_context)
-            except (LLMUnavailableError, ValidationError, ValueError) as exc:
-                logger.warning("LLM hypothesis generation failed, using knowledge-base fallback: %s", exc)
-        if not hypotheses:
-            hypotheses = self._rule_based(actionable, kb_matches)
-            self.last_source = "rule-based"
-        ranked = sorted(hypotheses, key=lambda h: h.confidence, reverse=True)[: self.config.max_hypotheses]
-        logger.info("Generated %d hypotheses via %s", len(ranked), self.last_source)
+        self.last_source = "sensor-fault-classifier"
+        if physical:
+            kb_matches = {a.id: self.kb.context_for(a, k=self.config.knowledge_base_matches) for a in physical}
+            if self.use_llm and self.router is not None:
+                try:
+                    hypotheses = self._llm_hypotheses(anomalies, physical, kb_matches, analysis, mission_context)
+                except (LLMUnavailableError, ValidationError, ValueError) as exc:
+                    logger.warning("LLM hypothesis generation failed, using knowledge-base fallback: %s", exc)
+            if not hypotheses:
+                hypotheses = self._rule_based(physical, kb_matches)
+                self.last_source = "rule-based"
+
+        # Always keep the instrumentation-glitch hypotheses; fill the remaining slots by confidence.
+        slots = max(1, self.config.max_hypotheses - len(glitches))
+        kept = sorted(hypotheses, key=lambda h: h.confidence, reverse=True)[:slots]
+        ranked = sorted(kept + glitches, key=lambda h: h.confidence, reverse=True)
+        logger.info("Generated %d hypotheses via %s (+%d instrumentation glitch)", len(kept), self.last_source, len(glitches))
         return ranked
 
     # ------------------------------------------------------------------ #
@@ -242,6 +305,7 @@ class HypothesisGenerator:
                     f"(similarity {hit.score:.2f}) - {hit.text[:300]}"
                 )
         expected = [a for a in anomalies if a.expected]
+        faults = [a for a in anomalies if not a.expected and a.classification.get("fault_class") == SENSOR_FAULT]
         context = mission_context or "Not provided."
         if analysis is not None:
             sensors = ", ".join(f"{s.sensor_id} [{s.unit}] @ {s.sample_rate_hz:g} Hz" for s in analysis.sensors)
@@ -251,6 +315,9 @@ class HypothesisGenerator:
             quality_notes="\n".join(f"- {n}" for n in (analysis.data_quality_notes if analysis else [])) or "- none",
             anomalies=json.dumps([a.to_prompt_dict(labels) for a in actionable], indent=1, default=str),
             window=self.config.correlation_window_seconds,
+            sensor_faults="\n".join(
+                f"- {a.label}: {a.classification.get('fault_class_reason', 'instrumentation glitch')}" for a in faults
+            ) or "- none",
             groups="\n".join(group_lines) or "- none",
             expected="\n".join(f"- {a.label}: {a.description}" for a in expected) or "- none",
             kb_matches="\n".join(kb_lines) or "- none",
@@ -273,11 +340,15 @@ class HypothesisGenerator:
         if not isinstance(items, list) or not items:
             raise ValueError("LLM response contained no hypotheses")
         source = f"{response.provider}:{response.model}"
+        group_of = {
+            a.id: index for index, group in enumerate(TelemetryAnalyst.correlation_groups(actionable)) for a in group
+        }
+        faults = [a for a in anomalies if not a.expected and a.classification.get("fault_class") == SENSOR_FAULT]
         hypotheses: list[Hypothesis] = []
         for item in items:
             if not isinstance(item, dict):
                 continue
-            hypothesis = self._validate(item, actionable, source)
+            hypothesis = self._validate(item, actionable, source, group_of, faults)
             if hypothesis is not None:
                 hypotheses.append(hypothesis)
         if not hypotheses:
@@ -285,12 +356,26 @@ class HypothesisGenerator:
         self.last_source = source
         return hypotheses
 
-    def _validate(self, item: dict[str, Any], actionable: list[AnomalyEvent], source: str) -> Hypothesis | None:
+    def _validate(
+        self,
+        item: dict[str, Any],
+        actionable: list[AnomalyEvent],
+        source: str,
+        group_of: dict[str, int] | None = None,
+        faults: list[AnomalyEvent] | None = None,
+    ) -> Hypothesis | None:
         """Validate one LLM hypothesis; record a rejection and return ``None`` if it fails.
 
-        A hypothesis is rejected when it cites no anomalies, cites an anomaly that was not
-        detected, or cites an anomaly whose sensor/time its own text does not support.
+        A hypothesis is rejected when it:
+
+        * cites no anomalies, or an anomaly that was not detected (or is a classified sensor fault);
+        * cites an anomaly whose sensor/time its own text does not support;
+        * cites anomalies from different correlated groups without quoting each one's time.
+
+        A hypothesis that links anomalies more than 30 s apart without explaining the delay is
+        accepted but flagged: its confidence is halved (capped at 0.3) and a counter-evidence note added.
         """
+        group_of = group_of or {}
         title = str(item.get("title") or "Untitled hypothesis")
         cited = _as_list(item.get("related_anomalies"))
 
@@ -305,7 +390,15 @@ class HypothesisGenerator:
         for reference in cited:
             event = resolve_anomaly_reference(reference, actionable)
             if event is None:
-                reject(f"cites '{reference}', which is not a detected anomaly", [e.id for e in resolved])
+                fault = resolve_anomaly_reference(reference, faults or [])
+                if fault is not None:
+                    reject(
+                        f"cites '{fault.label}', which the sensor-fault classifier identified as an instrumentation "
+                        "glitch (explained separately)",
+                        [e.id for e in resolved] + [fault.id],
+                    )
+                else:
+                    reject(f"cites '{reference}', which is not a detected anomaly", [e.id for e in resolved])
                 return None
             if event not in resolved:
                 resolved.append(event)
@@ -315,8 +408,19 @@ class HypothesisGenerator:
             if problem:
                 reject(f"cites '{event.label}' but {problem}", [e.id for e in resolved])
                 return None
+        cited_ids = [e.id for e in resolved]
+        cited_groups = {group_of.get(e.id, -1) for e in resolved}
+        if len(cited_groups) > 1:
+            unquoted = [e for e in resolved if not quotes_time_of(e, text)]
+            if unquoted:
+                reject(
+                    f"links anomalies from {len(cited_groups)} different correlated groups without quoting the time of "
+                    + "; ".join(f"'{e.label}'" for e in unquoted),
+                    cited_ids,
+                )
+                return None
         try:
-            return Hypothesis(
+            hypothesis = Hypothesis(
                 title=title,
                 description=str(item.get("description", "")),
                 confidence=item.get("confidence", 0.0),
@@ -328,8 +432,24 @@ class HypothesisGenerator:
                 source=source,
             )
         except ValidationError as exc:
-            reject(f"malformed fields ({exc.errors()[0].get('msg', exc)})", [e.id for e in resolved])
+            reject(f"malformed fields ({exc.errors()[0].get('msg', exc)})", cited_ids)
             return None
+        gap = max_time_gap(resolved)
+        if gap > _MAX_UNEXPLAINED_GAP_S and not _GAP_EXPLANATION.search(text):
+            adjusted = round(min(hypothesis.confidence * _GAP_CONFIDENCE_FACTOR, _GAP_CONFIDENCE_CAP), 2)
+            reason = (
+                f"cites anomalies {gap:.0f}s apart without explaining the time gap; "
+                f"confidence reduced {hypothesis.confidence:.0%} -> {adjusted:.0%}"
+            )
+            self.last_flags.append(HypothesisFlag(title, reason, hypothesis.confidence, adjusted, cited_ids))
+            logger.warning("Flagged hypothesis '%s': %s", title, reason)
+            hypothesis = hypothesis.model_copy(
+                update={
+                    "confidence": adjusted,
+                    "counter_evidence": [*hypothesis.counter_evidence, f"Validator: {reason}."],
+                }
+            )
+        return hypothesis
 
     def _rule_based(self, actionable: list[AnomalyEvent], kb_matches: dict[str, list[SearchResult]]) -> list[Hypothesis]:
         """Deterministic hypotheses: one per correlation group, driven by knowledge-base matches."""
@@ -406,11 +526,12 @@ class HypothesisGenerator:
         # Confident about the mechanism, but scaled by severity so glitches never outrank real events.
         severity_weight = anomaly.severity.rank / Severity.CRITICAL.rank
         return Hypothesis(
-            title=f"Instrumentation glitch on {anomaly.sensor_id}",
+            title=f"Instrumentation glitch on {anomaly.sensor_id.replace('_', ' ')}",
             description=(
-                f"A {anomaly.duration_s:.1f}s spike on {anomaly.sensor_id} at {format_met(anomaly.mission_elapsed_s)} "
-                "has no corroborating deviation on any other channel, consistent with a data-acquisition bit error, "
-                "EMI pickup or an intermittent transducer connection rather than a physical event."
+                f"The {anomaly.label} is a "
+                f"{anomaly.classification.get('fault_class_reason', 'very short spike with no corroborating deviation')}. "
+                "This signature is consistent with a data-acquisition bit error, EMI pickup or an intermittent "
+                "transducer connection rather than a physical event."
             ),
             confidence=round(0.7 * severity_weight, 2),
             subsystem="instrumentation",
@@ -425,7 +546,7 @@ class HypothesisGenerator:
                 "Compare against redundant or neighbouring transducers.",
                 "Flag the channel for post-flight calibration and connector inspection.",
             ],
-            source="rule-based",
+            source="sensor-fault-classifier" if anomaly.classification.get("fault_class") == SENSOR_FAULT else "rule-based",
         )
 
 
