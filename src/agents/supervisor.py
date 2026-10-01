@@ -139,6 +139,7 @@ class Supervisor:
                 self.config.get("hypothesis_generator"),
                 analyst_cfg.correlation_window_seconds,
                 analyst_cfg.flight_phases,
+                rag_cfg,
             ),
             use_llm=self.use_llm,
         )
@@ -329,6 +330,15 @@ class Supervisor:
             f"Excluded {len(excluded)} past-anomaly record(s) saved from this same dataset",
             f"dataset_id={dataset_id}; excluded={excluded}",
         )
+        preference = generator.last_category_preference
+        if preference is not None:
+            self.log_decision(
+                "historical_rag",
+                "Category bonus for: " + (", ".join(sorted(preference.categories)) or "none"),
+                f"mode={generator.config.category_preference}; leading group="
+                + "; ".join(a.label for a in preference.leading_group)
+                + f"; sensor categories in group={preference.counts}",
+            )
         if generator.last_historical_cases:
             self.log_decision(
                 "historical_rag", f"Injected {len(generator.last_historical_cases)} knowledge-base cases into the prompt",

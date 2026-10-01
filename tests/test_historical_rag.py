@@ -22,6 +22,7 @@ from src.memory.historical_rag import (
     estimate_tokens,
     format_historical_context,
     load_documents,
+    sensor_category,
 )
 from src.memory.knowledge_base import KnowledgeBase
 from src.memory.vector_store import HashingEmbedder, VectorStore
@@ -322,3 +323,93 @@ def test_truncation_warning_when_prompt_fills_context(caplog: pytest.LogCaptureF
             logging.getLogger("aerotrace").propagate = False
     assert client.last_prompt_tokens == 4096
     assert any("TRUNCATED" in r.getMessage() for r in caplog.records)
+
+
+# --------------------------------------------------------------------------- #
+# Fixes 12-13: sensor-based categories, leading-group preference
+# --------------------------------------------------------------------------- #
+def _chain(*specs: tuple[str, float, str]) -> list[AnomalyEvent]:
+    """Anomalies that are all correlated with each other (one correlation group)."""
+    events = [_anomaly(sensor, met, f"{sensor} deviated", triage) for sensor, met, triage in specs]
+    ids = [e.id for e in events]
+    return [e.model_copy(update={"correlated_with": [i for i in ids if i != e.id]}) for e in events]
+
+
+def test_sensor_category_mapping_and_fallback() -> None:
+    assert sensor_category("turbopump_vibration") == "propulsion"
+    assert sensor_category("lox_tank_pressure") == "propulsion"
+    assert sensor_category("engine_bay_temp") == "thermal"
+    assert sensor_category("avionics_bus_voltage") == "electrical"
+    assert sensor_category("stage2_helium_copv_pressure") == "pressurization"  # pattern fallback
+    assert sensor_category("imu_pitch_rate") == "avionics"
+    assert sensor_category("mystery_channel") is None
+    assert sensor_category("lox_tank_pressure", {"lox_tank_pressure": "pressurization"}) == "pressurization"
+
+
+def test_leading_group_dominant_category_ignores_triage(kb: KnowledgeBase) -> None:
+    # Qwen mislabelled the vibration as "pressurisation"; sensor mapping must still say propulsion.
+    chain = _chain(("lox_tank_pressure", 142.4, "pressurisation"), ("turbopump_vibration", 143.2, "pressurisation"),
+                   ("engine_bay_temp", 148.5, "thermal"))
+    voltage = _anomaly("avionics_bus_voltage", 209.9, "bus voltage drop", "electrical")
+    generator = HypothesisGenerator(kb, use_llm=False)
+    preference = generator.category_preference([*chain, voltage])
+    assert preference.categories == {"propulsion"}  # thermal is a minority in the chain; electrical not in it
+    assert [a.sensor_id for a in preference.leading_group] == ["lox_tank_pressure", "turbopump_vibration",
+                                                               "engine_bay_temp"]
+    assert preference.counts == {"propulsion": 2, "thermal": 1}
+
+    every = HypothesisGenerator(kb, use_llm=False, config=HypothesisConfig(category_preference="all"))
+    assert every.category_preference([*chain, voltage]).categories == {"propulsion", "thermal"}
+
+
+def test_dominant_tie_goes_to_earliest_anomaly(kb: KnowledgeBase) -> None:
+    chain = _chain(("engine_bay_temp", 100, ""), ("avionics_bus_voltage", 101, ""))
+    assert HypothesisGenerator(kb, use_llm=False).category_preference(chain).categories == {"thermal"}
+
+
+def test_equal_sized_groups_prefer_earliest(kb: KnowledgeBase) -> None:
+    early = _anomaly("avionics_bus_voltage", 50, "bus sag")
+    late = _anomaly("turbopump_vibration", 200, "vibration")
+    assert HypothesisGenerator(kb, use_llm=False).category_preference([late, early]).categories == {"electrical"}
+
+
+def test_anomaly_outside_leading_group_gets_no_bonus(rag: HistoricalRAG, kb: KnowledgeBase) -> None:
+    chain = _chain(("lox_tank_pressure", 142.4, ""), ("turbopump_vibration", 143.2, ""))
+    voltage = _anomaly("avionics_bus_voltage", 209.9, "bus voltage sag battery cell", "electrical")
+    client = RecordingClient({"hypotheses": [{
+        "title": "Feed-system blockage", "confidence": 0.7,
+        "description": "LOX tank pressure fell at T+142.4s; turbopump vibration rose at T+143.2s.",
+        "related_anomalies": [chain[0].label, chain[1].label]}]})
+    generator = HypothesisGenerator(kb, router=LLMRouter(client, None), historical_rag=rag,  # type: ignore[arg-type]
+                                    config=HypothesisConfig(coverage_retries=0))
+    generator.generate([*chain, voltage])
+    assert generator.last_category_preference is not None
+    assert generator.last_category_preference.categories == {"propulsion"}
+    assert all(c.category_match == (c.category == "propulsion") for c in generator.last_historical_cases)
+    electrical = [c for c in generator.last_historical_cases if c.category == "electrical"]
+    assert electrical and not electrical[0].category_match
+
+
+def test_config_reads_rag_section() -> None:
+    config = HypothesisConfig.from_dict({}, rag={
+        "sensor_categories": {"LOX_Tank_Pressure": "Pressurization"},
+        "sensor_category_patterns": [["*vib*", "structural"]],
+        "category_preference": "all",
+    })
+    assert config.sensor_categories == {"lox_tank_pressure": "pressurization"}
+    assert config.sensor_category_patterns == [("*vib*", "structural")]
+    assert config.category_preference == "all"
+    with pytest.raises(ValueError):
+        HypothesisConfig.from_dict({}, rag={"category_preference": "most"})
+
+
+def test_shipped_config_maps_every_sample_sensor() -> None:
+    import yaml
+
+    rag_cfg = yaml.safe_load((PROJECT_ROOT / "config" / "agents.yaml").read_text(encoding="utf-8"))["historical_rag"]
+    config = HypothesisConfig.from_dict({}, rag=rag_cfg)
+    expected = {"turbopump_vibration": "propulsion", "chamber_pressure": "propulsion",
+                "fuel_tank_pressure": "propulsion", "lox_tank_pressure": "propulsion",
+                "engine_bay_temp": "thermal", "avionics_bus_voltage": "electrical"}
+    assert {s: sensor_category(s, config.sensor_categories, config.sensor_category_patterns)
+            for s in expected} == expected

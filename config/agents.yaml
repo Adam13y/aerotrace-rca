@@ -57,7 +57,48 @@ historical_rag:
   enabled: true
   chunk_tokens: 500
   overlap_tokens: 50
-  category_boost: 0.05              # similarity bonus for cases in the detected anomalies' failure categories
+  category_boost: 0.05              # similarity bonus for cases in the leading anomaly group's category
+  # dominant = only the leading group's most frequent sensor category (ties -> earliest anomaly's);
+  # all = every sensor category present in the leading group.
+  category_preference: dominant
+  # Sensor -> knowledge-base category for the bonus (independent of LLM triage labels).
+  sensor_categories:
+    turbopump_vibration: propulsion
+    chamber_pressure: propulsion
+    fuel_tank_pressure: propulsion
+    lox_tank_pressure: propulsion
+    engine_bay_temp: thermal
+    avionics_bus_voltage: electrical
+  # Fallback for sensors not listed above: first matching glob wins.
+  sensor_category_patterns:
+    - ["*turbopump*", propulsion]
+    - ["*chamber*", propulsion]
+    - ["*injector*", propulsion]
+    - ["*tank_pressure*", propulsion]
+    - ["*pump_inlet*", propulsion]
+    - ["*pressurant*", pressurization]
+    - ["*copv*", pressurization]
+    - ["*helium*", pressurization]
+    - ["*ullage*", pressurization]
+    - ["*regulator*", pressurization]
+    - ["*voltage*", electrical]
+    - ["*current*", electrical]
+    - ["*battery*", electrical]
+    - ["*temp*", thermal]
+    - ["*thermocouple*", thermal]
+    - ["*heat_flux*", thermal]
+    - ["*strain*", structural]
+    - ["*accel*", structural]
+    - ["*imu*", avionics]
+    - ["*gyro*", avionics]
+    - ["*gps*", avionics]
+    - ["*attitude*", avionics]
+    - ["*star_tracker*", avionics]
+    - ["*fin*", aerodynamic]
+    - ["*dynamic_pressure*", aerodynamic]
+    - ["*angle_of_attack*", aerodynamic]
+    - ["*separation*", separation]
+    - ["*pyro*", separation]
 
 report_writer:
   use_llm_executive_summary: true

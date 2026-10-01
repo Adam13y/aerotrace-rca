@@ -17,7 +17,14 @@ from pydantic import ValidationError
 
 from src.agents.sensor_fault_classifier import SENSOR_FAULT
 from src.agents.telemetry_analyst import FlightPhase, TelemetryAnalyst
-from src.memory.historical_rag import HistoricalCase, HistoricalRAG, format_historical_context
+from src.memory.historical_rag import (
+    DEFAULT_SENSOR_CATEGORIES,
+    DEFAULT_SENSOR_CATEGORY_PATTERNS,
+    HistoricalCase,
+    HistoricalRAG,
+    format_historical_context,
+    sensor_category,
+)
 from src.memory.knowledge_base import KnowledgeBase
 from src.memory.vector_store import SearchResult
 from src.models.telemetry_schema import AnomalyEvent, Hypothesis, Severity, TelemetryAnalysis, anomaly_labels
@@ -309,6 +316,15 @@ class HypothesisRejection:
 
 
 @dataclass(slots=True)
+class CategoryPreference:
+    """Which knowledge-base categories get the retrieval bonus, and why."""
+
+    categories: set[str]
+    leading_group: list[AnomalyEvent]
+    counts: dict[str, int]
+
+
+@dataclass(slots=True)
 class DroppedReference:
     """A single bad citation removed from an otherwise acceptable hypothesis."""
 
@@ -353,6 +369,13 @@ class HypothesisConfig:
     historical_cases: int = 5
     correlation_window_seconds: float = 5.0
     flight_phases: list[FlightPhase] = field(default_factory=list)
+    #: Sensor -> knowledge-base category, used for the retrieval category bonus.
+    sensor_categories: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_SENSOR_CATEGORIES))
+    sensor_category_patterns: list[tuple[str, str]] = field(
+        default_factory=lambda: list(DEFAULT_SENSOR_CATEGORY_PATTERNS)
+    )
+    #: "dominant": only the leading group's most frequent category; "all": every category in the group.
+    category_preference: str = "dominant"
 
     @classmethod
     def from_dict(
@@ -360,13 +383,20 @@ class HypothesisConfig:
         data: dict[str, Any] | None,
         correlation_window: float = 5.0,
         flight_phases: list[FlightPhase] | None = None,
+        rag: dict[str, Any] | None = None,
     ) -> HypothesisConfig:
         """Build from the ``hypothesis_generator`` section of ``agents.yaml``.
 
         ``flight_phases`` come from the ``telemetry_analyst`` section and drive the
-        phase-consistency check.
+        phase-consistency check; ``rag`` is the ``historical_rag`` section (sensor categories).
         """
         data = data or {}
+        rag = rag or {}
+        mapping = {str(k).lower(): str(v).lower() for k, v in (rag.get("sensor_categories") or {}).items()}
+        patterns = [(str(p).lower(), str(c).lower()) for p, c in (rag.get("sensor_category_patterns") or [])]
+        preference = str(rag.get("category_preference", "dominant")).lower()
+        if preference not in {"dominant", "all"}:
+            raise ValueError(f"historical_rag.category_preference must be 'dominant' or 'all', got {preference!r}")
         return cls(
             provider_preference=str(data.get("provider_preference", "cloud")),
             max_hypotheses=int(data.get("max_hypotheses", 6)),
@@ -376,6 +406,9 @@ class HypothesisConfig:
             historical_cases=int(data.get("historical_cases", 5)),
             correlation_window_seconds=correlation_window,
             flight_phases=list(flight_phases or []),
+            sensor_categories=mapping or dict(DEFAULT_SENSOR_CATEGORIES),
+            sensor_category_patterns=patterns or list(DEFAULT_SENSOR_CATEGORY_PATTERNS),
+            category_preference=preference,
         )
 
 
@@ -437,6 +470,7 @@ class HypothesisGenerator:
         actionable = sorted((a for a in anomalies if not a.expected), key=lambda a: a.timestamp)
         self.last_rejections, self.last_flags, self.last_drops, self.last_retries = [], [], [], []
         self.last_historical_cases, self.last_historical_error = [], None
+        self.last_category_preference: CategoryPreference | None = None
         if not actionable:
             logger.info("No actionable anomalies - no hypotheses generated")
             self.last_source = "none"
@@ -459,7 +493,10 @@ class HypothesisGenerator:
                 for a in physical
             }
             if self.use_llm and self.router is not None:
-                self.last_historical_cases = self._retrieve_history(physical, self.config.historical_cases)
+                self.last_category_preference = self.category_preference(physical)
+                self.last_historical_cases = self._retrieve_history(
+                    physical, self.config.historical_cases, self.last_category_preference
+                )
                 try:
                     hypotheses = self._llm_hypotheses(anomalies, physical, kb_matches, analysis, mission_context)
                     if hypotheses:
@@ -475,12 +512,46 @@ class HypothesisGenerator:
         logger.info("Generated %d hypotheses via %s (+%d instrumentation glitch)", len(kept), self.last_source, len(glitches))
         return ranked
 
-    def _retrieve_history(self, anomalies: list[AnomalyEvent], k: int) -> list[HistoricalCase]:
+    def category_preference(self, anomalies: list[AnomalyEvent]) -> CategoryPreference:
+        """Knowledge-base categories that get the retrieval bonus for ``anomalies``.
+
+        Categories come from the sensor names (``sensor_categories`` in ``agents.yaml``), not from
+        the LLM triage labels. Only the leading correlated group - the one with the most anomalies,
+        ties broken by the earliest group - counts. In ``dominant`` mode only that group's most
+        frequent category is preferred (ties go to the category of its earliest anomaly), so one
+        secondary anomaly in the chain cannot pull in cases from its own category.
+        """
+        groups = TelemetryAnalyst.correlation_groups(anomalies)
+        if not groups:
+            return CategoryPreference(set(), [], {})
+        lead = max(groups, key=lambda g: (len(g), -min(a.timestamp for a in g).timestamp()))
+        lead = sorted(lead, key=lambda a: a.timestamp)
+        by_anomaly = {
+            a.id: sensor_category(a.sensor_id, self.config.sensor_categories, self.config.sensor_category_patterns)
+            for a in lead
+        }
+        counts: dict[str, int] = {}
+        for anomaly in lead:
+            category = by_anomaly[anomaly.id]
+            if category:
+                counts[category] = counts.get(category, 0) + 1
+        if not counts:
+            return CategoryPreference(set(), lead, counts)
+        if self.config.category_preference == "all":
+            return CategoryPreference(set(counts), lead, counts)
+        top = max(counts.values())
+        earliest_first = [by_anomaly[a.id] for a in lead if by_anomaly[a.id] and counts[by_anomaly[a.id]] == top]
+        return CategoryPreference({earliest_first[0]}, lead, counts)
+
+    def _retrieve_history(
+        self, anomalies: list[AnomalyEvent], k: int, preference: CategoryPreference | None = None
+    ) -> list[HistoricalCase]:
         """Retrieve similar historical cases; RAG is optional, so failures only log a warning."""
         if self.historical_rag is None or k <= 0:
             return []
+        preference = preference or self.category_preference(anomalies)
         try:
-            cases = self.historical_rag.search_for_anomalies(anomalies, k=k)
+            cases = self.historical_rag.search_for_anomalies(anomalies, k=k, prefer_categories=preference.categories)
         except Exception as exc:  # retrieval is best-effort context (embedder/Chroma errors vary)
             self.last_historical_error = str(exc)
             logger.warning("Historical RAG unavailable: %s", exc)

@@ -16,6 +16,7 @@ with ``python scripts/build_knowledge_base.py``.
 
 from __future__ import annotations
 
+import fnmatch
 import math
 import re
 from collections import Counter
@@ -51,6 +52,45 @@ TRIAGE_TO_KB_CATEGORY = {
     "separation": "separation",
     "aerodynamic": "aerodynamic",
 }
+
+
+#: Default sensor -> knowledge-base category mapping (overridden by ``historical_rag.sensor_categories``).
+DEFAULT_SENSOR_CATEGORIES: dict[str, str] = {
+    "turbopump_vibration": "propulsion",
+    "chamber_pressure": "propulsion",
+    "fuel_tank_pressure": "propulsion",
+    "lox_tank_pressure": "propulsion",
+    "engine_bay_temp": "thermal",
+    "avionics_bus_voltage": "electrical",
+}
+#: Fallback glob patterns for sensors not listed explicitly (first match wins).
+DEFAULT_SENSOR_CATEGORY_PATTERNS: tuple[tuple[str, str], ...] = (
+    ("*turbopump*", "propulsion"), ("*chamber*", "propulsion"), ("*injector*", "propulsion"),
+    ("*tank_pressure*", "propulsion"), ("*pump_inlet*", "propulsion"),
+    ("*pressurant*", "pressurization"), ("*copv*", "pressurization"), ("*helium*", "pressurization"),
+    ("*ullage*", "pressurization"), ("*regulator*", "pressurization"),
+    ("*voltage*", "electrical"), ("*current*", "electrical"), ("*battery*", "electrical"),
+    ("*temp*", "thermal"), ("*thermocouple*", "thermal"), ("*heat_flux*", "thermal"),
+    ("*strain*", "structural"), ("*accel*", "structural"),
+    ("*imu*", "avionics"), ("*gyro*", "avionics"), ("*gps*", "avionics"), ("*attitude*", "avionics"),
+    ("*star_tracker*", "avionics"),
+    ("*fin*", "aerodynamic"), ("*dynamic_pressure*", "aerodynamic"), ("*angle_of_attack*", "aerodynamic"),
+    ("*separation*", "separation"), ("*pyro*", "separation"),
+)
+
+
+def sensor_category(
+    sensor_id: str,
+    mapping: dict[str, str] | None = None,
+    patterns: Sequence[tuple[str, str]] | None = None,
+) -> str | None:
+    """Knowledge-base category of a sensor: exact mapping first, then glob patterns, else ``None``."""
+    mapping = DEFAULT_SENSOR_CATEGORIES if mapping is None else mapping
+    patterns = DEFAULT_SENSOR_CATEGORY_PATTERNS if patterns is None else patterns
+    key = sensor_id.lower()
+    if key in mapping:
+        return mapping[key]
+    return next((category for pattern, category in patterns if fnmatch.fnmatch(key, pattern)), None)
 
 
 class Embedder(Protocol):
@@ -388,9 +428,22 @@ class HistoricalRAG:
             )
         return sorted(best.values(), key=lambda c: (c.rank_score, c.score), reverse=True)[:k]
 
-    def search_for_anomalies(self, anomalies: Sequence[AnomalyEvent], k: int = 5) -> list[HistoricalCase]:
-        """Retrieve cases similar to a set of anomalies, preferring their failure categories."""
-        return self.search(anomaly_query(anomalies), k, prefer_categories=anomaly_categories(anomalies))
+    def search_for_anomalies(
+        self,
+        anomalies: Sequence[AnomalyEvent],
+        k: int = 5,
+        prefer_categories: Iterable[str] | None = None,
+    ) -> list[HistoricalCase]:
+        """Retrieve cases similar to a set of anomalies.
+
+        Args:
+            anomalies: Anomalies to describe in the query.
+            k: Number of cases.
+            prefer_categories: Categories that receive the similarity bonus; defaults to the
+                categories implied by the anomalies' triage labels.
+        """
+        preferred = anomaly_categories(anomalies) if prefer_categories is None else prefer_categories
+        return self.search(anomaly_query(anomalies), k, prefer_categories=preferred)
 
 
 def anomaly_query(anomalies: Sequence[AnomalyEvent]) -> str:
