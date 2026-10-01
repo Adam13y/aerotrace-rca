@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from config.settings import Settings
+from src.agents.evidence_rules import EvidenceRules
 from src.agents.hypothesis_generator import (
     HypothesisConfig,
     HypothesisGenerator,
@@ -281,9 +282,16 @@ def test_supervisor_analyze_mode(tmp_path: Path) -> None:
 # --------------------------------------------------------------------------- #
 # Fix 5: correlated-group and temporal-proximity validation
 # --------------------------------------------------------------------------- #
-def _single_hypothesis_run(kb: KnowledgeBase, events: list[AnomalyEvent], hypothesis: dict) -> HypothesisGenerator:
+#: Couplings that allow the propulsion -> electrical fixtures below, so the gap/group rules are tested in isolation.
+PERMISSIVE = EvidenceRules(couplings={"propulsion": ["electrical"]})
+
+
+def _single_hypothesis_run(
+    kb: KnowledgeBase, events: list[AnomalyEvent], hypothesis: dict, rules: EvidenceRules | None = None
+) -> HypothesisGenerator:
     router = LLMRouter(FakeClient("qwen", json.dumps({"hypotheses": [hypothesis]})), None)  # type: ignore[arg-type]
-    generator = HypothesisGenerator(kb, router=router, config=HypothesisConfig(coverage_retries=0))
+    generator = HypothesisGenerator(kb, router=router, config=HypothesisConfig(
+        coverage_retries=0, evidence_rules=rules or EvidenceRules()))
     generator.generate(events)
     return generator
 
@@ -299,7 +307,7 @@ def test_cross_group_citation_without_times_rejected(kb: KnowledgeBase, anomalie
         "title": "Turbopump Rotor Dynamic Instability", "confidence": 0.55,
         "description": "Turbopump vibration from rotor instability caused a temporary avionics bus voltage drop.",
         "related_anomalies": [vib.label, voltage.label],
-    })
+    }, rules=PERMISSIVE)
     assert generator.last_source == "rule-based"  # the only LLM hypothesis was rejected
     assert "different correlated groups" in generator.last_rejections[0].reason
     assert voltage.label in generator.last_rejections[0].reason
@@ -311,7 +319,7 @@ def test_cross_group_quoted_but_unexplained_gap_is_flagged(kb: KnowledgeBase, an
         "title": "Common electrical fault", "confidence": 0.8,
         "description": "LOX tank pressure dropped at T+142s and the avionics bus voltage dropped at T+209.9s.",
         "related_anomalies": [lox.label, voltage.label],
-    })
+    }, rules=PERMISSIVE)
     assert not generator.last_rejections
     assert len(generator.last_flags) == 1 and "66s apart" in generator.last_flags[0].reason
     # Accepted, not rejected - but with reduced confidence and a counter-evidence note.
@@ -319,7 +327,8 @@ def test_cross_group_quoted_but_unexplained_gap_is_flagged(kb: KnowledgeBase, an
         "title": "Common electrical fault", "confidence": 0.8,
         "description": "LOX tank pressure dropped at T+142s and the avionics bus voltage dropped at T+209.9s.",
         "related_anomalies": [lox.label, voltage.label]}]})), None)  # type: ignore[arg-type]
-    hypothesis = HypothesisGenerator(kb, router=router, config=HypothesisConfig(coverage_retries=0)).generate(
+    hypothesis = HypothesisGenerator(kb, router=router, config=HypothesisConfig(
+        coverage_retries=0, evidence_rules=PERMISSIVE)).generate(
         [*anomalies, voltage]
     )[0]
     assert hypothesis.title == "Common electrical fault"
@@ -330,11 +339,11 @@ def test_cross_group_quoted_but_unexplained_gap_is_flagged(kb: KnowledgeBase, an
 def test_explained_gap_is_not_flagged(kb: KnowledgeBase, anomalies: list[AnomalyEvent], voltage: AnomalyEvent) -> None:
     lox = anomalies[1]
     generator = _single_hypothesis_run(kb, [*anomalies, voltage], {
-        "title": "Heat soak into harness", "confidence": 0.8,
+        "title": "Delayed harness damage", "confidence": 0.8,
         "description": "LOX tank pressure dropped at T+142s; the avionics bus voltage dropped at T+209.9s, 66 seconds "
-                       "later, as heat propagated into the harness.",
+                       "later, as the damage propagated into the harness.",
         "related_anomalies": [lox.label, voltage.label],
-    })
+    }, rules=PERMISSIVE)
     assert not generator.last_flags and not generator.last_rejections
 
 
@@ -654,7 +663,8 @@ def test_single_root_cause_triggers_alternative_retry(kb: KnowledgeBase, anomali
                  distinguishing_evidence=["helium bottle pressure stays flat"]),
         ]},
     ])
-    generator = HypothesisGenerator(kb, router=LLMRouter(client, None))  # type: ignore[arg-type]
+    generator = HypothesisGenerator(kb, router=LLMRouter(client, None),  # type: ignore[arg-type]
+                                    config=HypothesisConfig(alternative_retries=1))
     generated = generator.generate(anomalies)
     assert [h.title for h in generated] == ["Pump cavitation", "Pressurant regulator failure"]
     retry = next(r for r in generator.last_retries if r.kind == "alternative")
@@ -673,7 +683,8 @@ def test_shortfall_is_recorded_not_fabricated(kb: KnowledgeBase, anomalies: list
     assert [h.title for h in generated] == ["Pump cavitation"]  # no rule-based filler
     assert all(h.source != "rule-based" for h in generated)
     assert generator.last_competing == ["Pump cavitation"]
-    assert [r.kind for r in generator.last_retries] == ["alternative"]
+    assert generator.last_retries == []  # default: report the shortfall instead of retrying
+    assert len(client.prompts) == 1
 
 
 def test_reworded_duplicate_in_first_answer_is_dropped(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:

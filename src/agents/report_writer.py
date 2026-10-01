@@ -152,6 +152,14 @@ class ReportWriter:
         if not hypotheses:
             return "Anomalies were detected but no root-cause hypothesis could be formed; manual review is required."
         lead = hypotheses[0]
+        if lead.hypothesis_type != "root_cause":
+            causes = [h for h in hypotheses if h.hypothesis_type == "root_cause"]
+            what = ("independent coincident events" if lead.hypothesis_type == "independent_events"
+                    else "not discriminable with the available telemetry")
+            text = (f"The leading anomalies are most likely **{what}** ({lead.confidence:.0%}): {lead.title}. ")
+            if causes:
+                text += "Individual causes: " + "; ".join(f"{h.title} ({h.confidence:.0%})" for h in causes[:3]) + ". "
+            return text + "Findings are preliminary until confirmed by the responsible subsystem engineers."
         covered = {aid for h in hypotheses for aid in h.related_anomalies}
         uncovered = [a for a in actionable if a.id not in covered]
         text = (
@@ -311,7 +319,10 @@ class ReportWriter:
                 )
             lines.append("")
             for rank, h in enumerate(report.hypotheses, 1):
-                lines += [f"### H{rank}. {h.title} - {h.confidence:.0%}", "", h.description, ""]
+                kind = {"independent_events": " [independent coincident events]",
+                        "insufficient_evidence": " [insufficient evidence to discriminate]"}.get(h.hypothesis_type, "")
+                tags = "".join(f" [{label}]" for label in h.labels)
+                lines += [f"### H{rank}. {h.title} - {h.confidence:.0%}{kind}{tags}", "", h.description, ""]
                 if h.related_anomalies:
                     lines += ["**Related anomalies:**", ""] + [f"- {labels.get(x, x)}" for x in h.related_anomalies] + [""]
                 lines += ["**Supporting evidence**", ""] + [f"- {e}" for e in h.supporting_evidence or ["None listed."]] + [""]

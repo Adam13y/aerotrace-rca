@@ -26,3 +26,4 @@ data/vector_store/
 .DS_Store
 Thumbs.db
 data/eval/
+data/eval_holdout/

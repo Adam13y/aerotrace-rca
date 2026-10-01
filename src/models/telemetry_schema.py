@@ -174,6 +174,10 @@ class Hypothesis(BaseModel):
     recommended_actions: list[str] = Field(default_factory=list)
     #: Observations that would confirm this cause and rule out competing ones.
     distinguishing_evidence: list[str] = Field(default_factory=list)
+    #: "root_cause", "independent_events" (coincident but unrelated) or "insufficient_evidence".
+    hypothesis_type: str = "root_cause"
+    #: Validator annotations, e.g. "unobservable - no sensor coverage: structural".
+    labels: list[str] = Field(default_factory=list)
     source: str = "rule-based"
 
     @field_validator("confidence", mode="before")

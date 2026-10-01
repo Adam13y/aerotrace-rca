@@ -5,8 +5,8 @@ after the run, for scoring. Scoring rules are defined in the ground-truth file.
 
 Usage::
 
-    python scripts/generate_eval_flights.py
-    python scripts/evaluate_generalization.py [--flights NAME ...]
+    python scripts/generate_eval_flights.py [--set eval|holdout|sample]
+    python scripts/evaluate_generalization.py [--truth data/eval/ground_truth.json] [--flights NAME ...]
 """
 
 from __future__ import annotations
@@ -25,7 +25,8 @@ from rich.table import Table  # noqa: E402
 from config.settings import configure_logging, get_settings  # noqa: E402
 from src.agents.supervisor import Supervisor  # noqa: E402
 
-EVAL_DIR = Path(__file__).resolve().parent.parent / "data" / "eval"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+EVAL_DIR = PROJECT_ROOT / "data" / "eval"
 console = Console()
 
 
@@ -72,6 +73,14 @@ def score(report: dict[str, Any], truth: dict[str, Any]) -> dict[str, Any]:
     elif top is None:
         result["root_ok"] = False
         result["failures"].append("no hypotheses produced")
+    elif top.get("hypothesis_type", "root_cause") != "root_cause":
+        groups_in_top = {group_of.get(i, "FP") for i in top["related_anomalies"]} - {"FP"}
+        independent_truth = len({f["cause_group"] for f in truth["faults"]}) > 1
+        ok = top.get("hypothesis_type") == "independent_events" and independent_truth and len(groups_in_top) > 1
+        result["root_ok"] = ok
+        if not ok:
+            result["failures"].append(f"#1 is a '{top.get('hypothesis_type')}' explanation ('{top['title']}') "
+                                      "where a root cause was expected")
     else:
         text = f"{top['title']} {top['description']}".lower()
         cited_sensors = {sensor[i] for i in top["related_anomalies"]}
@@ -90,7 +99,8 @@ def score(report: dict[str, Any], truth: dict[str, Any]) -> dict[str, Any]:
         if both:
             result["failures"].append(f"#1 '{top['title']}' merges independent faults {sorted(groups_in_top)}")
 
-    cited = {i for h in hypotheses for i in h["related_anomalies"]}
+    cited = {i for h in hypotheses if h.get("hypothesis_type", "root_cause") == "root_cause"
+             for i in h["related_anomalies"]}
     unexplained = [label[i] for ids in detected.values() for i in ids if i not in cited]
     result["all_explained"] = not unexplained
     for u in unexplained:
@@ -98,6 +108,8 @@ def score(report: dict[str, Any], truth: dict[str, Any]) -> dict[str, Any]:
 
     false_links = []
     for h in hypotheses:
+        if h.get("hypothesis_type", "root_cause") != "root_cause":
+            continue  # independent / insufficient-evidence explanations claim no causal link
         groups = {group_of.get(i, "FP") for i in h["related_anomalies"]}
         real = groups - {"FP"}
         if len(real) > 1 or (real and "FP" in groups):
@@ -111,9 +123,11 @@ def main() -> int:
     """Run and score all evaluation flights."""
     parser = argparse.ArgumentParser(description="Score the pipeline on unseen evaluation flights.")
     parser.add_argument("--flights", nargs="*", help="Subset of flight names to run.")
+    parser.add_argument("--truth", type=Path, default=EVAL_DIR / "ground_truth.json", help="Ground-truth file.")
+    parser.add_argument("--results", type=Path, help="Where to write detailed results (default: next to truth).")
     args = parser.parse_args()
     configure_logging("WARNING")
-    truth_all = json.loads((EVAL_DIR / "ground_truth.json").read_text(encoding="utf-8"))["flights"]
+    truth_all = json.loads(args.truth.read_text(encoding="utf-8"))["flights"]
     names = args.flights or list(truth_all)
     settings = get_settings()
     console.print(f"OLLAMA_REPRODUCIBLE={settings.ollama_reproducible}  model={settings.ollama_model}")
@@ -122,14 +136,19 @@ def main() -> int:
     for name in names:
         console.rule(f"[bold]{name}")
         supervisor = Supervisor(settings=settings)
-        result = supervisor.run(EVAL_DIR / "flights" / f"{name}.csv", output_formats=("markdown", "json"))
+        flight_path = PROJECT_ROOT / truth_all[name].get("path", f"data/eval/flights/{name}.csv")
+        result = supervisor.run(flight_path, output_formats=("markdown", "json"))
         report = json.loads(result.output_paths["json"].read_text(encoding="utf-8"))
         scored = score(report, truth_all[name])
         details[name] = {"score": scored, "report_json": str(result.output_paths["json"]),
                          "decision_log": str(result.output_paths["decision_log"]),
-                         "hypotheses": [(h["title"], h["confidence"], [a["label"] for a in report["anomalies"]
-                                                                       if a["id"] in h["related_anomalies"]])
+                         "hypotheses": [(h["title"], h["confidence"], h.get("hypothesis_type", "root_cause"),
+                                         h.get("labels", []),
+                                         [a["label"] for a in report["anomalies"] if a["id"] in h["related_anomalies"]])
                                         for h in report["hypotheses"]],
+                         "rejections": [d["decision"] + " :: " + d["detail"] for d in json.loads(
+                             result.output_paths["decision_log"].read_text(encoding="utf-8"))["decisions"]
+                             if d["agent"] == "hypothesis_validator" or "competing" in d["decision"]],
                          "top_description": report["hypotheses"][0]["description"] if report["hypotheses"] else None,
                          "duration_s": round(result.duration_s, 1)}
         rows.append((name, report["hypotheses"][0]["title"] if report["hypotheses"] else "-", scored))
@@ -144,7 +163,7 @@ def main() -> int:
                       "[green]none[/green]" if not s["false_links"] else f"[red]{len(s['false_links'])}[/red]",
                       str(len(s["false_positives"])))
     console.print(table)
-    out = EVAL_DIR / "results.json"
+    out = args.results or args.truth.with_name(args.truth.stem.replace("ground_truth", "results") + ".json")
     out.write_text(json.dumps(details, indent=2, default=str), encoding="utf-8")
     console.print(f"Details: {out}")
     return 0

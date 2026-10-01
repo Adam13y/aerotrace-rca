@@ -368,12 +368,15 @@ class Supervisor:
         if generator.last_leading_group:
             needed = generator.config.min_competing_hypotheses
             count = len(generator.last_competing)
+            lead_ids = {a.id for a in generator.last_leading_group}
+            rejected = [f"'{r.title}': {r.reason}" for r in generator.last_rejections if lead_ids & set(r.cited_ids)]
             self.log_decision(
                 "hypothesis_generator",
-                f"Leading group has {count} distinct competing root cause(s)"
-                + ("" if count >= needed else f" - fewer than the required {needed}, none fabricated"),
+                f"Leading group has {count} valid competing explanation(s)"
+                + ("" if count >= needed else f" - no valid alternative to reach {needed}; none fabricated"),
                 "group=" + "; ".join(a.label for a in generator.last_leading_group)
-                + f"; competing={generator.last_competing}",
+                + f"; competing={generator.last_competing}"
+                + (f"; rejected candidates: {rejected}" if count < needed and rejected else ""),
             )
         for flag in self.hypothesis_generator.last_flags:
             self.log_decision(

@@ -16,6 +16,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from src.agents.evidence_rules import UNOBSERVABLE_LABEL, EvidenceRules, normalise_type
 from src.agents.sensor_fault_classifier import SENSOR_FAULT
 from src.agents.telemetry_analyst import FlightPhase, TelemetryAnalyst
 from src.memory.historical_rag import (
@@ -69,6 +70,13 @@ HYPOTHESIS_PROMPT_TEMPLATE = """## Mission context
 
 ## Leading correlation group (the main failure chain)
 {leading_group}
+Note: anomalies in a correlation group are close in time. That alone does NOT mean they are causally related.
+
+## Vehicle sensors by subsystem
+{subsystem_sensors}
+
+## Physically plausible causal couplings between subsystems (cause -> effect)
+{couplings}
 
 ## Flight phases (mission elapsed time windows)
 {phases}
@@ -88,9 +96,13 @@ flight: every claim must be supported by this flight's telemetry, and never cite
 
 Generate up to {max_hypotheses} root-cause hypotheses covering every correlation group, ranked by confidence.
 
-COMPETING HYPOTHESES: for the leading correlation group, give AT LEAST {min_competing} DISTINCT, competing root causes
-(different physical mechanisms, not rewordings of the same one), ranked by confidence. For each one, fill
-"distinguishing_evidence" with the observations that would confirm it and rule out the competing causes.
+COMPETING HYPOTHESES: for the leading correlation group, give AT LEAST {min_competing} DISTINCT, ranked explanations.
+Each has a "type":
+- "root_cause": a physical mechanism (different mechanisms, not rewordings of the same one);
+- "independent_events": the group's anomalies are coincident in time but causally unrelated (cite all of them);
+- "insufficient_evidence": the data cannot discriminate between the candidate causes (say which ones).
+Only propose mechanisms the telemetry supports: do not pad the list with causes in subsystems that show no anomaly.
+For each explanation, fill "distinguishing_evidence" with the observations that would confirm it and rule out the others.
 
 IMPORTANT: When building causal chains, anomalies must be ordered by time. The FIRST anomaly in time is the most likely root cause. Do not connect anomalies more than 30 seconds apart unless there is a clear physical mechanism connecting them.
 
@@ -102,9 +114,13 @@ Citation rules (hypotheses that break them are rejected automatically):
 - Only name a flight phase (e.g. Max-Q, throttle bucket, engine cutoff) if a cited anomaly occurred during it.
 - Only name a sensor in the title (e.g. "Avionics Bus Under-Voltage") if you cite that sensor's anomaly.
 - Never cite expected transients or instrumentation glitches.
+- A subsystem you name as part of the cause must have a cited anomaly from one of its sensors (see the sensor list);
+  a subsystem with no sensors can only be proposed as unobservable, with low confidence.
+- A causal link between anomalies of different subsystems must follow a listed coupling (cause -> effect).
 
 Respond with JSON exactly in this shape:
 {{"hypotheses": [{{
+  "type": "<root_cause | independent_events | insufficient_evidence>",
   "title": "<short name of the root cause>",
   "description": "<mechanism, causal chain and how it explains the timeline>",
   "confidence": <0.0-1.0>,
@@ -150,6 +166,7 @@ Rules (hypotheses that break them are rejected automatically):
 
 Respond with JSON exactly in this shape:
 {{"hypotheses": [{{
+  "type": "<root_cause | independent_events | insufficient_evidence>",
   "title": "<short name of the root cause>",
   "description": "<mechanism, causal chain and how it explains the timeline>",
   "confidence": <0.0-1.0>,
@@ -197,6 +214,7 @@ Rules (hypotheses that break them are rejected automatically):
 
 Respond with JSON exactly in this shape:
 {{"hypotheses": [{{
+  "type": "<root_cause | independent_events | insufficient_evidence>",
   "title": "<short name of the root cause>",
   "description": "<mechanism, causal chain and how it explains the timeline>",
   "confidence": <0.0-1.0>,
@@ -451,6 +469,9 @@ class HypothesisConfig:
     historical_cases: int = 5
     #: Minimum number of distinct competing root causes for the leading correlated group.
     min_competing_hypotheses: int = 2
+    #: Extra LLM calls to ask for a competing explanation when too few are valid (0 = report the shortfall).
+    alternative_retries: int = 0
+    evidence_rules: EvidenceRules = field(default_factory=EvidenceRules)
     correlation_window_seconds: float = 5.0
     flight_phases: list[FlightPhase] = field(default_factory=list)
     #: Sensor -> knowledge-base category, used for the retrieval category bonus.
@@ -489,6 +510,10 @@ class HypothesisConfig:
             coverage_retries=int(data.get("coverage_retries", 1)),
             historical_cases=int(data.get("historical_cases", 5)),
             min_competing_hypotheses=int(data.get("min_competing_hypotheses", 2)),
+            alternative_retries=int(data.get("alternative_retries", 0)),
+            evidence_rules=EvidenceRules.from_dict(
+                data.get("evidence_rules"), mapping or None, patterns or None
+            ),
             correlation_window_seconds=correlation_window,
             flight_phases=list(flight_phases or []),
             sensor_categories=mapping or dict(DEFAULT_SENSOR_CATEGORIES),
@@ -559,6 +584,10 @@ class HypothesisGenerator:
         self.last_leading_group: list[AnomalyEvent] = []
         self.last_competing: list[str] = []
         self.last_retrieval_query: str | None = None
+        self._vehicle_sensors = (
+            sorted(s.sensor_id for s in analysis.sensors) if analysis is not None
+            else sorted({a.sensor_id for a in anomalies})
+        )
         if not actionable:
             logger.info("No actionable anomalies - no hypotheses generated")
             self.last_source = "none"
@@ -715,7 +744,7 @@ class HypothesisGenerator:
             return []
         added: list[Hypothesis] = []
         root = lead[0]
-        for attempt in range(1, self.config.coverage_retries + 1):
+        for attempt in range(1, self.config.alternative_retries + 1):
             existing = self.competing([*accepted, *added], lead)
             if len(existing) >= needed:
                 break
@@ -808,6 +837,10 @@ class HypothesisGenerator:
         """Render the hypothesis prompt (exposed for inspection and testing)."""
         labels = anomaly_labels(anomalies)
         lead = self.category_preference(actionable).leading_group if actionable else []
+        vehicle = getattr(self, "_vehicle_sensors", None) or (
+            [s.sensor_id for s in analysis.sensors] if analysis is not None else sorted({a.sensor_id for a in anomalies})
+        )
+        sensor_lines, coupling_lines = self.config.evidence_rules.prompt_lines(vehicle)
         groups = TelemetryAnalyst.correlation_groups(actionable)
         group_lines = [f"- Group {i}: " + " -> ".join(a.label for a in group) for i, group in enumerate(groups, 1)]
         kb_lines: list[str] = []
@@ -837,6 +870,8 @@ class HypothesisGenerator:
             kb_matches="\n".join(kb_lines) or "- none",
             historical_context=format_historical_context(historical or []),
             leading_group=" -> ".join(a.label for a in lead) or "- none",
+            subsystem_sensors=sensor_lines,
+            couplings=coupling_lines,
             min_competing=self.config.min_competing_hypotheses,
             max_hypotheses=self.config.max_hypotheses,
         )
@@ -896,7 +931,7 @@ class HypothesisGenerator:
         added: list[Hypothesis] = []
         for target in physical:
             for attempt in range(1, self.config.coverage_retries + 1):
-                if any(target.id in h.related_anomalies for h in [*accepted, *added]):
+                if any(target.id in h.related_anomalies for h in [*accepted, *added] if h.hypothesis_type == "root_cause"):
                     break
                 reasons = self._reasons_for(target)
                 record = CoverageRetry(target.id, target.label, attempt, reasons)
@@ -1029,6 +1064,7 @@ class HypothesisGenerator:
                    [d.anomaly_id for d in dropped if d.anomaly_id])
             return None
         cited_ids = [e.id for e in resolved]
+        hypothesis_type = normalise_type(item.get("type"))
         sensors = {a.sensor_id for a in all_anomalies if not a.expected}
         for problem in (
             topic_problem(title, resolved, sensors),
@@ -1037,8 +1073,26 @@ class HypothesisGenerator:
             if problem:
                 reject(problem, cited_ids)
                 return None
+        rules = self.config.evidence_rules
+        vehicle = getattr(self, "_vehicle_sensors", None) or sorted({a.sensor_id for a in all_anomalies})
+        unobservable: list[str] = []
+        if hypothesis_type != "insufficient_evidence":
+            # Rule 1: named subsystems need evidence (the causal chain = title + description).
+            problem, unobservable = rules.subsystem_check(f"{title}. {item.get('description', '')}", resolved, vehicle)
+            if problem:
+                reject(problem, cited_ids)
+                return None
+        if hypothesis_type == "root_cause":
+            # Rule 2: cross-subsystem links need a listed physical coupling, whatever the time gap.
+            problem = rules.coupling_check(resolved)
+            if problem:
+                reject(problem, cited_ids)
+                return None
+        if hypothesis_type == "independent_events" and len(resolved) < 2:
+            reject("'independent_events' must cite at least two anomalies", cited_ids)
+            return None
         cited_groups = {group_of.get(e.id, -1) for e in resolved}
-        if len(cited_groups) > 1:
+        if len(cited_groups) > 1 and hypothesis_type == "root_cause":
             unquoted = [e for e in resolved if not quotes_time_of(e, text)]
             if unquoted:
                 reject(
@@ -1058,6 +1112,7 @@ class HypothesisGenerator:
                 counter_evidence=_as_list(item.get("counter_evidence")),
                 recommended_actions=_as_list(item.get("recommended_actions")),
                 distinguishing_evidence=_as_list(item.get("distinguishing_evidence")),
+                hypothesis_type=hypothesis_type,
                 source=source,
             )
         except ValidationError as exc:
@@ -1066,6 +1121,14 @@ class HypothesisGenerator:
         for item_drop in dropped:
             self.last_drops.append(item_drop)
             logger.info("Hypothesis '%s': dropped citation '%s' (%s)", title, item_drop.reference, item_drop.reason)
+        if unobservable:
+            label = f"{UNOBSERVABLE_LABEL}: {', '.join(unobservable)}"
+            adjusted = round(min(hypothesis.confidence, rules.unobservable_cap), 2)
+            reason = f"names {', '.join(unobservable)} but the vehicle has no sensor for it; " \
+                     f"confidence capped {hypothesis.confidence:.0%} -> {adjusted:.0%}"
+            self.last_flags.append(HypothesisFlag(title, reason, hypothesis.confidence, adjusted, cited_ids))
+            logger.info("Flagged hypothesis '%s': %s", title, reason)
+            hypothesis = hypothesis.model_copy(update={"confidence": adjusted, "labels": [*hypothesis.labels, label]})
         gap = max_time_gap(resolved)
         if gap > _MAX_UNEXPLAINED_GAP_S and not _GAP_EXPLANATION.search(text):
             adjusted = round(min(hypothesis.confidence * _GAP_CONFIDENCE_FACTOR, _GAP_CONFIDENCE_CAP), 2)

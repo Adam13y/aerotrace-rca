@@ -52,7 +52,42 @@ hypothesis_generator:
   temperature: 0.0                  # deterministic hypotheses (Ollama also uses a fixed seed)
   coverage_retries: 1               # re-asks per real anomaly left unexplained after validation
   historical_cases: 5               # RAG: knowledge-base cases injected into the prompt
-  min_competing_hypotheses: 2       # distinct root causes required for the leading correlated group
+  min_competing_hypotheses: 2       # distinct explanations required for the leading correlated group
+  alternative_retries: 0            # 0 = report a shortfall instead of asking the LLM again
+  evidence_rules:
+    unobservable_confidence_cap: 0.3  # subsystems the vehicle has no sensor for
+    # Phrases that name a subsystem as (part of) a cause. "*" = any word ending.
+    subsystem_terms:
+      propulsion: [turbopump, turbo pump, pump cavitation, "cavitat*", combustion, injector, nozzle, gas generator,
+                   thrust, engine, chamber, propellant feed, feed line, feed system, inlet pressure, npsh, npsp,
+                   hot gas, hot-gas, plume, regenerative cooling, mixture ratio, igniter, ignition, preburner]
+      pressurization: ["pressuris*", "pressuriz*", pressurant, regulator, helium, copv, ullage, relief valve,
+                       vent valve, "overpressur*", "over-pressur*"]
+      thermal: [thermal, "overheat*", heat soak, heating, insulation, thermal protection, tps, cooling failure, heat leak]
+      electrical: [electrical, avionics bus, power bus, voltage, under-voltage, undervoltage, brownout, battery,
+                   batteries, cell, short circuit, short-circuit, power distribution, power supply, load transient,
+                   relay, wiring, harness, bus, emi]
+      avionics: [avionics, imu, inertial, gps, flight computer, guidance, navigation, software, telemetry dropout,
+                 sensor dropout, star tracker, data bus]
+      structural: [structural, strut, "crack*", fatigue, "buckl*", "weld*", fastener, "delaminat*", "fractur*"]
+      aerodynamic: ["aerodynamic*", max-q, max q, "buffet*", flutter, wind shear, angle of attack, dynamic pressure]
+      separation: [separation, "pyrotechnic*", pyro, fairing, frangible, staging]
+    # Location phrases that contain subsystem words but do not name a cause.
+    neutral_phrases: [engine bay, avionics bay, engine compartment, equipment bay]
+    # Sensors observing more than one subsystem (others observe only their sensor_categories entry).
+    sensor_evidence:
+      lox_tank_pressure: [propulsion, pressurization]
+      fuel_tank_pressure: [propulsion, pressurization]
+    # Directed physical couplings (cause -> effect). Only direct links count; unmapped sensors have none.
+    couplings:
+      pressurization: [propulsion, structural, thermal]
+      propulsion: [thermal, structural, aerodynamic, pressurization]
+      thermal: [structural, electrical, avionics, pressurization]
+      electrical: [avionics, thermal, propulsion]
+      avionics: [propulsion, aerodynamic, separation, structural]
+      structural: [pressurization, propulsion, thermal, aerodynamic, electrical, separation]
+      aerodynamic: [structural, thermal]
+      separation: [structural, propulsion, avionics]
 
 historical_rag:
   enabled: true
