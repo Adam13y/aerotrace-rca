@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -66,6 +67,9 @@ HYPOTHESIS_PROMPT_TEMPLATE = """## Mission context
 ## Correlation groups (anomalies within {window}s of each other on different sensors)
 {groups}
 
+## Leading correlation group (the main failure chain)
+{leading_group}
+
 ## Flight phases (mission elapsed time windows)
 {phases}
 
@@ -83,6 +87,10 @@ flight: every claim must be supported by this flight's telemetry, and never cite
 {historical_context}
 
 Generate up to {max_hypotheses} root-cause hypotheses covering every correlation group, ranked by confidence.
+
+COMPETING HYPOTHESES: for the leading correlation group, give AT LEAST {min_competing} DISTINCT, competing root causes
+(different physical mechanisms, not rewordings of the same one), ranked by confidence. For each one, fill
+"distinguishing_evidence" with the observations that would confirm it and rule out the competing causes.
 
 IMPORTANT: When building causal chains, anomalies must be ordered by time. The FIRST anomaly in time is the most likely root cause. Do not connect anomalies more than 30 seconds apart unless there is a clear physical mechanism connecting them.
 
@@ -104,6 +112,7 @@ Respond with JSON exactly in this shape:
   "related_anomalies": ["<anomaly label, copied exactly>", ...],
   "supporting_evidence": ["<evidence from the telemetry>", ...],
   "counter_evidence": ["<evidence against, or what would falsify it>", ...],
+  "distinguishing_evidence": ["<observation that would confirm this cause and rule out the competing ones>", ...],
   "recommended_actions": ["<concrete next step>", ...]
 }}]}}"""
 
@@ -148,8 +157,79 @@ Respond with JSON exactly in this shape:
   "related_anomalies": ["<anomaly label, copied exactly>", ...],
   "supporting_evidence": ["<evidence from the telemetry>", ...],
   "counter_evidence": ["<evidence against, or what would falsify it>", ...],
+  "distinguishing_evidence": ["<observation that would confirm this cause and rule out the competing ones>", ...],
   "recommended_actions": ["<concrete next step>", ...]
 }}]}}"""
+
+
+ALTERNATIVE_PROMPT_TEMPLATE = """## Mission context
+{mission_context}
+
+## Flight phases (mission elapsed time windows)
+{phases}
+
+## Leading correlation group (the main failure chain) - needs a competing explanation
+{group}
+
+## Root causes ALREADY proposed for this group - do NOT repeat or reword them
+{existing}
+
+## Knowledge-base matches for the group's first anomaly
+{kb_matches}
+
+## Historical Context (similar past aerospace failures - prior art only, never cite them as anomalies)
+{historical_context}
+
+## Why earlier hypotheses for this flight were rejected or trimmed
+{reasons}
+
+Only {count} distinct root cause(s) were proposed for the leading correlation group. Propose up to 2 DIFFERENT,
+physically distinct root causes that could also explain it, ranked by confidence.
+
+Rules (hypotheses that break them are rejected automatically):
+- "related_anomalies" MUST include "{label}", copied exactly, plus any other group anomalies your chain explains.
+- The mechanism must differ from every root cause listed above; a rewording of one of them is rejected.
+- Fill "distinguishing_evidence" with the observations that would confirm this cause and rule out the ones above.
+- Name the sensor of every anomaly you cite in the description, and quote its time (e.g. "at T+142.4s").
+- Only name a sensor in the title if you cite that sensor's anomaly.
+- Only name a flight phase if the cited anomaly occurred during it.
+- IMPORTANT: When building causal chains, anomalies must be ordered by time. The FIRST anomaly in time is the most likely root cause. Do not connect anomalies more than 30 seconds apart unless there is a clear physical mechanism connecting them.
+
+Respond with JSON exactly in this shape:
+{{"hypotheses": [{{
+  "title": "<short name of the root cause>",
+  "description": "<mechanism, causal chain and how it explains the timeline>",
+  "confidence": <0.0-1.0>,
+  "subsystem": "<subsystem>",
+  "related_anomalies": ["<anomaly label, copied exactly>", ...],
+  "supporting_evidence": ["<evidence from the telemetry>", ...],
+  "counter_evidence": ["<evidence against, or what would falsify it>", ...],
+  "distinguishing_evidence": ["<observation that would confirm this cause and rule out the ones above>", ...],
+  "recommended_actions": ["<concrete next step>", ...]
+}}]}}"""
+
+#: Words ignored when comparing hypothesis titles for near-duplicates.
+_TITLE_STOPWORDS = frozenset(
+    "a an and the of to from due in on by or with for at via caused induced system failure fault anomaly".split()
+)
+
+
+def title_tokens(title: str) -> set[str]:
+    """Significant lower-case words of a hypothesis title."""
+    return {w for w in re.findall(r"[a-z0-9]+", title.lower()) if w not in _TITLE_STOPWORDS}
+
+
+def near_duplicate(a: str, b: str) -> bool:
+    """Heuristic: two titles name the same root cause (word overlap >= 50% or one contains the other).
+
+    This compares wording, not physics; it catches rewordings such as "LOX Tank Pressurisation Leak"
+    vs "LOX Tank Pressurization System Leak", but cannot judge whether two differently worded
+    mechanisms are physically the same.
+    """
+    ta, tb = title_tokens(a), title_tokens(b)
+    if not ta or not tb:
+        return a.strip().lower() == b.strip().lower()
+    return len(ta & tb) / len(ta | tb) >= 0.5 or ta <= tb or tb <= ta
 
 
 #: Sensor-name words too generic to identify a sensor on their own.
@@ -345,6 +425,7 @@ class CoverageRetry:
     reasons_sent: list[str]
     accepted: list[str] = field(default_factory=list)
     historical_cases: list[str] = field(default_factory=list)
+    kind: str = "coverage"  # "coverage" (unexplained anomaly) or "alternative" (competing root cause)
 
 
 @dataclass(slots=True)
@@ -368,6 +449,8 @@ class HypothesisConfig:
     temperature: float = 0.0
     coverage_retries: int = 1
     historical_cases: int = 5
+    #: Minimum number of distinct competing root causes for the leading correlated group.
+    min_competing_hypotheses: int = 2
     correlation_window_seconds: float = 5.0
     flight_phases: list[FlightPhase] = field(default_factory=list)
     #: Sensor -> knowledge-base category, used for the retrieval category bonus.
@@ -405,6 +488,7 @@ class HypothesisConfig:
             temperature=float(data.get("temperature", 0.0)),
             coverage_retries=int(data.get("coverage_retries", 1)),
             historical_cases=int(data.get("historical_cases", 5)),
+            min_competing_hypotheses=int(data.get("min_competing_hypotheses", 2)),
             correlation_window_seconds=correlation_window,
             flight_phases=list(flight_phases or []),
             sensor_categories=mapping or dict(DEFAULT_SENSOR_CATEGORIES),
@@ -472,6 +556,8 @@ class HypothesisGenerator:
         self.last_rejections, self.last_flags, self.last_drops, self.last_retries = [], [], [], []
         self.last_historical_cases, self.last_historical_error = [], None
         self.last_category_preference: CategoryPreference | None = None
+        self.last_leading_group: list[AnomalyEvent] = []
+        self.last_competing: list[str] = []
         self.last_retrieval_query: str | None = None
         if not actionable:
             logger.info("No actionable anomalies - no hypotheses generated")
@@ -501,16 +587,26 @@ class HypothesisGenerator:
                     physical, self.config.historical_cases, self.last_category_preference
                 )
                 try:
+                    self.last_leading_group = self.category_preference(physical).leading_group
                     hypotheses = self._llm_hypotheses(anomalies, physical, kb_matches, analysis, mission_context)
                     if hypotheses:
                         hypotheses += self._coverage_retries(anomalies, physical, hypotheses, kb_matches, mission_context)
+                        hypotheses = self._drop_duplicate_competitors(hypotheses, self.last_leading_group)
+                        hypotheses += self._alternative_retries(
+                            anomalies, physical, hypotheses, self.last_leading_group, kb_matches, mission_context
+                        )
                 except (LLMUnavailableError, ValidationError, ValueError) as exc:
                     logger.warning("LLM hypothesis generation failed, using knowledge-base fallback: %s", exc)
             if not hypotheses:
                 hypotheses = self._rule_based(physical, kb_matches)
                 self.last_source = "rule-based"
 
-        kept = self._select(hypotheses, physical, max(1, self.config.max_hypotheses - len(glitches)))
+        competing = self.competing(hypotheses, self.last_leading_group)
+        self.last_competing = [h.title for h in competing]
+        kept = self._select(
+            hypotheses, physical, max(1, self.config.max_hypotheses - len(glitches)),
+            must_keep=competing[: self.config.min_competing_hypotheses],
+        )
         ranked = sorted(kept + glitches, key=lambda h: h.confidence, reverse=True)
         logger.info("Generated %d hypotheses via %s (+%d instrumentation glitch)", len(kept), self.last_source, len(glitches))
         return ranked
@@ -566,10 +662,128 @@ class HypothesisGenerator:
         return cases
 
     @staticmethod
-    def _select(hypotheses: list[Hypothesis], physical: list[AnomalyEvent], slots: int) -> list[Hypothesis]:
-        """Keep the best hypothesis for every covered anomaly first, then fill remaining slots by confidence."""
+    def competing(hypotheses: list[Hypothesis], lead: list[AnomalyEvent]) -> list[Hypothesis]:
+        """Distinct hypotheses citing the leading group, best first (near-duplicate titles count once)."""
+        lead_ids = {a.id for a in lead}
+        distinct: list[Hypothesis] = []
+        for hypothesis in sorted(hypotheses, key=lambda h: h.confidence, reverse=True):
+            if lead_ids & set(hypothesis.related_anomalies) and not any(
+                near_duplicate(hypothesis.title, kept.title) for kept in distinct
+            ):
+                distinct.append(hypothesis)
+        return distinct
+
+    def _drop_duplicate_competitors(self, hypotheses: list[Hypothesis], lead: list[AnomalyEvent]) -> list[Hypothesis]:
+        """Remove lower-confidence rewordings of the same leading-group root cause (recorded as rejections)."""
+        lead_ids = {a.id for a in lead}
+        kept: list[Hypothesis] = []
+        for hypothesis in sorted(hypotheses, key=lambda h: h.confidence, reverse=True):
+            twin = next(
+                (k for k in kept
+                 if lead_ids & set(k.related_anomalies) and lead_ids & set(hypothesis.related_anomalies)
+                 and near_duplicate(hypothesis.title, k.title)),
+                None,
+            )
+            if twin is not None:
+                self.last_rejections.append(HypothesisRejection(
+                    hypothesis.title, f"near-duplicate of '{twin.title}' (same root cause reworded)",
+                    [], hypothesis.related_anomalies,
+                ))
+                logger.info("Dropped near-duplicate hypothesis '%s' (of '%s')", hypothesis.title, twin.title)
+                continue
+            kept.append(hypothesis)
+        return kept
+
+    def _alternative_retries(
+        self,
+        anomalies: list[AnomalyEvent],
+        physical: list[AnomalyEvent],
+        accepted: list[Hypothesis],
+        lead: list[AnomalyEvent],
+        kb_matches: dict[str, list[SearchResult]],
+        mission_context: str,
+    ) -> list[Hypothesis]:
+        """Ask for competing root causes when the leading group has too few distinct ones.
+
+        Uses the coverage-retry flow (same validation, same retry budget, recorded in
+        ``last_retries`` with ``kind="alternative"``). Answers are kept only if they cite the
+        leading group and are not rewordings of an existing root cause. Nothing is generated
+        from rules: if the LLM does not supply an alternative, the shortfall is just recorded.
+        """
+        needed = self.config.min_competing_hypotheses
+        if not lead or needed <= 1:
+            return []
+        added: list[Hypothesis] = []
+        root = lead[0]
+        for attempt in range(1, self.config.coverage_retries + 1):
+            existing = self.competing([*accepted, *added], lead)
+            if len(existing) >= needed:
+                break
+            reasons = self._reasons_for(root)
+            record = CoverageRetry(root.id, root.label, attempt, reasons, kind="alternative")
+            self.last_retries.append(record)
+            logger.info("Alternative retry %d: leading group has %d distinct root cause(s)", attempt, len(existing))
+            history = self._retrieve_history(lead, min(3, self.config.historical_cases))
+            record.historical_cases = [c.title for c in history]
+            prompt = self._alternative_prompt(lead, existing, physical, kb_matches.get(root.id, []), reasons,
+                                              mission_context, history)
+            try:
+                candidates = self._ask_and_validate(prompt, anomalies, physical)
+            except (LLMUnavailableError, ValueError) as exc:
+                logger.warning("Alternative retry failed: %s", exc)
+                continue
+            lead_ids = {a.id for a in lead}
+            for hypothesis in candidates:
+                twin = next((h for h in [*existing, *added] if near_duplicate(hypothesis.title, h.title)), None)
+                if not lead_ids & set(hypothesis.related_anomalies):
+                    reason = "alternative answer does not cite the leading correlation group"
+                elif twin is not None:
+                    reason = f"alternative answer repeats '{twin.title}' (near-duplicate title)"
+                else:
+                    added.append(hypothesis)
+                    record.accepted.append(hypothesis.title)
+                    continue
+                self.last_rejections.append(HypothesisRejection(hypothesis.title, reason, [], hypothesis.related_anomalies))
+        return added
+
+    def _alternative_prompt(
+        self,
+        lead: list[AnomalyEvent],
+        existing: list[Hypothesis],
+        physical: list[AnomalyEvent],
+        kb_hits: list[SearchResult],
+        reasons: list[str],
+        mission_context: str,
+        history: list[HistoricalCase],
+    ) -> str:
+        """Render the prompt asking for a competing root cause for the leading group."""
+        labels = anomaly_labels(physical)
+        return ALTERNATIVE_PROMPT_TEMPLATE.format(
+            mission_context=mission_context or "Not provided.",
+            phases=self._phase_lines(),
+            group=json.dumps([a.to_prompt_dict(labels) for a in lead], indent=1, default=str),
+            existing="\n".join(f"- {h.title}: {h.description[:240]}" for h in existing) or "- none",
+            kb_matches="\n".join(
+                f"- [{h.metadata.get('kind', '?')}] {h.metadata.get('title', h.id)} (similarity {h.score:.2f}) - {h.text[:300]}"
+                for h in kb_hits
+            ) or "- none",
+            historical_context=format_historical_context(history),
+            reasons="\n".join(f"- {r}" for r in reasons) or "- none",
+            count=len(existing),
+            label=lead[0].label,
+        )
+
+    @staticmethod
+    def _select(
+        hypotheses: list[Hypothesis],
+        physical: list[AnomalyEvent],
+        slots: int,
+        must_keep: Sequence[Hypothesis] = (),
+    ) -> list[Hypothesis]:
+        """Keep ``must_keep`` (competing root causes) and the best hypothesis for every covered
+        anomaly, then fill the remaining slots by confidence."""
         ordered = sorted(hypotheses, key=lambda h: h.confidence, reverse=True)
-        chosen: list[Hypothesis] = []
+        chosen: list[Hypothesis] = [h for h in must_keep if h in hypotheses]
         for anomaly in physical:
             best = next((h for h in ordered if anomaly.id in h.related_anomalies), None)
             if best is not None and best not in chosen:
@@ -593,6 +807,7 @@ class HypothesisGenerator:
     ) -> str:
         """Render the hypothesis prompt (exposed for inspection and testing)."""
         labels = anomaly_labels(anomalies)
+        lead = self.category_preference(actionable).leading_group if actionable else []
         groups = TelemetryAnalyst.correlation_groups(actionable)
         group_lines = [f"- Group {i}: " + " -> ".join(a.label for a in group) for i, group in enumerate(groups, 1)]
         kb_lines: list[str] = []
@@ -621,6 +836,8 @@ class HypothesisGenerator:
             expected="\n".join(f"- {a.label}: {a.description}" for a in expected) or "- none",
             kb_matches="\n".join(kb_lines) or "- none",
             historical_context=format_historical_context(historical or []),
+            leading_group=" -> ".join(a.label for a in lead) or "- none",
+            min_competing=self.config.min_competing_hypotheses,
             max_hypotheses=self.config.max_hypotheses,
         )
 
@@ -840,6 +1057,7 @@ class HypothesisGenerator:
                 supporting_evidence=_as_list(item.get("supporting_evidence")),
                 counter_evidence=_as_list(item.get("counter_evidence")),
                 recommended_actions=_as_list(item.get("recommended_actions")),
+                distinguishing_evidence=_as_list(item.get("distinguishing_evidence")),
                 source=source,
             )
         except ValidationError as exc:

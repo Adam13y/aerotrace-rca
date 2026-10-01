@@ -359,9 +359,21 @@ class Supervisor:
             )
         for retry in generator.last_retries:
             outcome = f"accepted: {retry.accepted}" if retry.accepted else "no valid hypothesis returned"
+            what = (f"Alternative retry {retry.attempt} for leading group (root '{retry.label}')"
+                    if retry.kind == "alternative" else f"Coverage retry {retry.attempt} for unexplained '{retry.label}'")
             self.log_decision(
-                "hypothesis_generator", f"Coverage retry {retry.attempt} for unexplained '{retry.label}'",
+                "hypothesis_generator", what,
                 f"id={retry.anomaly_id}; {outcome}; reasons_sent={retry.reasons_sent}",
+            )
+        if generator.last_leading_group:
+            needed = generator.config.min_competing_hypotheses
+            count = len(generator.last_competing)
+            self.log_decision(
+                "hypothesis_generator",
+                f"Leading group has {count} distinct competing root cause(s)"
+                + ("" if count >= needed else f" - fewer than the required {needed}, none fabricated"),
+                "group=" + "; ".join(a.label for a in generator.last_leading_group)
+                + f"; competing={generator.last_competing}",
             )
         for flag in self.hypothesis_generator.last_flags:
             self.log_decision(

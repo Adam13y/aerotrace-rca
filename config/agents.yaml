@@ -52,6 +52,7 @@ hypothesis_generator:
   temperature: 0.0                  # deterministic hypotheses (Ollama also uses a fixed seed)
   coverage_retries: 1               # re-asks per real anomaly left unexplained after validation
   historical_cases: 5               # RAG: knowledge-base cases injected into the prompt
+  min_competing_hypotheses: 2       # distinct root causes required for the leading correlated group
 
 historical_rag:
   enabled: true

@@ -14,6 +14,7 @@ from src.agents.hypothesis_generator import (
     HypothesisGenerator,
     citation_problem,
     max_time_gap,
+    near_duplicate,
     phase_problem,
     topic_problem,
 )
@@ -538,9 +539,10 @@ def test_coverage_retry_explains_left_over_anomaly(kb: KnowledgeBase, anomalies:
     generator = HypothesisGenerator(kb, router=LLMRouter(client, None))  # type: ignore[arg-type]
     generated = generator.generate([*anomalies, voltage])
     assert {h.title for h in generated} == {"Propellant Pump Cavitation", "Battery cell fault"}
-    assert len(generator.last_retries) == 1 and generator.last_retries[0].label == voltage.label
-    assert generator.last_retries[0].accepted == ["Battery cell fault"]
-    assert any("title names the avionics bus voltage sensor" in r for r in generator.last_retries[0].reasons_sent)
+    coverage = [r for r in generator.last_retries if r.kind == "coverage"]
+    assert len(coverage) == 1 and coverage[0].label == voltage.label
+    assert coverage[0].accepted == ["Battery cell fault"]
+    assert any("title names the avionics bus voltage sensor" in r for r in coverage[0].reasons_sent)
     retry_prompt = client.prompts[1]
     assert "UNEXPLAINED anomaly" in retry_prompt and voltage.label in retry_prompt
     assert "title names the avionics bus voltage sensor" in retry_prompt
@@ -553,8 +555,9 @@ def test_coverage_retry_answer_must_cite_target(kb: KnowledgeBase, anomalies: li
     client = SequenceClient([same, same, same])
     generator = HypothesisGenerator(kb, router=LLMRouter(client, None))  # type: ignore[arg-type]
     generator.generate([*anomalies, voltage])
-    assert len(generator.last_retries) == 2  # vibration and voltage were both left unexplained
-    assert all(not r.accepted for r in generator.last_retries)
+    coverage = [r for r in generator.last_retries if r.kind == "coverage"]
+    assert len(coverage) == 2  # vibration and voltage were both left unexplained
+    assert all(not r.accepted for r in coverage)
     assert any("does not cite the target" in r.reason for r in generator.last_rejections)
 
 
@@ -603,3 +606,95 @@ def test_reproducible_mode_reloads_model_for_every_call() -> None:
 
 def test_unload_failure_is_ignored() -> None:
     OllamaClient("http://localhost:1", "qwen").unload()  # nothing listening: must not raise
+
+
+# --------------------------------------------------------------------------- #
+# Competing hypotheses for the leading correlated group
+# --------------------------------------------------------------------------- #
+def _hyp(title: str, cites: list[AnomalyEvent], confidence: float, text: str, **extra: object) -> dict:
+    return {"title": title, "confidence": confidence, "description": text,
+            "related_anomalies": [a.label for a in cites], **extra}
+
+
+LEAD_TEXT = "LOX tank pressure fell at T+142s and turbopump vibration rose at T+143s."
+
+
+def test_near_duplicate_titles() -> None:
+    assert near_duplicate("LOX Tank Pressurisation Leak", "LOX Tank Pressurization System Leak")
+    assert near_duplicate("Turbopump Cavitation", "Turbopump Cavitation Due to Low Inlet Pressure")
+    assert not near_duplicate("Turbopump Bearing Failure", "Turbopump Seal Failure")
+    assert not near_duplicate("Pressurisation Regulator Failure", "Propellant Pump Cavitation")
+    # Known limit of the word-overlap heuristic: synonyms are not recognised.
+    assert not near_duplicate("Pump cavitation", "Turbopump cavitation from low inlet pressure")
+
+
+def test_two_competing_hypotheses_need_no_retry(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
+    lox, vib = anomalies[1], anomalies[2]
+    client = SequenceClient([{"hypotheses": [
+        _hyp("Pump cavitation", [lox, vib], 0.8, LEAD_TEXT, distinguishing_evidence=["pump inlet pressure below NPSP"]),
+        _hyp("Regulator failure", [lox, vib], 0.6, LEAD_TEXT, distinguishing_evidence=["regulator outlet pressure low"]),
+    ]}])
+    generator = HypothesisGenerator(kb, router=LLMRouter(client, None))  # type: ignore[arg-type]
+    generated = generator.generate(anomalies)
+    assert [h.title for h in generated] == ["Pump cavitation", "Regulator failure"]
+    assert generated[0].distinguishing_evidence == ["pump inlet pressure below NPSP"]
+    assert generator.last_competing == ["Pump cavitation", "Regulator failure"]
+    assert not generator.last_retries and len(client.prompts) == 1
+    assert "COMPETING HYPOTHESES" in client.prompts[0] and "## Leading correlation group" in client.prompts[0]
+    assert "AT LEAST 2 DISTINCT" in client.prompts[0]
+
+
+def test_single_root_cause_triggers_alternative_retry(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
+    lox, vib = anomalies[1], anomalies[2]
+    client = SequenceClient([
+        {"hypotheses": [_hyp("Pump cavitation", [lox, vib], 0.9, LEAD_TEXT)]},
+        {"hypotheses": [
+            _hyp("Pump Cavitation Due to Low Inlet Pressure", [lox, vib], 0.7, LEAD_TEXT),  # reworded duplicate
+            _hyp("Pressurant regulator failure", [lox, vib], 0.5, LEAD_TEXT,
+                 distinguishing_evidence=["helium bottle pressure stays flat"]),
+        ]},
+    ])
+    generator = HypothesisGenerator(kb, router=LLMRouter(client, None))  # type: ignore[arg-type]
+    generated = generator.generate(anomalies)
+    assert [h.title for h in generated] == ["Pump cavitation", "Pressurant regulator failure"]
+    retry = next(r for r in generator.last_retries if r.kind == "alternative")
+    assert retry.label == lox.label and retry.accepted == ["Pressurant regulator failure"]
+    prompt = client.prompts[1]
+    assert "do NOT repeat or reword them" in prompt and "- Pump cavitation:" in prompt
+    assert any("repeats 'Pump cavitation'" in r.reason for r in generator.last_rejections)
+
+
+def test_shortfall_is_recorded_not_fabricated(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
+    lox, vib = anomalies[1], anomalies[2]
+    only = {"hypotheses": [_hyp("Pump cavitation", [lox, vib], 0.9, LEAD_TEXT)]}
+    client = SequenceClient([only, only])
+    generator = HypothesisGenerator(kb, router=LLMRouter(client, None))  # type: ignore[arg-type]
+    generated = generator.generate(anomalies)
+    assert [h.title for h in generated] == ["Pump cavitation"]  # no rule-based filler
+    assert all(h.source != "rule-based" for h in generated)
+    assert generator.last_competing == ["Pump cavitation"]
+    assert [r.kind for r in generator.last_retries] == ["alternative"]
+
+
+def test_reworded_duplicate_in_first_answer_is_dropped(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
+    lox, vib = anomalies[1], anomalies[2]
+    client = SequenceClient([{"hypotheses": [
+        _hyp("LOX Tank Pressurisation Leak", [lox, vib], 0.9, LEAD_TEXT),
+        _hyp("LOX Tank Pressurization System Leak", [lox, vib], 0.8, LEAD_TEXT),
+        _hyp("Pump cavitation", [lox, vib], 0.7, LEAD_TEXT),
+    ]}])
+    generator = HypothesisGenerator(kb, router=LLMRouter(client, None))  # type: ignore[arg-type]
+    titles = [h.title for h in generator.generate(anomalies)]
+    assert titles == ["LOX Tank Pressurisation Leak", "Pump cavitation"]
+    assert any(r.reason.startswith("near-duplicate of 'LOX Tank Pressurisation Leak'") for r in generator.last_rejections)
+
+
+def test_competing_hypotheses_survive_selection_cap(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
+    lox, vib = anomalies[1], anomalies[2]
+    others = [_anomaly(f"sensor_{i}", 200 + 40 * i, Severity.CRITICAL) for i in range(4)]
+    answers = [_hyp("Pump cavitation", [lox, vib], 0.40, LEAD_TEXT), _hyp("Regulator failure", [lox, vib], 0.30, LEAD_TEXT)]
+    answers += [_hyp(f"Cause {i}", [a], 0.9, f"sensor {i} deviated at T+{a.mission_elapsed_s:g}s.") for i, a in enumerate(others)]
+    generator = HypothesisGenerator(kb, router=LLMRouter(SequenceClient([{"hypotheses": answers}]), None),  # type: ignore[arg-type]
+                                    config=HypothesisConfig(max_hypotheses=3))
+    titles = {h.title for h in generator.generate([*anomalies, *others])}
+    assert {"Pump cavitation", "Regulator failure"} <= titles

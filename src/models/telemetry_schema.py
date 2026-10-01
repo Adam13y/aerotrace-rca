@@ -172,6 +172,8 @@ class Hypothesis(BaseModel):
     related_anomalies: list[str] = Field(default_factory=list)
     subsystem: str = "unknown"
     recommended_actions: list[str] = Field(default_factory=list)
+    #: Observations that would confirm this cause and rule out competing ones.
+    distinguishing_evidence: list[str] = Field(default_factory=list)
     source: str = "rule-based"
 
     @field_validator("confidence", mode="before")

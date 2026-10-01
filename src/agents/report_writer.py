@@ -316,6 +316,9 @@ class ReportWriter:
                     lines += ["**Related anomalies:**", ""] + [f"- {labels.get(x, x)}" for x in h.related_anomalies] + [""]
                 lines += ["**Supporting evidence**", ""] + [f"- {e}" for e in h.supporting_evidence or ["None listed."]] + [""]
                 lines += ["**Counter-evidence / open questions**", ""] + [f"- {e}" for e in h.counter_evidence or ["None listed."]] + [""]
+                if h.distinguishing_evidence:
+                    lines += ["**What would distinguish it from the alternatives**", ""]
+                    lines += [f"- {e}" for e in h.distinguishing_evidence] + [""]
 
         cases = meta.get("historical_cases") or []
         if cases:
