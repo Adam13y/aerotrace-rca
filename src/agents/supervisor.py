@@ -306,6 +306,18 @@ class Supervisor:
             .generate(result.anomalies, result.analysis, context),
             errors=result.errors,
         )
+        generator = self.hypothesis_generator
+        for drop in generator.last_drops:
+            self.log_decision(
+                "hypothesis_validator", f"Dropped citation '{drop.reference}' from '{drop.title}'",
+                f"{drop.reason}; anomaly_id={drop.anomaly_id}",
+            )
+        for retry in generator.last_retries:
+            outcome = f"accepted: {retry.accepted}" if retry.accepted else "no valid hypothesis returned"
+            self.log_decision(
+                "hypothesis_generator", f"Coverage retry {retry.attempt} for unexplained '{retry.label}'",
+                f"id={retry.anomaly_id}; {outcome}; reasons_sent={retry.reasons_sent}",
+            )
         for flag in self.hypothesis_generator.last_flags:
             self.log_decision(
                 "hypothesis_validator", f"Flagged hypothesis '{flag.title}' as low-confidence",
@@ -321,6 +333,7 @@ class Supervisor:
             f"source={self.hypothesis_generator.last_source}, "
             f"rejected={len(self.hypothesis_generator.last_rejections)}, "
             f"flagged={len(self.hypothesis_generator.last_flags)}, "
+            f"dropped_citations={len(generator.last_drops)}, coverage_retries={len(generator.last_retries)}, "
             f"sensor_faults={sum(a.classification.get('fault_class') == SENSOR_FAULT for a in result.anomalies)}, "
             "anomaly_ids=" + "; ".join(f"{h.title}: {h.related_anomalies}" for h in result.hypotheses),
         )

@@ -99,6 +99,7 @@ class DetectorConfig:
     min_points: int = 20
     max_readings_per_event: int = 40
     provider_preference: str = "local"
+    llm_temperature: float = 0.0
     sensor_limits: dict[str, tuple[float | None, float | None]] = field(default_factory=dict)
     planned_events: list[PlannedEvent] = field(default_factory=list)
 
@@ -422,7 +423,9 @@ class AnomalyDetector:
                 "Classify these telemetry anomalies. Mission elapsed time (met_s) is seconds from first sample.\n\n"
                 + json.dumps([e.to_prompt_dict(labels) for e in batch], indent=1, default=str)
             )
-            document, response = self.router.complete_json(CLASSIFIER_SYSTEM_PROMPT, prompt, prefer=prefer, temperature=0.1)
+            document, response = self.router.complete_json(
+                CLASSIFIER_SYSTEM_PROMPT, prompt, prefer=prefer, temperature=self.config.llm_temperature
+            )
             self.last_classifier = f"{response.provider}:{response.model}"
             items = document.get("classifications", []) if isinstance(document, dict) else document
             if not isinstance(items, list):

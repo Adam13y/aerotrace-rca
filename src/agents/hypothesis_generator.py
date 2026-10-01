@@ -76,6 +76,49 @@ Citation rules (hypotheses that break them are rejected automatically):
 - Cite anomalies from different correlation groups only if you quote each one's time (e.g. "at T+142.4s").
 - If you link anomalies more than 30 seconds apart, state the delay and the mechanism that explains it.
 - Only name a flight phase (e.g. Max-Q, throttle bucket, engine cutoff) if a cited anomaly occurred during it.
+- Only name a sensor in the title (e.g. "Avionics Bus Under-Voltage") if you cite that sensor's anomaly.
+- Never cite expected transients or instrumentation glitches.
+
+Respond with JSON exactly in this shape:
+{{"hypotheses": [{{
+  "title": "<short name of the root cause>",
+  "description": "<mechanism, causal chain and how it explains the timeline>",
+  "confidence": <0.0-1.0>,
+  "subsystem": "<subsystem>",
+  "related_anomalies": ["<anomaly label, copied exactly>", ...],
+  "supporting_evidence": ["<evidence from the telemetry>", ...],
+  "counter_evidence": ["<evidence against, or what would falsify it>", ...],
+  "recommended_actions": ["<concrete next step>", ...]
+}}]}}"""
+
+
+COVERAGE_PROMPT_TEMPLATE = """## Mission context
+{mission_context}
+
+## Flight phases (mission elapsed time windows)
+{phases}
+
+## UNEXPLAINED anomaly - explain this one
+{anomaly}
+
+## Other real anomalies in this flight (context; cite only if causally linked within 30 s)
+{others}
+
+## Knowledge-base matches for the unexplained anomaly
+{kb_matches}
+
+## Why earlier hypotheses for this flight were rejected or trimmed
+{reasons}
+
+None of the accepted root-cause hypotheses validly explains the anomaly "{label}".
+Propose up to 2 root-cause hypotheses for it, avoiding the mistakes listed above.
+
+Rules (hypotheses that break them are rejected automatically):
+- "related_anomalies" MUST include "{label}", copied exactly.
+- Name the sensor of every anomaly you cite in the description, and quote its time (e.g. "at T+209.9s").
+- Only name a sensor in the title if you cite that sensor's anomaly.
+- Only name a flight phase if the cited anomaly occurred during it.
+- IMPORTANT: When building causal chains, anomalies must be ordered by time. The FIRST anomaly in time is the most likely root cause. Do not connect anomalies more than 30 seconds apart unless there is a clear physical mechanism connecting them.
 
 Respond with JSON exactly in this shape:
 {{"hypotheses": [{{
@@ -168,6 +211,30 @@ def phase_problem(anomalies: list[AnomalyEvent], text: str, phases: list[FlightP
     return None
 
 
+def mentions_sensor(sensor_id: str, text: str) -> bool:
+    """Whether ``text`` names ``sensor_id`` (see :func:`sensor_phrases`)."""
+    lowered = text.lower().replace("_", " ")
+    return any(re.search(rf"\b{re.escape(p)}\b", lowered) for p in sensor_phrases(sensor_id))
+
+
+def topic_problem(title: str, cited: list[AnomalyEvent], sensors: set[str]) -> str | None:
+    """Reject titles that name a sensor whose anomaly the hypothesis does not cite.
+
+    Args:
+        title: Hypothesis title.
+        cited: The hypothesis's (valid) cited anomalies.
+        sensors: Sensors that have actionable anomalies in this flight.
+    """
+    cited_sensors = {a.sensor_id for a in cited}
+    named = sorted(s for s in sensors if mentions_sensor(s, title))
+    missing = [s for s in named if s not in cited_sensors]
+    if missing:
+        names = ", ".join(s.replace("_", " ") for s in missing)
+        cited_text = "; ".join(f"'{a.label}'" for a in cited) or "nothing"
+        return f"title names the {names} sensor but the hypothesis does not cite its anomaly (cites {cited_text})"
+    return None
+
+
 def quotes_time_of(anomaly: AnomalyEvent, text: str) -> bool:
     """Whether ``text`` quotes a mission time (``T+...``) inside the anomaly's interval (+/-1 s)."""
     start = anomaly.mission_elapsed_s or 0.0
@@ -231,6 +298,27 @@ class HypothesisRejection:
 
 
 @dataclass(slots=True)
+class DroppedReference:
+    """A single bad citation removed from an otherwise acceptable hypothesis."""
+
+    title: str
+    reference: str
+    reason: str
+    anomaly_id: str | None = None
+
+
+@dataclass(slots=True)
+class CoverageRetry:
+    """One re-ask of the LLM for an anomaly left unexplained after validation."""
+
+    anomaly_id: str
+    label: str
+    attempt: int
+    reasons_sent: list[str]
+    accepted: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class HypothesisFlag:
     """A hypothesis accepted with reduced confidence by the validation layer."""
 
@@ -248,7 +336,8 @@ class HypothesisConfig:
     provider_preference: str = "cloud"
     max_hypotheses: int = 6
     knowledge_base_matches: int = 3
-    temperature: float = 0.2
+    temperature: float = 0.0
+    coverage_retries: int = 1
     correlation_window_seconds: float = 5.0
     flight_phases: list[FlightPhase] = field(default_factory=list)
 
@@ -269,7 +358,8 @@ class HypothesisConfig:
             provider_preference=str(data.get("provider_preference", "cloud")),
             max_hypotheses=int(data.get("max_hypotheses", 6)),
             knowledge_base_matches=int(data.get("knowledge_base_matches", 3)),
-            temperature=float(data.get("temperature", 0.2)),
+            temperature=float(data.get("temperature", 0.0)),
+            coverage_retries=int(data.get("coverage_retries", 1)),
             correlation_window_seconds=correlation_window,
             flight_phases=list(flight_phases or []),
         )
@@ -300,6 +390,8 @@ class HypothesisGenerator:
         self.last_source = "none"
         self.last_rejections: list[HypothesisRejection] = []
         self.last_flags: list[HypothesisFlag] = []
+        self.last_drops: list[DroppedReference] = []
+        self.last_retries: list[CoverageRetry] = []
 
     def generate(
         self,
@@ -309,14 +401,17 @@ class HypothesisGenerator:
     ) -> list[Hypothesis]:
         """Produce hypotheses ranked by confidence (highest first).
 
+        Flow: instrumentation-glitch hypotheses for sensor faults; one LLM call for the physical
+        anomalies; validation; a focused coverage retry for each physical anomaly still
+        unexplained; rule-based fallback if the LLM yields nothing usable.
+
         Args:
             anomalies: Classified, contextualised anomaly events.
             analysis: Optional dataset overview for context.
             mission_context: Free-text description of the vehicle and mission.
         """
         actionable = sorted((a for a in anomalies if not a.expected), key=lambda a: a.timestamp)
-        self.last_rejections = []
-        self.last_flags = []
+        self.last_rejections, self.last_flags, self.last_drops, self.last_retries = [], [], [], []
         if not actionable:
             logger.info("No actionable anomalies - no hypotheses generated")
             self.last_source = "none"
@@ -335,18 +430,34 @@ class HypothesisGenerator:
             if self.use_llm and self.router is not None:
                 try:
                     hypotheses = self._llm_hypotheses(anomalies, physical, kb_matches, analysis, mission_context)
+                    if hypotheses:
+                        hypotheses += self._coverage_retries(anomalies, physical, hypotheses, kb_matches, mission_context)
                 except (LLMUnavailableError, ValidationError, ValueError) as exc:
                     logger.warning("LLM hypothesis generation failed, using knowledge-base fallback: %s", exc)
             if not hypotheses:
                 hypotheses = self._rule_based(physical, kb_matches)
                 self.last_source = "rule-based"
 
-        # Always keep the instrumentation-glitch hypotheses; fill the remaining slots by confidence.
-        slots = max(1, self.config.max_hypotheses - len(glitches))
-        kept = sorted(hypotheses, key=lambda h: h.confidence, reverse=True)[:slots]
+        kept = self._select(hypotheses, physical, max(1, self.config.max_hypotheses - len(glitches)))
         ranked = sorted(kept + glitches, key=lambda h: h.confidence, reverse=True)
         logger.info("Generated %d hypotheses via %s (+%d instrumentation glitch)", len(kept), self.last_source, len(glitches))
         return ranked
+
+    @staticmethod
+    def _select(hypotheses: list[Hypothesis], physical: list[AnomalyEvent], slots: int) -> list[Hypothesis]:
+        """Keep the best hypothesis for every covered anomaly first, then fill remaining slots by confidence."""
+        ordered = sorted(hypotheses, key=lambda h: h.confidence, reverse=True)
+        chosen: list[Hypothesis] = []
+        for anomaly in physical:
+            best = next((h for h in ordered if anomaly.id in h.related_anomalies), None)
+            if best is not None and best not in chosen:
+                chosen.append(best)
+        for hypothesis in ordered:
+            if len(chosen) >= slots:
+                break
+            if hypothesis not in chosen:
+                chosen.append(hypothesis)
+        return chosen
 
     # ------------------------------------------------------------------ #
     def build_prompt(
@@ -383,10 +494,7 @@ class HypothesisGenerator:
                 f"- {a.label}: {a.classification.get('fault_class_reason', 'instrumentation glitch')}" for a in faults
             ) or "- none",
             groups="\n".join(group_lines) or "- none",
-            phases="\n".join(
-                f"- {p.name}: T+{p.start:g}s to " + ("end of record" if p.end >= 1e8 else f"T+{p.end:g}s")
-                for p in self.config.flight_phases
-            ) or "- not defined",
+            phases=self._phase_lines(),
             expected="\n".join(f"- {a.label}: {a.description}" for a in expected) or "- none",
             kb_matches="\n".join(kb_lines) or "- none",
             max_hypotheses=self.config.max_hypotheses,
@@ -400,8 +508,15 @@ class HypothesisGenerator:
         analysis: TelemetryAnalysis | None,
         mission_context: str,
     ) -> list[Hypothesis]:
-        assert self.router is not None
+        """Run the main hypothesis prompt and return the hypotheses that pass validation."""
         prompt = self.build_prompt(anomalies, actionable, kb_matches, analysis, mission_context)
+        return self._ask_and_validate(prompt, anomalies, actionable)
+
+    def _ask_and_validate(
+        self, prompt: str, anomalies: list[AnomalyEvent], actionable: list[AnomalyEvent]
+    ) -> list[Hypothesis]:
+        """Send ``prompt`` to the LLM and validate every returned hypothesis."""
+        assert self.router is not None
         prefer = "local" if self.config.provider_preference == "local" else "cloud"
         document, response = self.router.complete_json(SYSTEM_PROMPT, prompt, prefer=prefer, temperature=self.config.temperature)
         items = document.get("hypotheses") if isinstance(document, dict) else document
@@ -411,18 +526,96 @@ class HypothesisGenerator:
         group_of = {
             a.id: index for index, group in enumerate(TelemetryAnalyst.correlation_groups(actionable)) for a in group
         }
-        faults = [a for a in anomalies if not a.expected and a.classification.get("fault_class") == SENSOR_FAULT]
-        hypotheses: list[Hypothesis] = []
+        accepted: list[Hypothesis] = []
         for item in items:
             if not isinstance(item, dict):
                 continue
-            hypothesis = self._validate(item, actionable, source, group_of, faults)
+            hypothesis = self._validate(item, actionable, source, group_of, anomalies)
             if hypothesis is not None:
-                hypotheses.append(hypothesis)
-        if not hypotheses:
-            raise ValueError(f"All {len(items)} LLM hypotheses failed validation")
-        self.last_source = source
-        return hypotheses
+                accepted.append(hypothesis)
+        if accepted:
+            self.last_source = source
+        return accepted
+
+    def _coverage_retries(
+        self,
+        anomalies: list[AnomalyEvent],
+        physical: list[AnomalyEvent],
+        accepted: list[Hypothesis],
+        kb_matches: dict[str, list[SearchResult]],
+        mission_context: str,
+    ) -> list[Hypothesis]:
+        """Re-ask the LLM about each physical anomaly that no accepted hypothesis cites.
+
+        Each retry prompt contains only the unexplained anomaly (plus context) and the reasons
+        earlier hypotheses were rejected or trimmed. Only hypotheses that cite the target are kept.
+        """
+        added: list[Hypothesis] = []
+        for target in physical:
+            for attempt in range(1, self.config.coverage_retries + 1):
+                if any(target.id in h.related_anomalies for h in [*accepted, *added]):
+                    break
+                reasons = self._reasons_for(target)
+                record = CoverageRetry(target.id, target.label, attempt, reasons)
+                self.last_retries.append(record)
+                logger.info("Coverage retry %d for unexplained anomaly %s", attempt, target.label)
+                prompt = self._coverage_prompt(target, physical, kb_matches.get(target.id, []), reasons, mission_context)
+                try:
+                    candidates = self._ask_and_validate(prompt, anomalies, physical)
+                except (LLMUnavailableError, ValueError) as exc:
+                    logger.warning("Coverage retry for %s failed: %s", target.label, exc)
+                    continue
+                for hypothesis in candidates:
+                    if target.id in hypothesis.related_anomalies:
+                        added.append(hypothesis)
+                        record.accepted.append(hypothesis.title)
+                    else:
+                        self.last_rejections.append(HypothesisRejection(
+                            hypothesis.title, f"coverage retry answer does not cite the target '{target.label}'",
+                            [], hypothesis.related_anomalies,
+                        ))
+        return added
+
+    def _reasons_for(self, target: AnomalyEvent, limit: int = 8) -> list[str]:
+        """Rejection/trim reasons from earlier attempts, those about ``target`` first."""
+        about: list[str] = []
+        other: list[str] = []
+        for rejection in self.last_rejections:
+            line = f"'{rejection.title}' rejected: {rejection.reason}"
+            (about if target.id in rejection.cited_ids or target.label in rejection.reason else other).append(line)
+        for drop in self.last_drops:
+            line = f"'{drop.title}': citation '{drop.reference}' dropped - {drop.reason}"
+            (about if drop.anomaly_id == target.id else other).append(line)
+        return (about + other)[:limit]
+
+    def _coverage_prompt(
+        self,
+        target: AnomalyEvent,
+        physical: list[AnomalyEvent],
+        kb_hits: list[SearchResult],
+        reasons: list[str],
+        mission_context: str,
+    ) -> str:
+        """Render the focused prompt for one unexplained anomaly."""
+        labels = anomaly_labels(physical)
+        return COVERAGE_PROMPT_TEMPLATE.format(
+            mission_context=mission_context or "Not provided.",
+            phases=self._phase_lines(),
+            anomaly=json.dumps(target.to_prompt_dict(labels), indent=1, default=str),
+            others="\n".join(f"- {a.label}" for a in physical if a.id != target.id) or "- none",
+            kb_matches="\n".join(
+                f"- [{h.metadata.get('kind', '?')}] {h.metadata.get('title', h.id)} (similarity {h.score:.2f}) - {h.text[:300]}"
+                for h in kb_hits
+            ) or "- none",
+            reasons="\n".join(f"- {r}" for r in reasons) or "- no hypothesis cited this anomaly",
+            label=target.label,
+        )
+
+    def _phase_lines(self) -> str:
+        return "\n".join(
+            f"- {p.name}: T+{p.start:g}s to " + ("end of record" if p.end >= 1e8 else f"T+{p.end:g}s")
+            for p in self.config.flight_phases
+        ) or "- not defined"
 
     def _validate(
         self,
@@ -430,58 +623,71 @@ class HypothesisGenerator:
         actionable: list[AnomalyEvent],
         source: str,
         group_of: dict[str, int] | None = None,
-        faults: list[AnomalyEvent] | None = None,
+        all_anomalies: list[AnomalyEvent] | None = None,
     ) -> Hypothesis | None:
-        """Validate one LLM hypothesis; record a rejection and return ``None`` if it fails.
+        """Validate one LLM hypothesis; return ``None`` (and record why) if it is rejected.
 
-        A hypothesis is rejected when it:
+        Citation-level problems drop just that citation (recorded in ``last_drops``):
+        unknown anomalies, expected transients, classified sensor faults, and anomalies whose
+        sensor/time the hypothesis text does not support. The hypothesis is rejected when:
 
-        * cites no anomalies, or an anomaly that was not detected (or is a classified sensor fault);
-        * cites an anomaly whose sensor/time its own text does not support;
-        * cites anomalies from different correlated groups without quoting each one's time;
-        * names a flight phase (Max-Q, engine cutoff, ...) in which none of its cited anomalies occurred.
+        * no valid citations remain;
+        * its title names a sensor whose anomaly it does not cite (topic check);
+        * it names a flight phase in which none of its cited anomalies occurred;
+        * it cites anomalies from different correlated groups without quoting each one's time.
 
-        A hypothesis that links anomalies more than 30 s apart without explaining the delay is
-        accepted but flagged: its confidence is halved (capped at 0.3) and a counter-evidence note added.
+        A hypothesis linking anomalies more than 30 s apart without explaining the delay is kept
+        but flagged: confidence halved (capped at 0.3) and a counter-evidence note added.
         """
         group_of = group_of or {}
+        all_anomalies = all_anomalies or actionable
+        expected = [a for a in all_anomalies if a.expected]
+        faults = [a for a in all_anomalies if not a.expected and a.classification.get("fault_class") == SENSOR_FAULT]
         title = str(item.get("title") or "Untitled hypothesis")
         cited = _as_list(item.get("related_anomalies"))
+        text = " ".join([title, str(item.get("description", "")), *_as_list(item.get("supporting_evidence"))])
+        dropped: list[DroppedReference] = []
 
         def reject(reason: str, cited_ids: list[str] | None = None) -> None:
             self.last_rejections.append(HypothesisRejection(title, reason, cited, cited_ids or []))
             logger.warning("Rejected hypothesis '%s': %s", title, reason)
 
-        if not cited:
-            reject("cites no anomalies")
-            return None
+        def drop(reference: str, reason: str, anomaly: AnomalyEvent | None = None) -> None:
+            dropped.append(DroppedReference(title, reference, reason, anomaly.id if anomaly else None))
+
         resolved: list[AnomalyEvent] = []
         for reference in cited:
             event = resolve_anomaly_reference(reference, actionable)
             if event is None:
-                fault = resolve_anomaly_reference(reference, faults or [])
-                if fault is not None:
-                    reject(
-                        f"cites '{fault.label}', which the sensor-fault classifier identified as an instrumentation "
-                        "glitch (explained separately)",
-                        [e.id for e in resolved] + [fault.id],
-                    )
+                if (transient := resolve_anomaly_reference(reference, expected)) is not None:
+                    drop(reference, f"'{transient.label}' is an expected transient (planned event)", transient)
+                elif (fault := resolve_anomaly_reference(reference, faults)) is not None:
+                    drop(reference, f"'{fault.label}' is an instrumentation glitch (explained separately)", fault)
                 else:
-                    reject(f"cites '{reference}', which is not a detected anomaly", [e.id for e in resolved])
-                return None
-            if event not in resolved:
-                resolved.append(event)
-        text = " ".join([title, str(item.get("description", "")), *_as_list(item.get("supporting_evidence"))])
-        for event in resolved:
+                    drop(reference, "not a detected anomaly")
+                continue
+            if event in resolved:
+                continue
             problem = citation_problem(event, text)
             if problem:
-                reject(f"cites '{event.label}' but {problem}", [e.id for e in resolved])
-                return None
-        cited_ids = [e.id for e in resolved]
-        problem = phase_problem(resolved, text, self.config.flight_phases)
-        if problem:
-            reject(problem, cited_ids)
+                drop(reference, f"cites '{event.label}' but {problem}", event)
+                continue
+            resolved.append(event)
+
+        if not resolved:
+            details = "; ".join(d.reason for d in dropped) or "cites no anomalies"
+            reject(f"no valid citations remain ({details})" if dropped else "cites no anomalies",
+                   [d.anomaly_id for d in dropped if d.anomaly_id])
             return None
+        cited_ids = [e.id for e in resolved]
+        sensors = {a.sensor_id for a in all_anomalies if not a.expected}
+        for problem in (
+            topic_problem(title, resolved, sensors),
+            phase_problem(resolved, text, self.config.flight_phases),
+        ):
+            if problem:
+                reject(problem, cited_ids)
+                return None
         cited_groups = {group_of.get(e.id, -1) for e in resolved}
         if len(cited_groups) > 1:
             unquoted = [e for e in resolved if not quotes_time_of(e, text)]
@@ -498,7 +704,7 @@ class HypothesisGenerator:
                 description=str(item.get("description", "")),
                 confidence=item.get("confidence", 0.0),
                 subsystem=str(item.get("subsystem", "unknown")),
-                related_anomalies=[e.id for e in resolved],
+                related_anomalies=cited_ids,
                 supporting_evidence=_as_list(item.get("supporting_evidence")),
                 counter_evidence=_as_list(item.get("counter_evidence")),
                 recommended_actions=_as_list(item.get("recommended_actions")),
@@ -507,6 +713,9 @@ class HypothesisGenerator:
         except ValidationError as exc:
             reject(f"malformed fields ({exc.errors()[0].get('msg', exc)})", cited_ids)
             return None
+        for item_drop in dropped:
+            self.last_drops.append(item_drop)
+            logger.info("Hypothesis '%s': dropped citation '%s' (%s)", title, item_drop.reference, item_drop.reason)
         gap = max_time_gap(resolved)
         if gap > _MAX_UNEXPLAINED_GAP_S and not _GAP_EXPLANATION.search(text):
             adjusted = round(min(hypothesis.confidence * _GAP_CONFIDENCE_FACTOR, _GAP_CONFIDENCE_CAP), 2)

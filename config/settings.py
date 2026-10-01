@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     ollama_model: str = Field(default="qwen2.5:14b-instruct-q4_K_M")
     claude_model: str = Field(default="claude-opus-5-5")
     ollama_timeout: float = Field(default=120.0, gt=0)
+    ollama_seed: int | None = Field(default=42)
     claude_max_tokens: int = Field(default=4096, gt=0)
     data_dir: Path = Field(default=PROJECT_ROOT / "data")
     report_dir: Path = Field(default=PROJECT_ROOT / "data" / "reports")

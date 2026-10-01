@@ -17,6 +17,7 @@ telemetry_analyst:
 
 anomaly_detector:
   provider_preference: local        # local = Ollama first, Claude as fallback
+  llm_temperature: 0.0              # deterministic triage
   window_seconds: 10.0
   zscore_threshold: 5.0             # robust z of residual vs. rolling median trend
   derivative_threshold: 6.0         # robust z of the first time derivative
@@ -48,10 +49,12 @@ hypothesis_generator:
   provider_preference: cloud        # cloud = Claude first, Ollama as fallback
   max_hypotheses: 6
   knowledge_base_matches: 3
-  temperature: 0.2
+  temperature: 0.0                  # deterministic hypotheses (Ollama also uses a fixed seed)
+  coverage_retries: 1               # re-asks per real anomaly left unexplained after validation
 
 report_writer:
   use_llm_executive_summary: true
+  llm_temperature: 0.0
   include_plots: true
   mission_name: "AeroTrace Demo Flight"
   vehicle: "Generic two-stage liquid launcher (stage 1)"

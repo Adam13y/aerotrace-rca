@@ -47,6 +47,7 @@ class ReportConfig:
     vehicle: str = "Unspecified vehicle"
     include_plots: bool = True
     use_llm_executive_summary: bool = True
+    llm_temperature: float = 0.0
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> ReportConfig:
@@ -57,6 +58,7 @@ class ReportConfig:
             vehicle=str(data.get("vehicle", "Unspecified vehicle")),
             include_plots=bool(data.get("include_plots", True)),
             use_llm_executive_summary=bool(data.get("use_llm_executive_summary", True)),
+            llm_temperature=float(data.get("llm_temperature", 0.0)),
         )
 
 
@@ -208,6 +210,7 @@ class ReportWriter:
                 EXEC_SUMMARY_SYSTEM,
                 "Write the executive summary for this RCA:\n" + json.dumps(payload, indent=1, default=str),
                 prefer="cloud",
+                temperature=self.config.llm_temperature,
             )
         except LLMUnavailableError as exc:
             logger.info("Executive summary LLM unavailable, using deterministic summary: %s", exc)

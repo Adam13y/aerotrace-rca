@@ -15,6 +15,7 @@ from src.agents.hypothesis_generator import (
     citation_problem,
     max_time_gap,
     phase_problem,
+    topic_problem,
 )
 from src.agents.telemetry_analyst import FlightPhase
 from src.agents.report_writer import ReportConfig, ReportWriter
@@ -23,7 +24,7 @@ from src.ingestion import write_sample_files
 from src.memory.knowledge_base import KnowledgeBase
 from src.memory.vector_store import VectorStore
 from src.models.telemetry_schema import AnomalyEvent, Hypothesis, RCAReport, Severity, TelemetryReading
-from src.utils.helpers import LLMRouter, resolve_anomaly_reference
+from src.utils.helpers import LLMRouter, OllamaClient, resolve_anomaly_reference
 
 BASE = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -191,7 +192,7 @@ def test_llm_hypotheses_parsed_and_validated(kb: KnowledgeBase, anomalies: list[
     router = LLMRouter(None, FakeClient("claude-test", json.dumps(payload)))  # type: ignore[arg-type]
     generator = HypothesisGenerator(kb, router=router)
     generated = generator.generate(anomalies)
-    assert [h.title for h in generated] == ["COPV leak"]
+    assert [h.title for h in generated] == ["COPV leak", "Bearing wear"]
     assert generated[0].confidence == pytest.approx(0.85)  # percentage normalised
     assert generated[0].related_anomalies == [lox.id, vib.id]  # labels mapped back to internal IDs
     assert generated[0].supporting_evidence == ["single string"]
@@ -199,13 +200,16 @@ def test_llm_hypotheses_parsed_and_validated(kb: KnowledgeBase, anomalies: list[
     reasons = {r.title: r.reason for r in generator.last_rejections}
     assert reasons["Strut failure"] == "cites no anomalies"
     assert "not a detected anomaly" in reasons["Phantom"]
-    assert "never mentions the lox tank pressure sensor" in reasons["Bearing wear"]
+    assert generated[1].related_anomalies == [vib.id]  # bad LOX citation dropped, hypothesis kept
+    drop = next(d for d in generator.last_drops if d.title == "Bearing wear")
+    assert "never mentions the lox tank pressure sensor" in drop.reason
 
 
 def test_validation_rejects_mislabelled_pressurisation_hypothesis(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
     """Regression: the hypothesis described the LOX drop but cited the temperature and fuel anomalies."""
     temp = _anomaly("engine_bay_temp", 148, Severity.WARNING)
-    fuel = _anomaly("fuel_tank_pressure", 230, Severity.WARNING)
+    fuel = _anomaly("fuel_tank_pressure", 230, Severity.WARNING,
+                    classification={"category": "sensor_fault", "fault_class": "sensor_fault"})
     events = [*anomalies, temp, fuel]
     payload = {"hypotheses": [{
         "title": "Tank Pressurisation System Leak", "confidence": 0.45,
@@ -216,9 +220,11 @@ def test_validation_rejects_mislabelled_pressurisation_hypothesis(kb: KnowledgeB
     router = LLMRouter(FakeClient("qwen", json.dumps(payload)), None)  # type: ignore[arg-type]
     generator = HypothesisGenerator(kb, router=router)
     generated = generator.generate(events)
-    assert all(h.source == "rule-based" for h in generated)  # only hypothesis rejected -> fallback
+    assert all(h.source in {"rule-based", "sensor-fault-classifier"} for h in generated)  # rejected -> fallback
     assert len(generator.last_rejections) == 1
-    assert "Engine bay temperature" in generator.last_rejections[0].reason
+    reason = generator.last_rejections[0].reason
+    assert reason.startswith("no valid citations remain")
+    assert "Engine bay temperature" in reason and "instrumentation glitch" in reason
 
 
 def test_citation_time_must_be_consistent(anomalies: list[AnomalyEvent]) -> None:
@@ -276,7 +282,7 @@ def test_supervisor_analyze_mode(tmp_path: Path) -> None:
 # --------------------------------------------------------------------------- #
 def _single_hypothesis_run(kb: KnowledgeBase, events: list[AnomalyEvent], hypothesis: dict) -> HypothesisGenerator:
     router = LLMRouter(FakeClient("qwen", json.dumps({"hypotheses": [hypothesis]})), None)  # type: ignore[arg-type]
-    generator = HypothesisGenerator(kb, router=router)
+    generator = HypothesisGenerator(kb, router=router, config=HypothesisConfig(coverage_retries=0))
     generator.generate(events)
     return generator
 
@@ -312,7 +318,9 @@ def test_cross_group_quoted_but_unexplained_gap_is_flagged(kb: KnowledgeBase, an
         "title": "Common electrical fault", "confidence": 0.8,
         "description": "LOX tank pressure dropped at T+142s and the avionics bus voltage dropped at T+209.9s.",
         "related_anomalies": [lox.label, voltage.label]}]})), None)  # type: ignore[arg-type]
-    hypothesis = HypothesisGenerator(kb, router=router).generate([*anomalies, voltage])[0]
+    hypothesis = HypothesisGenerator(kb, router=router, config=HypothesisConfig(coverage_retries=0)).generate(
+        [*anomalies, voltage]
+    )[0]
     assert hypothesis.title == "Common electrical fault"
     assert hypothesis.confidence == pytest.approx(0.3)
     assert any(note.startswith("Validator:") for note in hypothesis.counter_evidence)
@@ -455,3 +463,116 @@ def test_prompt_lists_flight_phases(kb: KnowledgeBase, anomalies: list[AnomalyEv
     prompt = generator.build_prompt(anomalies, [a for a in anomalies if not a.expected], {}, None, "")
     assert "- Throttle bucket / Max-Q: T+55s to T+83s" in prompt
     assert "- Engine cutoff: T+283s to end of record" in prompt
+
+
+# --------------------------------------------------------------------------- #
+# Fixes 8-11: topic check, coverage retry, citation dropping, determinism
+# --------------------------------------------------------------------------- #
+class SequenceClient(FakeClient):
+    """Fake LLM returning queued responses and recording prompts and temperatures."""
+
+    def __init__(self, responses: list[dict]) -> None:
+        super().__init__("qwen", "")
+        self.responses = [json.dumps(r) for r in responses]
+        self.prompts: list[str] = []
+        self.temperatures: list[float] = []
+
+    def chat(self, system: str, prompt: str, *, json_mode: bool = False, temperature: float = 0.2) -> str:
+        self.prompts.append(prompt)
+        self.temperatures.append(temperature)
+        return self.responses.pop(0) if self.responses else '{"hypotheses": []}'
+
+
+def test_topic_check_rejects_title_sensor_not_cited(kb: KnowledgeBase, anomalies: list[AnomalyEvent], voltage: AnomalyEvent) -> None:
+    """Regression: 'Avionics Bus Under-Voltage' cited the temperature/vibration anomalies, not the voltage drop."""
+    temp = _anomaly("engine_bay_temp", 148.5, Severity.WARNING)
+    vib = anomalies[2]
+    generator = _single_hypothesis_run(kb, [*anomalies, temp, voltage], {
+        "title": "Avionics Bus Under-Voltage", "confidence": 0.65,
+        "description": "Increased load from turbopump vibration and engine bay temperature rise stressed the bus.",
+        "related_anomalies": [temp.label, vib.label],
+    })
+    reason = generator.last_rejections[0].reason
+    assert reason.startswith("title names the avionics bus voltage sensor but the hypothesis does not cite its anomaly")
+
+
+def test_topic_check_allows_matching_title(voltage: AnomalyEvent, anomalies: list[AnomalyEvent]) -> None:
+    sensors = {"avionics_bus_voltage", "turbopump_vibration", "lox_tank_pressure"}
+    assert topic_problem("Avionics Bus Under-Voltage", [voltage], sensors) is None
+    assert topic_problem("Propellant Pump Cavitation", [anomalies[1]], sensors) is None  # 'pump' is not 'turbopump'
+    assert topic_problem("Turbopump Bearing Wear", [anomalies[1]], sensors) is not None
+
+
+def test_expected_transient_citation_dropped_not_rejected(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
+    """Regression: 'Propellant Pump Cavitation' was lost for citing the T+0 engine-start vibration."""
+    lox, vib = anomalies[1], anomalies[2]
+    start_vib = _anomaly("turbopump_vibration", 0, Severity.INFO, expected=True)
+    generator = _single_hypothesis_run(kb, [*anomalies, start_vib], {
+        "title": "Propellant Pump Cavitation", "confidence": 0.85,
+        "description": "LOX tank pressure fell at T+142s, starving the turbopump inlet and causing vibration at T+143s.",
+        "related_anomalies": ["turbopump_vibration INFO anomaly", lox.label, vib.label],
+    })
+    assert not generator.last_rejections
+    assert generator.last_source == "local:qwen"
+    assert len(generator.last_drops) == 1
+    assert "expected transient" in generator.last_drops[0].reason
+    assert generator.last_drops[0].anomaly_id == start_vib.id
+
+
+def test_coverage_retry_explains_left_over_anomaly(kb: KnowledgeBase, anomalies: list[AnomalyEvent], voltage: AnomalyEvent) -> None:
+    lox, vib = anomalies[1], anomalies[2]
+    client = SequenceClient([
+        {"hypotheses": [
+            {"title": "Propellant Pump Cavitation", "confidence": 0.85,
+             "description": "LOX tank pressure fell at T+142s and turbopump vibration rose at T+143s.",
+             "related_anomalies": [lox.label, vib.label]},
+            {"title": "Avionics Bus Under-Voltage", "confidence": 0.65,
+             "description": "Turbopump vibration loaded the bus.", "related_anomalies": [vib.label]},
+        ]},
+        {"hypotheses": [
+            {"title": "Battery cell fault", "confidence": 0.5,
+             "description": "The avionics bus voltage drop at T+209.9s points to a weak battery cell.",
+             "related_anomalies": [voltage.label]},
+        ]},
+    ])
+    generator = HypothesisGenerator(kb, router=LLMRouter(client, None))  # type: ignore[arg-type]
+    generated = generator.generate([*anomalies, voltage])
+    assert {h.title for h in generated} == {"Propellant Pump Cavitation", "Battery cell fault"}
+    assert len(generator.last_retries) == 1 and generator.last_retries[0].label == voltage.label
+    assert generator.last_retries[0].accepted == ["Battery cell fault"]
+    assert any("title names the avionics bus voltage sensor" in r for r in generator.last_retries[0].reasons_sent)
+    retry_prompt = client.prompts[1]
+    assert "UNEXPLAINED anomaly" in retry_prompt and voltage.label in retry_prompt
+    assert "title names the avionics bus voltage sensor" in retry_prompt
+
+
+def test_coverage_retry_answer_must_cite_target(kb: KnowledgeBase, anomalies: list[AnomalyEvent], voltage: AnomalyEvent) -> None:
+    lox = anomalies[1]
+    same = {"hypotheses": [{"title": "Pressurisation leak", "confidence": 0.6,
+                            "description": "LOX tank pressure leak at T+142s.", "related_anomalies": [lox.label]}]}
+    client = SequenceClient([same, same, same])
+    generator = HypothesisGenerator(kb, router=LLMRouter(client, None))  # type: ignore[arg-type]
+    generator.generate([*anomalies, voltage])
+    assert len(generator.last_retries) == 2  # vibration and voltage were both left unexplained
+    assert all(not r.accepted for r in generator.last_retries)
+    assert any("does not cite the target" in r.reason for r in generator.last_rejections)
+
+
+def test_hypotheses_requested_at_temperature_zero(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
+    client = SequenceClient([])
+    HypothesisGenerator(kb, router=LLMRouter(client, None)).generate(anomalies)  # type: ignore[arg-type]
+    assert client.temperatures and all(t == 0.0 for t in client.temperatures)
+
+
+def test_ollama_client_sends_seed_and_temperature() -> None:
+    sent: dict = {}
+
+    class Stub:
+        def chat(self, **kwargs: object) -> dict:
+            sent.update(kwargs)
+            return {"message": {"content": "{}"}}
+
+    client = OllamaClient("http://localhost:1", "qwen", seed=42)
+    client._client = Stub()
+    client.chat("sys", "prompt", temperature=0.0)
+    assert sent["options"] == {"temperature": 0.0, "seed": 42}

@@ -297,17 +297,19 @@ def ollama_model_installed(model: str, installed: Sequence[str]) -> bool:
 class OllamaClient:
     """Thin wrapper around the local Ollama chat API."""
 
-    def __init__(self, base_url: str, model: str, timeout: float = 120.0) -> None:
+    def __init__(self, base_url: str, model: str, timeout: float = 120.0, seed: int | None = 42) -> None:
         """Create a client.
 
         Args:
             base_url: Ollama server URL, e.g. ``http://localhost:11434``.
             model: Installed model tag.
             timeout: Request timeout in seconds.
+            seed: Fixed sampling seed for repeatable output (``None`` = random).
         """
         self.base_url = base_url
         self.model = model
         self.timeout = timeout
+        self.seed = seed
         self._available: bool | None = None
         self._client: Any = None
 
@@ -349,7 +351,7 @@ class OllamaClient:
                     {"role": "user", "content": prompt},
                 ],
                 format="json" if json_mode else "",
-                options={"temperature": temperature},
+                options={"temperature": temperature, **({"seed": self.seed} if self.seed is not None else {})},
             )
         except Exception as exc:  # ollama raises httpx / ResponseError variants
             self._available = None
@@ -434,7 +436,7 @@ class LLMRouter:
     def from_settings(cls, settings: Any) -> LLMRouter:
         """Build a router from a :class:`config.settings.Settings` instance."""
         return cls(
-            OllamaClient(settings.ollama_base_url, settings.ollama_model, settings.ollama_timeout),
+            OllamaClient(settings.ollama_base_url, settings.ollama_model, settings.ollama_timeout, settings.ollama_seed),
             ClaudeClient(settings.claude_api_key, settings.claude_model, settings.claude_max_tokens),
         )
 
