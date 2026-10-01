@@ -1,0 +1,51 @@
+# AeroTrace-RCA agent configuration.
+# Times are mission-elapsed seconds (MET) relative to the first sample in the dataset.
+
+pipeline:
+  max_retries: 3
+  retry_base_delay_seconds: 1.5
+  use_llm: true
+
+telemetry_analyst:
+  correlation_window_seconds: 5.0
+  flight_phases:
+    - { name: "Liftoff & initial ascent", start: 0, end: 55 }
+    - { name: "Throttle bucket / Max-Q", start: 55, end: 83 }
+    - { name: "Mid-burn ascent", start: 83, end: 200 }
+    - { name: "Late burn", start: 200, end: 283 }
+    - { name: "Engine cutoff", start: 283, end: 1.0e9 }
+
+anomaly_detector:
+  provider_preference: local        # local = Ollama first, Claude as fallback
+  window_seconds: 10.0
+  zscore_threshold: 5.0             # robust z of residual vs. rolling median trend
+  derivative_threshold: 6.0         # robust z of the first time derivative
+  moving_average_threshold: 6.0     # deviation from trailing moving average (in sigma)
+  info_score: 5.5
+  warning_score: 8.0
+  critical_score: 14.0
+  merge_gap_seconds: 2.0
+  min_points: 20
+  max_readings_per_event: 40
+  # Hard engineering limits. Any breach is CRITICAL.
+  sensor_limits:
+    avionics_bus_voltage: { low: 26.5, high: 30.0 }
+    engine_bay_temp: { low: -40.0, high: 200.0 }
+  # Planned transients: overlapping detections are downgraded to INFO and marked expected.
+  planned_events:
+    - { name: "Engine start / liftoff", start: 0, end: 6, sensors: ["chamber_pressure", "turbopump_vibration", "engine_bay_temp"] }
+    - { name: "Throttle down", start: 54, end: 61, sensors: ["chamber_pressure", "turbopump_vibration"] }
+    - { name: "Throttle up", start: 77, end: 84, sensors: ["chamber_pressure", "turbopump_vibration"] }
+    - { name: "Main engine cutoff (MECO)", start: 282, end: 300, sensors: ["*"] }
+
+hypothesis_generator:
+  provider_preference: cloud        # cloud = Claude first, Ollama as fallback
+  max_hypotheses: 6
+  knowledge_base_matches: 3
+  temperature: 0.2
+
+report_writer:
+  use_llm_executive_summary: true
+  include_plots: true
+  mission_name: "AeroTrace Demo Flight"
+  vehicle: "Generic two-stage liquid launcher (stage 1)"

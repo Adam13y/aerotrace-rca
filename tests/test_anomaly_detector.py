@@ -1,0 +1,279 @@
+"""Tests for ingestion, the anomaly detector, triage and LLM fallback routing."""
+
+from __future__ import annotations
+
+import json
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+import numpy as np
+import pytest
+import yaml
+
+from src.agents.anomaly_detector import AnomalyDetector, DetectorConfig, PlannedEvent
+from src.agents.telemetry_analyst import AnalystConfig, TelemetryAnalyst
+from src.ingestion import load_telemetry, write_sample_files
+from src.ingestion.csv_parser import INJECTED_ANOMALIES, split_sensor_header
+from src.models.telemetry_schema import Severity, TelemetryReading
+from src.utils.helpers import LLMRouter, LLMUnavailableError, extract_json, normalize_timestamp
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+BASE = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+class FakeClient:
+    """Stand-in for OllamaClient / ClaudeClient."""
+
+    def __init__(self, model: str, response: str | None = None, up: bool = True, fail: bool = False) -> None:
+        self.model = model
+        self.response = response
+        self.up = up
+        self.fail = fail
+        self.calls = 0
+
+    def available(self) -> bool:
+        return self.up
+
+    def chat(self, system: str, prompt: str, *, json_mode: bool = False, temperature: float = 0.2) -> str:
+        self.calls += 1
+        if self.fail:
+            raise LLMUnavailableError("boom")
+        return self.response or "{}"
+
+
+@pytest.fixture(scope="module")
+def agents_config() -> dict:
+    with (PROJECT_ROOT / "config" / "agents.yaml").open(encoding="utf-8") as handle:
+        return yaml.safe_load(handle)
+
+
+@pytest.fixture(scope="module")
+def sample_files(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
+    return write_sample_files(tmp_path_factory.mktemp("raw"))
+
+
+@pytest.fixture(scope="module")
+def readings(sample_files: dict[str, Path]) -> list[TelemetryReading]:
+    return load_telemetry(sample_files["nasa_long"])
+
+
+@pytest.fixture(scope="module")
+def detector(agents_config: dict) -> AnomalyDetector:
+    return AnomalyDetector(DetectorConfig.from_dict(agents_config["anomaly_detector"]), use_llm=False)
+
+
+def _series(values: np.ndarray, sensor: str = "test_sensor", unit: str = "psi", dt: float = 0.1) -> list[TelemetryReading]:
+    return [
+        TelemetryReading(timestamp=BASE + timedelta(seconds=i * dt), sensor_id=sensor, value=float(v), unit=unit)
+        for i, v in enumerate(values)
+    ]
+
+
+# --------------------------------------------------------------------------- #
+# Ingestion
+# --------------------------------------------------------------------------- #
+def test_both_csv_layouts_parse_identically(sample_files: dict[str, Path]) -> None:
+    long_readings = load_telemetry(sample_files["nasa_long"])
+    wide_readings = load_telemetry(sample_files["spacex_wide"])
+    assert len(long_readings) == len(wide_readings) == 18000
+    assert {(r.sensor_id, r.unit) for r in long_readings} == {(r.sensor_id, r.unit) for r in wide_readings}
+    assert all(r.timestamp.tzinfo is not None for r in long_readings[:100])
+
+
+def test_missing_values_are_imputed(readings: list[TelemetryReading]) -> None:
+    imputed = [r for r in readings if r.metadata.get("imputed")]
+    assert imputed, "sample data contains NaNs that should be interpolated"
+    assert all(np.isfinite(r.value) for r in imputed)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("2026-01-01T00:00:10Z", BASE + timedelta(seconds=10)),
+        ("T+12.5", BASE + timedelta(seconds=12.5)),
+        (3.0, BASE + timedelta(seconds=3)),
+        (1767225600, BASE),
+        (1767225600000, BASE),
+    ],
+)
+def test_normalize_timestamp(raw: object, expected: datetime) -> None:
+    assert normalize_timestamp(raw, BASE) == expected
+
+
+@pytest.mark.parametrize(
+    ("header", "expected"),
+    [("Chamber Pressure (psi)", ("chamber_pressure", "psi")), ("bus_voltage_v", ("bus_voltage", "V")),
+     ("engine_bay_temp_degC", ("engine_bay_temp", "degC")), ("mystery", ("mystery", ""))],
+)
+def test_split_sensor_header(header: str, expected: tuple[str, str]) -> None:
+    assert split_sensor_header(header) == expected
+
+
+def test_json_channel_document(tmp_path: Path) -> None:
+    doc = {"base_time": "2026-01-01T00:00:00Z", "sensors": {"lox": {"unit": "psi", "samples": [[0, 1.0], [0.1, None], [0.2, 1.2]]}}}
+    path = tmp_path / "t.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    parsed = load_telemetry(path)
+    assert [round(r.value, 3) for r in parsed] == [1.0, 1.1, 1.2]
+    assert parsed[1].metadata.get("imputed") is True
+
+
+def test_unsupported_extension(tmp_path: Path) -> None:
+    path = tmp_path / "telemetry.xlsx"
+    path.write_text("x", encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_telemetry(path)
+
+
+# --------------------------------------------------------------------------- #
+# Detection
+# --------------------------------------------------------------------------- #
+def test_detects_all_injected_anomalies(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    events = [e for e in detector.detect(readings) if not e.expected]
+    for sensor, met in INJECTED_ANOMALIES.items():
+        assert any(e.sensor_id == sensor and abs(e.mission_elapsed_s - met) <= 5 for e in events), sensor
+
+
+def test_no_high_severity_false_positives(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    for event in detector.detect(readings):
+        if event.severity in (Severity.CRITICAL, Severity.WARNING):
+            assert any(
+                event.sensor_id == s and abs(event.mission_elapsed_s - m) <= 5 for s, m in INJECTED_ANOMALIES.items()
+            ), event.description
+
+
+def test_limit_breach_is_critical(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    voltage = [e for e in detector.detect(readings) if e.sensor_id == "avionics_bus_voltage"]
+    assert voltage and voltage[0].severity == Severity.CRITICAL
+    assert "limit" in voltage[0].detection_methods
+
+
+def test_clean_noise_has_no_anomalies() -> None:
+    rng = np.random.default_rng(0)
+    events = AnomalyDetector(use_llm=False).detect(_series(100 + rng.normal(0, 1, 2000)))
+    assert not [e for e in events if e.severity != Severity.INFO]
+
+
+def test_step_change_detected_with_baseline() -> None:
+    rng = np.random.default_rng(1)
+    values = 50 + rng.normal(0, 0.1, 1000)
+    values[500:] -= 5.0
+    events = AnomalyDetector(use_llm=False).detect(_series(values))
+    assert events
+    event = max(events, key=lambda e: e.score)
+    assert abs(event.mission_elapsed_s - 50.0) < 2.0
+    assert event.baseline_value == pytest.approx(50.0, abs=0.2)
+    assert event.peak_value < event.baseline_value
+
+
+def test_planned_event_downgraded_to_expected() -> None:
+    rng = np.random.default_rng(2)
+    values = 10 + rng.normal(0, 0.05, 1000)
+    values[300:] += 4.0
+    config = DetectorConfig(planned_events=[PlannedEvent("Throttle up", 28.0, 32.0, ["test_*"])])
+    events = AnomalyDetector(config, use_llm=False).detect(_series(values))
+    assert events and all(e.expected and e.severity == Severity.INFO for e in events)
+
+
+def test_too_few_points_and_empty_input() -> None:
+    detector = AnomalyDetector(use_llm=False)
+    assert detector.detect([]) == []
+    assert detector.detect(_series(np.ones(5))) == []
+
+
+def test_event_ids_are_deterministic(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    assert [e.id for e in detector.detect(readings)] == [e.id for e in detector.detect(readings)]
+
+
+# --------------------------------------------------------------------------- #
+# Triage and LLM routing
+# --------------------------------------------------------------------------- #
+def test_rule_based_triage_flags_sensor_glitch(detector: AnomalyDetector, readings: list[TelemetryReading], agents_config: dict) -> None:
+    analyst = TelemetryAnalyst(AnalystConfig.from_dict(agents_config["telemetry_analyst"]))
+    events = detector.classify(analyst.contextualize(detector.detect(readings)))
+    glitch = next(e for e in events if e.sensor_id == "fuel_tank_pressure" and not e.expected)
+    assert glitch.classification["category"] == "sensor_fault"
+    assert glitch.severity == Severity.WARNING  # downgraded from CRITICAL
+    lox = next(e for e in events if e.sensor_id == "lox_tank_pressure")
+    assert lox.correlated_with, "LOX drop should correlate with the vibration and temperature anomalies"
+    assert lox.flight_phase == "Mid-burn ascent"
+
+
+def test_llm_triage_used_and_falls_back_to_cloud(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    events = [e for e in detector.detect(readings) if not e.expected]
+    payload = {"classifications": [
+        {"anomaly": e.label, "category": "propulsion", "subsystem": "engine", "assessment": "test", "confidence": 0.9}
+        for e in events
+    ]}
+    local = FakeClient("qwen-test", fail=True)
+    cloud = FakeClient("claude-test", response="```json\n" + json.dumps(payload) + "\n```")
+    llm_detector = AnomalyDetector(detector.config, router=LLMRouter(local, cloud))  # type: ignore[arg-type]
+    classified = llm_detector.classify(events)
+    assert local.calls == 1 and cloud.calls == 1
+    assert all(e.classification["category"] == "propulsion" for e in classified)
+    assert llm_detector.last_classifier == "cloud:claude-test"
+
+
+def test_triage_falls_back_to_rules_when_no_llm(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    events = detector.detect(readings)
+    router = LLMRouter(FakeClient("q", up=False), FakeClient("c", up=False))  # type: ignore[arg-type]
+    classified = AnomalyDetector(detector.config, router=router).classify(events)
+    assert all(e.classification["source"] == "rule-based" for e in classified)
+
+
+def test_llm_cannot_downgrade_limit_breach_to_info(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    voltage = [e for e in detector.detect(readings) if e.sensor_id == "avionics_bus_voltage"]
+    payload = {"classifications": [{"anomaly": voltage[0].label, "category": "electrical", "severity_override": "INFO"}]}
+    router = LLMRouter(FakeClient("q", response=json.dumps(payload)), None)  # type: ignore[arg-type]
+    classified = AnomalyDetector(detector.config, router=router).classify(voltage)
+    assert classified[0].severity == Severity.WARNING
+
+
+def _glitch_triage(detector: AnomalyDetector, readings: list[TelemetryReading], agents_config: dict, override: object) -> AnomalyEvent:
+    """Triage the fuel-pressure spike with a fake Qwen that returns ``override``."""
+    analyst = TelemetryAnalyst(AnalystConfig.from_dict(agents_config["telemetry_analyst"]))
+    events = analyst.contextualize(detector.detect(readings))
+    glitch = next(e for e in events if e.sensor_id == "fuel_tank_pressure" and not e.expected)
+    payload = {"classifications": [{"anomaly": glitch.label, "category": "sensor_fault", "subsystem": "instrumentation",
+                                    "assessment": "spike", "confidence": 0.8, "severity_override": override}]}
+    router = LLMRouter(FakeClient("qwen", response=json.dumps(payload)), None)  # type: ignore[arg-type]
+    return AnomalyDetector(detector.config, router=router).classify([glitch])[0]
+
+
+@pytest.mark.parametrize("override", [None, "null", "", "CRITICAL"])
+def test_llm_without_explicit_change_keeps_rule_downgrade(
+    detector: AnomalyDetector, readings: list[TelemetryReading], agents_config: dict, override: object
+) -> None:
+    triaged = _glitch_triage(detector, readings, agents_config, override)
+    assert triaged.severity == Severity.WARNING
+    assert triaged.classification["original_severity"] == "CRITICAL"
+    assert triaged.classification["severity_adjusted_by"] == "rule-based"
+    assert triaged.classification["source"] == "local:qwen"
+
+
+def test_llm_explicit_override_wins(detector: AnomalyDetector, readings: list[TelemetryReading], agents_config: dict) -> None:
+    triaged = _glitch_triage(detector, readings, agents_config, "INFO")
+    assert triaged.severity == Severity.INFO
+    assert triaged.classification["severity_adjusted_by"] == "local:qwen"
+
+
+def test_triage_prompt_uses_labels_not_ids(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    events = [e for e in detector.detect(readings) if not e.expected]
+    client = FakeClient("qwen", response='{"classifications": []}')
+    prompts: list[str] = []
+    original = client.chat
+
+    def capture(system: str, prompt: str, **kwargs: object) -> str:
+        prompts.append(prompt)
+        return original(system, prompt, **kwargs)  # type: ignore[arg-type]
+
+    client.chat = capture  # type: ignore[method-assign]
+    AnomalyDetector(detector.config, router=LLMRouter(client, None)).classify(events)  # type: ignore[arg-type]
+    assert "LOX tank pressure drop (CRITICAL) at T+142.4s" in prompts[0]
+    assert "ANM-" not in prompts[0]
+
+
+def test_extract_json_handles_prose() -> None:
+    assert extract_json('Sure! Here you go: {"a": [1, 2]} hope this helps') == {"a": [1, 2]}
+    with pytest.raises(ValueError):
+        extract_json("no json here")

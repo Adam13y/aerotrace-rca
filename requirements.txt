@@ -1,0 +1,32 @@
+# --- LLM providers ---------------------------------------------------------
+ollama>=0.4
+anthropic>=0.40
+
+# --- Agent frameworks (optional extension points; the core pipeline does not
+# import them). crewai does not yet publish wheels for Python 3.14+. ---------
+crewai; python_version < "3.14"
+langchain
+langchain-community
+
+# --- Memory -----------------------------------------------------------------
+chromadb
+
+# --- Numerics / data ----------------------------------------------------------
+pandas>=2.1
+numpy>=1.26
+scipy>=1.11
+astropy>=6.0
+
+# --- Configuration / models / CLI ---------------------------------------------
+python-dotenv>=1.0
+pydantic>=2.6
+pydantic-settings>=2.2
+pyyaml>=6.0
+rich>=13.7
+
+# --- Visualisation ------------------------------------------------------------
+matplotlib>=3.8
+plotly>=5.20
+
+# --- Testing ------------------------------------------------------------------
+pytest>=8.0
