@@ -9,7 +9,14 @@ from pathlib import Path
 import pytest
 
 from config.settings import Settings
-from src.agents.hypothesis_generator import HypothesisGenerator, citation_problem, max_time_gap
+from src.agents.hypothesis_generator import (
+    HypothesisConfig,
+    HypothesisGenerator,
+    citation_problem,
+    max_time_gap,
+    phase_problem,
+)
+from src.agents.telemetry_analyst import FlightPhase
 from src.agents.report_writer import ReportConfig, ReportWriter
 from src.agents.supervisor import Supervisor
 from src.ingestion import write_sample_files
@@ -392,3 +399,59 @@ def test_prompt_contains_temporal_ordering_rule(kb: KnowledgeBase, anomalies: li
         "most likely root cause. Do not connect anomalies more than 30 seconds apart unless there is a clear physical "
         "mechanism connecting them."
     ) in prompt
+
+
+# --------------------------------------------------------------------------- #
+# Fix 8: flight-phase consistency
+# --------------------------------------------------------------------------- #
+PHASES = [
+    FlightPhase("Liftoff & initial ascent", 0, 55),
+    FlightPhase("Throttle bucket / Max-Q", 55, 83),
+    FlightPhase("Mid-burn ascent", 83, 200),
+    FlightPhase("Late burn", 200, 283),
+    FlightPhase("Engine cutoff", 283, 1.0e9),
+]
+
+
+@pytest.mark.parametrize(
+    ("text", "rejected"),
+    [
+        ("Aerodynamic loading near Max-Q caused the avionics bus voltage drop.", True),
+        ("Buffet at maximum dynamic pressure stressed the avionics bus voltage harness.", True),
+        ("Avionics bus voltage drop during the throttle bucket.", True),
+        ("Avionics bus voltage drop shortly after liftoff.", True),
+        ("Avionics bus voltage drop at MECO.", True),
+        ("Avionics bus voltage drop during the late burn from a battery cell fault.", False),
+        ("Avionics bus voltage sag from heater switching inrush current.", False),
+    ],
+)
+def test_phase_problem_single_anomaly(voltage: AnomalyEvent, text: str, rejected: bool) -> None:
+    assert (phase_problem([voltage], text, PHASES) is not None) is rejected
+
+
+def test_phase_problem_accepts_if_any_cited_anomaly_in_phase(anomalies: list[AnomalyEvent], voltage: AnomalyEvent) -> None:
+    max_q_vib = _anomaly("turbopump_vibration", 70, Severity.WARNING)
+    assert phase_problem([max_q_vib, voltage], "Max-Q buffet loads ...", PHASES) is None
+    assert phase_problem([anomalies[1]], "LOX tank drop during mid-burn ascent", PHASES) is None
+
+
+def test_max_q_hypothesis_for_late_voltage_drop_rejected(kb: KnowledgeBase, anomalies: list[AnomalyEvent], voltage: AnomalyEvent) -> None:
+    """Regression for the 'Aerodynamic Loading Near Max-Q' hypothesis blaming a T+209.9s event."""
+    router = LLMRouter(FakeClient("qwen", json.dumps({"hypotheses": [{
+        "title": "Aerodynamic Loading Near Max-Q", "confidence": 0.45,
+        "description": "The avionics bus voltage drop at T+209.9s could be due to aerodynamic loading near the "
+                       "maximum dynamic pressure (Max-Q) region.",
+        "related_anomalies": [voltage.label],
+    }]})), None)  # type: ignore[arg-type]
+    generator = HypothesisGenerator(kb, router=router, config=HypothesisConfig(flight_phases=PHASES))
+    generated = generator.generate([*anomalies, voltage])
+    assert all(h.title != "Aerodynamic Loading Near Max-Q" for h in generated)
+    reason = generator.last_rejections[0].reason
+    assert "Max-Q" in reason and "T+55s to T+83s" in reason and voltage.label in reason
+
+
+def test_prompt_lists_flight_phases(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:
+    generator = HypothesisGenerator(kb, use_llm=False, config=HypothesisConfig(flight_phases=PHASES))
+    prompt = generator.build_prompt(anomalies, [a for a in anomalies if not a.expected], {}, None, "")
+    assert "- Throttle bucket / Max-Q: T+55s to T+83s" in prompt
+    assert "- Engine cutoff: T+283s to end of record" in prompt

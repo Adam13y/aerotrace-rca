@@ -16,7 +16,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from src.agents.sensor_fault_classifier import SENSOR_FAULT
-from src.agents.telemetry_analyst import TelemetryAnalyst
+from src.agents.telemetry_analyst import FlightPhase, TelemetryAnalyst
 from src.memory.knowledge_base import KnowledgeBase
 from src.memory.vector_store import SearchResult
 from src.models.telemetry_schema import AnomalyEvent, Hypothesis, Severity, TelemetryAnalysis, anomaly_labels
@@ -57,6 +57,9 @@ HYPOTHESIS_PROMPT_TEMPLATE = """## Mission context
 ## Correlation groups (anomalies within {window}s of each other on different sensors)
 {groups}
 
+## Flight phases (mission elapsed time windows)
+{phases}
+
 ## Expected transients (planned events, for context only)
 {expected}
 
@@ -72,6 +75,7 @@ Citation rules (hypotheses that break them are rejected automatically):
 - Cite only anomalies that your description and supporting evidence actually discuss, naming their sensors.
 - Cite anomalies from different correlation groups only if you quote each one's time (e.g. "at T+142.4s").
 - If you link anomalies more than 30 seconds apart, state the delay and the mechanism that explains it.
+- Only name a flight phase (e.g. Max-Q, throttle bucket, engine cutoff) if a cited anomaly occurred during it.
 
 Respond with JSON exactly in this shape:
 {{"hypotheses": [{{
@@ -113,6 +117,55 @@ _GAP_EXPLANATION = re.compile(
     r"|over (?:the )?(?:following|next) \d+)",
     re.IGNORECASE,
 )
+
+
+#: A cited anomaly may start/end this close (s) to a named phase's window and still count as inside it.
+_PHASE_TOLERANCE_S = 2.0
+#: Extra ways a phase-name fragment may be written in hypothesis text.
+_PHASE_SYNONYMS: dict[str, tuple[str, ...]] = {
+    "max-q": (r"max[\s-]?q", r"maximum dynamic pressure"),
+    "engine cutoff": (r"engine cut-?off", r"meco", r"main engine cut-?off"),
+    "liftoff": (r"lift[\s-]?off",),
+    "throttle bucket": (r"throttle[\s-]bucket",),
+}
+
+
+def phase_patterns(phase: FlightPhase) -> list[re.Pattern[str]]:
+    """Regexes that detect a mention of ``phase`` in free text.
+
+    The phase name from ``agents.yaml`` is split on ``/``, ``&`` and ``,`` so that
+    "Throttle bucket / Max-Q" matches either "throttle bucket" or "Max-Q".
+    """
+    fragments = [f.strip().lower() for f in re.split(r"[/&,]", phase.name) if f.strip()]
+    patterns: list[str] = []
+    for fragment in fragments:
+        patterns.extend(_PHASE_SYNONYMS.get(fragment, (re.escape(fragment).replace(r"\ ", r"[\s-]+"),)))
+    return [re.compile(rf"\b(?:{p})\b", re.IGNORECASE) for p in patterns]
+
+
+def phase_problem(anomalies: list[AnomalyEvent], text: str, phases: list[FlightPhase]) -> str | None:
+    """Check that every flight phase named in ``text`` contains at least one cited anomaly.
+
+    Returns:
+        A description of the inconsistency, or ``None`` if consistent.
+    """
+    for phase in phases:
+        mention = next((m for p in phase_patterns(phase) if (m := p.search(text))), None)
+        if mention is None:
+            continue
+        inside = [
+            a for a in anomalies
+            if (a.mission_elapsed_s or 0.0) <= phase.end + _PHASE_TOLERANCE_S
+            and (a.mission_elapsed_s or 0.0) + a.duration_s >= phase.start - _PHASE_TOLERANCE_S
+        ]
+        if not inside:
+            window = f"T+{phase.start:g}s to " + ("end of record" if phase.end >= 1e8 else f"T+{phase.end:g}s")
+            cited = "; ".join(f"'{a.label}'" for a in anomalies)
+            return (
+                f"names the '{mention.group(0)}' phase ({phase.name}: {window}) but none of its cited anomalies "
+                f"occurred in that window ({cited})"
+            )
+    return None
 
 
 def quotes_time_of(anomaly: AnomalyEvent, text: str) -> bool:
@@ -197,10 +250,20 @@ class HypothesisConfig:
     knowledge_base_matches: int = 3
     temperature: float = 0.2
     correlation_window_seconds: float = 5.0
+    flight_phases: list[FlightPhase] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any] | None, correlation_window: float = 5.0) -> HypothesisConfig:
-        """Build from the ``hypothesis_generator`` section of ``agents.yaml``."""
+    def from_dict(
+        cls,
+        data: dict[str, Any] | None,
+        correlation_window: float = 5.0,
+        flight_phases: list[FlightPhase] | None = None,
+    ) -> HypothesisConfig:
+        """Build from the ``hypothesis_generator`` section of ``agents.yaml``.
+
+        ``flight_phases`` come from the ``telemetry_analyst`` section and drive the
+        phase-consistency check.
+        """
         data = data or {}
         return cls(
             provider_preference=str(data.get("provider_preference", "cloud")),
@@ -208,6 +271,7 @@ class HypothesisConfig:
             knowledge_base_matches=int(data.get("knowledge_base_matches", 3)),
             temperature=float(data.get("temperature", 0.2)),
             correlation_window_seconds=correlation_window,
+            flight_phases=list(flight_phases or []),
         )
 
 
@@ -319,6 +383,10 @@ class HypothesisGenerator:
                 f"- {a.label}: {a.classification.get('fault_class_reason', 'instrumentation glitch')}" for a in faults
             ) or "- none",
             groups="\n".join(group_lines) or "- none",
+            phases="\n".join(
+                f"- {p.name}: T+{p.start:g}s to " + ("end of record" if p.end >= 1e8 else f"T+{p.end:g}s")
+                for p in self.config.flight_phases
+            ) or "- not defined",
             expected="\n".join(f"- {a.label}: {a.description}" for a in expected) or "- none",
             kb_matches="\n".join(kb_lines) or "- none",
             max_hypotheses=self.config.max_hypotheses,
@@ -370,7 +438,8 @@ class HypothesisGenerator:
 
         * cites no anomalies, or an anomaly that was not detected (or is a classified sensor fault);
         * cites an anomaly whose sensor/time its own text does not support;
-        * cites anomalies from different correlated groups without quoting each one's time.
+        * cites anomalies from different correlated groups without quoting each one's time;
+        * names a flight phase (Max-Q, engine cutoff, ...) in which none of its cited anomalies occurred.
 
         A hypothesis that links anomalies more than 30 s apart without explaining the delay is
         accepted but flagged: its confidence is halved (capped at 0.3) and a counter-evidence note added.
@@ -409,6 +478,10 @@ class HypothesisGenerator:
                 reject(f"cites '{event.label}' but {problem}", [e.id for e in resolved])
                 return None
         cited_ids = [e.id for e in resolved]
+        problem = phase_problem(resolved, text, self.config.flight_phases)
+        if problem:
+            reject(problem, cited_ids)
+            return None
         cited_groups = {group_of.get(e.id, -1) for e in resolved}
         if len(cited_groups) > 1:
             unquoted = [e for e in resolved if not quotes_time_of(e, text)]

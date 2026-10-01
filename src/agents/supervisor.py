@@ -123,7 +123,11 @@ class Supervisor:
         self.hypothesis_generator = HypothesisGenerator(
             self.knowledge_base,
             router=self.router,
-            config=HypothesisConfig.from_dict(self.config.get("hypothesis_generator"), analyst_cfg.correlation_window_seconds),
+            config=HypothesisConfig.from_dict(
+                self.config.get("hypothesis_generator"),
+                analyst_cfg.correlation_window_seconds,
+                analyst_cfg.flight_phases,
+            ),
             use_llm=self.use_llm,
         )
         self.report_config = ReportConfig.from_dict(self.config.get("report_writer"))
