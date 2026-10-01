@@ -1,0 +1,29 @@
+Title: Excessive ablative erosion of nozzle or chamber liner
+Category: thermal
+Failure mode: Ablative erosion
+Source type: synthetic
+Case ID: therm-03-ablative-erosion
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Ablative liners in solid motor nozzles, throat inserts, combustion chambers and heat shields protect structure by charring and eroding in a controlled way. Excessive ablative erosion occurs when the material recedes faster than designed, thinning the liner until the underlying structure or bond overheats, or enlarging the nozzle throat enough to change performance.
+
+CAUSAL CHAIN
+Erosion accelerates when local heat flux or particle impingement exceeds the design, or when the material has defects such as voids, ply wrinkles or low density. The throat area grows, so the first observable in a nozzle is typically a gradual chamber pressure decline below the predicted trace, with thrust falling correspondingly. Next, backside thermocouples on the liner or case show temperatures rising earlier than predicted. If erosion breaches the liner, hot gas reaches the structural shell, producing a rapid temperature spike and possibly burn-through.
+
+TELEMETRY SIGNATURES
+- Chamber pressure trending below prediction with a slow, progressive deficit (first deviation in throat erosion)
+- Backside or case thermocouples rising earlier and faster than predicted
+- Thrust and acceleration deficit relative to the nominal trajectory
+- Sudden temperature spike or off-scale thermocouple if the liner is breached
+
+ROOT CAUSE
+Root causes include ablative material defects, changes in raw material or supplier, propellant formulation changes that increase particle impingement or heat flux, and erosion models calibrated on insufficient test data.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Requalify ablative materials after any raw material or process change
+- Compare measured chamber pressure against predicted traces to detect throat erosion early
+- Measure post-test or post-flight erosion depths and feed them back into models

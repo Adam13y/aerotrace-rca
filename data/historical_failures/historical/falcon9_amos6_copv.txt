@@ -1,0 +1,29 @@
+Title: Falcon 9 AMOS-6 - pad anomaly during propellant loading from a second-stage COPV failure
+Category: pressurization
+Failure mode: Helium COPV failure inside the second-stage LOX tank during loading
+Source type: historical
+Case ID: falcon9_amos6_copv
+Date: 1 September 2016
+Vehicle: SpaceX Falcon 9 (AMOS-6 mission)
+Sources: SpaceX AMOS-6 anomaly updates (September 2016 and January 2017); investigation with FAA, NASA and U.S. Air Force participation
+
+FAILURE MODE
+During propellant loading at Space Launch Complex 40 at Cape Canaveral, in preparation for a pre-launch static fire test, the Falcon 9 vehicle was destroyed by a fast-developing fire and explosion that started in the second stage. The AMOS-6 communications satellite, already mounted on the vehicle, was lost and the pad was heavily damaged. No one was injured. No engines were running at the time.
+
+CAUSAL CHAIN
+The second stage stores helium in composite overwrapped pressure vessels (COPVs) submerged in the liquid oxygen (LOX) tank. Falcon 9 used densified, sub-cooled LOX and very cold helium, loaded on a tight timeline. SpaceX reported that early data indicated a large breach in the second stage's cryogenic helium system, and that the time from the first sign of anomaly to loss of data was about 93 milliseconds. The investigation concluded that one of the three COPVs inside the second-stage LOX tank failed. Its most likely explanation was that liquid or solid oxygen accumulated in voids or buckles between the COPV's aluminium liner and its carbon overwrap. Under the loading conditions, friction or fiber breakage in this oxygen-rich region could ignite the carbon composite, leading to rupture of the COPV and of the LOX tank. Test campaigns reproduced failures of this kind under similar conditions. The loading temperature and pressure of the helium were identified as factors that made the condition possible.
+
+TELEMETRY SIGNATURES
+- A static vehicle on the pad, no engine operation, during the propellant and helium loading phase.
+- A sudden drop in second-stage helium system pressure, indicating a large breach.
+- Near-simultaneous disturbances in second-stage LOX tank pressure and temperature as helium and combustion products entered the tank.
+- Loss of data roughly 93 milliseconds after the first anomalous indication: an event far faster than any operator response.
+
+ROOT CAUSE
+SpaceX and the participating agencies concluded that the most likely cause was failure of a helium COPV inside the second-stage LOX tank, caused by oxygen accumulating between the liner and overwrap in a buckle or void and then igniting. SpaceX's corrective actions in the short term changed the COPV configuration and loading procedures to use warmer helium and loading conditions closer to those previously flown successfully, and in the longer term redesigned the COPVs to prevent liner buckling.
+
+LESSONS LEARNED
+- Ground operations such as propellant loading are hazardous phases; anomaly detection must cover them, not just flight.
+- Sub-second events require high-rate, time-synchronised data; slow telemetry may only capture the end state.
+- Changes in loading temperature, pressure or timeline are prime suspects when a new failure appears.
+- Composite pressure vessels submerged in liquid oxygen have failure modes involving oxygen compatibility, not just pressure loads.

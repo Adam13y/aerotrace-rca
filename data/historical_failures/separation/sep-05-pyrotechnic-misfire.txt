@@ -1,0 +1,29 @@
+Title: Pyrotechnic device misfire or failure to fire
+Category: separation
+Failure mode: Pyrotechnic misfire
+Source type: synthetic
+Case ID: sep-05-pyrotechnic-misfire
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Pyrotechnic devices such as initiators, detonators, bolt cutters, explosive bolts, separation nuts and linear shaped charges perform most separation and valve-actuation events in launch vehicles. A misfire is a failure to fire, a late fire, or an inadvertent fire. Because these devices are single-use, a missing or extra event usually cannot be corrected in flight.
+
+CAUSAL CHAIN
+The flight computer issues an arm and fire command. The first deviation appears in the pyro controller: firing current is missing or low, the bridgewire resistance indication is open, or the redundant channel fires but the primary does not. If the energetic chain fails at a transfer point, current flows but no shock follows. The mechanism then stays closed, so the dependent event (a separation, valve opening or deployment) does not happen, and the downstream signals deviate within milliseconds to seconds. An inadvertent fire works in reverse: a shock and separation indication appear with no command.
+
+TELEMETRY SIGNATURES
+- Arm and fire command recorded, but pyro firing current is missing, low or present on only one redundant channel
+- Bridgewire continuity reading changes before the event, for example open or high resistance
+- Expected pyroshock on nearby accelerometers is missing, or an unexpected shock appears with no command
+- Dependent mechanism status such as a separation switch or valve position fails to change after the command
+
+ROOT CAUSE
+Typical causes are connector or harness faults, wrong pin assignment, low firing current from battery sag or circuit resistance, aged energetic material, a broken explosive transfer line, stray energy causing inadvertent firing, and incorrectly installed enabling sensors.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Provide redundant initiators and independent firing circuits for every critical event
+- Telemeter firing current and bridgewire status, not just command issuance
+- Verify the polarity and orientation of any sensor or switch that enables firing as part of final assembly

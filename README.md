@@ -167,12 +167,22 @@ Before Qwen writes hypotheses, the pipeline retrieves the 3 most similar past ae
 to the prompt as **Historical Context**. Qwen treats them as prior art, not as evidence about the current flight.
 
 ```bash
+python scripts/acquire_aerospace_data.py     # renders the 100-case knowledge base from scripts/kb_sources/*.json
 ollama pull nomic-embed-text                 # local embedding model (~270 MB)
-python scripts/build_knowledge_base.py       # embeds data/historical_failures/*.txt into data/vector_store/
+python scripts/build_knowledge_base.py       # embeds data/historical_failures/**.txt into data/vector_store/
+python scripts/run_pipeline.py --kb-stats    # cases by category and source type, on disk vs. indexed
 ```
 
-- **Add cases:** drop `.txt` files into `data/historical_failures/`. Start each with `Title:`/`Date:`/`Sources:`
-  header lines and a blank line, then re-run the build script. Files are chunked at ~500 tokens with 50 tokens of overlap.
+- **Contents:** 80 *synthetic* failure-mode summaries (10 per category: propulsion, pressurization, structural,
+  thermal, electrical, avionics, separation, aerodynamic) and 20 *historical* summaries of real incidents
+  (`historical/`). Synthetic cases are generic engineering write-ups, not records of real events. They name a real
+  incident only where one genuinely exhibited the failure mode, and Qwen's prompt labels them as synthetic.
+- **Retrieval:** the top 5 cases. Cases from the detected anomalies' failure categories get a similarity bonus
+  (`historical_rag.category_boost` in `agents.yaml`), so they rank ahead of comparably similar cases from other categories.
+- **Add cases:** edit `scripts/kb_sources/*.json` and re-run the acquisition script, or drop your own `.txt` files into
+  `data/historical_failures/<category>/`. Start each file with `Title:`/`Category:`/`Failure mode:`/`Source type:` header lines
+  and a blank line, then re-run the build script. Hand-added files are never removed by the acquisition script.
+  Files are chunked at ~500 tokens with 50 tokens of overlap.
 - **Graceful degradation:** if the store is missing or the embedding model is unavailable, the pipeline logs
   "Historical context skipped" and continues without RAG.
 - **Context window:** the hypothesis prompt is about 7k tokens with RAG. Ollama's default 4,096-token window truncates

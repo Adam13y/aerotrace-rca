@@ -1,0 +1,29 @@
+Title: Thermal control failure in an avionics bay
+Category: thermal
+Failure mode: Avionics bay thermal control failure
+Source type: synthetic
+Case ID: therm-09-avionics-bay-thermal-control-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Avionics bays house flight computers, inertial units, power distribution and telemetry equipment. Their temperature is held within limits by conditioned air or nitrogen purge on the pad, by cold plates, heaters and insulation in flight, and on longer missions by fluid loops or radiators. Thermal control failure lets equipment temperatures drift outside qualified limits.
+
+CAUSAL CHAIN
+Typical initiators include loss of pad purge or conditioning before lift-off, a stuck-on or failed heater, a fluid loop pump failure, or a heater thermostat fault. The first observable is a bay or cold plate temperature diverging from its normal band, often slowly over minutes. Electronics then respond: power supply efficiencies drop, oscillators drift, and some units throttle or reset. Bus current changes as heaters fail on or off. Later effects appear as intermittent telemetry, sensor bias drift, computer resets, and finally loss of function if units exceed their limits.
+
+TELEMETRY SIGNATURES
+- Bay air or cold plate temperature trending outside its band (first deviation, often minutes ahead)
+- Heater bus current stuck high or zero inconsistent with thermostat setpoints
+- Inertial sensor bias drift or clock drift correlated with temperature
+- Unit resets, telemetry dropouts or bus voltage sags following the temperature excursion
+
+ROOT CAUSE
+Root causes include single-string heater control, thermostat failure, purge or conditioning interruption before launch, inadequate thermal analysis of long coasts or holds, and equipment dissipating more power than modelled.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Include bay temperatures and heater currents in launch commit criteria
+- Use redundant heater control with independent thermostats
+- Verify thermal margins for extended holds and long coast phases

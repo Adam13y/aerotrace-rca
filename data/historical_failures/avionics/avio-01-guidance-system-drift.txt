@@ -1,0 +1,29 @@
+Title: Gradual drift of the navigation solution in an inertial guidance system
+Category: avionics
+Failure mode: Guidance system drift
+Source type: synthetic
+Case ID: avio-01-guidance-system-drift
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Guidance drift is a slowly growing error between the navigation solution (position, velocity, attitude) computed onboard and the true vehicle state. Inertial navigation integrates sensor outputs, so small gyro bias or accelerometer bias errors accumulate over time. The vehicle follows the computed solution faithfully, so drift appears as trajectory dispersion rather than as an obvious control anomaly.
+
+CAUSAL CHAIN
+An uncompensated sensor bias, scale-factor error or poor initial alignment introduces a small error. The FIRST observable is a slowly diverging difference between the onboard navigation state and an independent reference (ground radar, GPS, or a second inertial unit), while the control loop reports small tracking errors because it tracks the wrong reference. Attitude errors grow roughly linearly with time from gyro bias; position errors grow faster. The consequences appear later: off-nominal steering, cutoff at the wrong velocity, or orbit insertion errors.
+
+TELEMETRY SIGNATURES
+- Navigation velocity or position diverging steadily from GPS or tracking data, growing over tens of seconds to minutes
+- Disagreement between redundant inertial units increasing with time
+- Normal attitude control errors despite trajectory deviation, because the loop tracks its own (wrong) estimate
+- Distinguishing check: a step change in the difference suggests a reference sensor problem (e.g. GPS jump), whereas true inertial drift grows smoothly
+
+ROOT CAUSE
+Typical root causes are gyro and accelerometer bias instability beyond specification, thermal sensitivity not compensated, incorrect calibration coefficients, poor pre-launch alignment (for example vehicle motion from wind sway during gyrocompassing), and navigation filters lacking external aiding.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Compare onboard navigation with an independent reference in real time
+- Characterise sensor biases over the full flight temperature range
+- Monitor redundant-unit disagreement as an early indicator of drift

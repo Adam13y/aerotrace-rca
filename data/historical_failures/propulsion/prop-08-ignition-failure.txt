@@ -1,0 +1,29 @@
+Title: Engine ignition failure or delayed hard start
+Category: propulsion
+Failure mode: Ignition failure
+Source type: synthetic
+Case ID: prop-08-ignition-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Ignition failure is the failure of an engine to establish sustained combustion when commanded, or a hard start in which ignition is delayed and accumulated propellant ignites violently. It applies to pyrotechnic, spark-torch and augmented spark igniters and to hypergolic ignition fluids such as TEA-TEB, for both ground starts and in-flight restarts.
+
+CAUSAL CHAIN
+The first observable is usually the igniter's own indication: missing or low igniter chamber pressure, no igniter temperature rise or light detection, or no exciter current. Main valves may still open on sequence, so propellant flows without sustained combustion and inlet pressures sag. Chamber pressure fails to reach its start threshold within a fixed window, often a few hundred milliseconds. If ignition then occurs late, accumulated propellant produces a sharp chamber pressure overshoot and vibration spike that can damage the injector or nozzle. Sequencers typically abort when the threshold is missed, closing valves and purging.
+
+TELEMETRY SIGNATURES
+- No igniter pressure or temperature rise after the ignition command; the igniter deviates first
+- Main chamber pressure stays near zero while valves open and inlet pressures sag
+- Low or missing exciter current, or no ignition-fluid flow indication
+- In delayed ignition, a sharp chamber pressure overshoot and accelerometer spike
+
+ROOT CAUSE
+Root causes include depleted or contaminated ignition fluid, exciter or harness faults, igniter mixture outside flammability limits, moisture or ice in the igniter, incorrect valve timing, and, for restarts, unsettled propellant or poor thermal conditioning. Vacuum and microgravity restarts add risks ground tests may not reproduce.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It is most often encountered as a pad abort at ignition or a failed upper-stage restart.
+
+LESSONS LEARNED
+- Gate main-valve opening on confirmed igniter operation
+- Size the start window to prevent hard starts from accumulated propellant
+- Verify restart ignition under representative settling, thermal and vacuum conditions

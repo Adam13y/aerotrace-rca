@@ -1,0 +1,29 @@
+Title: Aerodynamic heating damage to protuberances
+Category: aerodynamic
+Failure mode: Aerodynamic heating of protuberances
+Source type: synthetic
+Case ID: aero-07-protuberance-aerodynamic-heating
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Protuberances such as cable raceways, feedline fairings, antennas, attach fittings and sensor housings disrupt the boundary layer. Shock interaction and flow reattachment around them create local heating rates many times higher than on the smooth skin. Heating builds during supersonic ascent and, for returning stages, during reentry. Damage can degrade thermal protection, melt seals or burn through harnesses.
+
+CAUSAL CHAIN
+The first observable is a local temperature rise on a thermocouple or a resistance change on a sensor near the protuberance, growing faster than nearby skin temperatures during supersonic flight. As heating continues, insulation chars or erodes, and the underlying structure or harness heats. Within seconds to tens of seconds, wires routed nearby may short or open, causing sensor dropouts or bus voltage transients. If the protuberance houses a line or valve, pressure or flow anomalies follow.
+
+TELEMETRY SIGNATURES
+- Local thermocouple temperature rising faster than nearby skin temperatures during supersonic ascent or reentry
+- Sensor dropouts or erratic readings on channels routed through the protuberance
+- Bus voltage transients or current spikes from harness damage
+- Pressure changes on lines inside the protuberance after heating peaks
+
+ROOT CAUSE
+Typical causes are underestimated heating amplification factors around protuberances, insufficient thermal protection thickness, changes in protuberance shape or location after thermal analysis, and harness routing close to heated surfaces without margin.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Apply heating amplification factors around every protuberance and verify after design changes
+- Instrument key protuberances with thermocouples on development flights
+- Correlate electrical dropouts with nearby temperature rises to find heat-induced damage

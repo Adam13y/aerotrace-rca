@@ -1,0 +1,29 @@
+Title: Electromagnetic interference corrupting sensor or data signals
+Category: electrical
+Failure mode: EMI/EMC interference
+Source type: synthetic
+Case ID: elec-04-emi-emc-interference
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Electromagnetic interference (EMI) is unwanted coupling of energy from one circuit or external source into another, through radiation, conducted paths or shared impedance. On launch vehicles sources include RF transmitters, switching power converters, motor drives, pyrotechnic firing, plasma and lightning. Victims are typically low-level analog sensors, data buses and digital logic.
+
+CAUSAL CHAIN
+An interfering source switches on or changes state (transmitter keyed, converter mode change, actuator slewing). Energy couples into a susceptible harness or unit. The FIRST observable is usually a step in noise floor or a periodic artefact on low-level sensor channels exactly synchronized with the source activity, before any physical parameter changes. Severe interference can cause bit errors on data buses, spurious discrete commands, or memory corruption in processors, producing control anomalies that follow within milliseconds to seconds.
+
+TELEMETRY SIGNATURES
+- Increased noise or offset on several unrelated sensor channels, beginning at the moment a known emitter or switching load activates
+- Periodic spikes at a frequency tied to a converter or motor drive switching rate
+- Data-bus parity or checksum error counts rising in step with the source
+- Distinguishing check: EMI appears simultaneously on channels sharing routing or grounding and disappears when the source stops; a real physical event follows plausible physics and is corroborated by independent sensors
+
+ROOT CAUSE
+Root causes include inadequate shielding or shield termination, signal and power wiring bundled together, poor bonding, missing filtering on unit inputs, insufficient system-level EMC test coverage of real flight configurations, and operation near natural or triggered lightning.
+
+HISTORICAL REFERENCE
+The Atlas-Centaur AC-67 loss (1987) is commonly cited: the vehicle was launched into conditions that triggered lightning, and the resulting electromagnetic upset is reported to have altered data in the guidance computer, leading to an erroneous steering command and vehicle breakup.
+
+LESSONS LEARNED
+- Perform system-level EMC testing with flight harnesses and active emitters
+- Correlate anomalies against a timeline of RF and switching events
+- Enforce weather and triggered-lightning launch rules

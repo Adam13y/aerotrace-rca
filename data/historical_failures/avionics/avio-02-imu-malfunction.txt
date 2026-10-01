@@ -1,0 +1,29 @@
+Title: Inertial measurement unit hardware or output failure
+Category: avionics
+Failure mode: IMU malfunction
+Source type: synthetic
+Case ID: avio-02-imu-malfunction
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+An IMU malfunction is a failure of the gyroscopes, accelerometers, electronics or interface of the inertial measurement unit, producing invalid, frozen, saturated or biased rate and acceleration data. Unlike slow drift, it is usually abrupt. Because the IMU is the primary sensor for attitude control, an undetected malfunction leads directly to wrong control commands.
+
+CAUSAL CHAIN
+A sensor element, power supply, or processing channel fails, or a mounting or orientation error exists from integration. The FIRST observable is the IMU itself: status or built-in-test flags set, a measured rate or acceleration step that is not physically plausible, or a frozen value. If redundancy management rejects the unit, control continues with a short transient. If not, the flight computer acts on bad data and commands actuators within one control cycle, so engine gimbal or thruster commands deviate, and real attitude rates and errors grow within a second or two.
+
+TELEMETRY SIGNATURES
+- IMU health or BIT flag change, or output frozen at a constant value, preceding control anomalies
+- Step in measured rate or acceleration without a corresponding actuator or thrust event
+- Divergence between redundant IMUs or between IMU and rate-gyro assemblies before actuator commands change
+- Distinguishing check: a real vehicle motion appears consistently in all IMUs and in structural accelerometers; a single-unit excursion indicates sensor failure
+
+ROOT CAUSE
+Root causes include gyro or accelerometer component failures, vibration-induced damage, power-supply faults, software exceptions in IMU processing, incorrect mounting orientation or axis mapping, and redundancy management that cannot isolate a failed unit.
+
+HISTORICAL REFERENCE
+Ariane 5 Flight 501 (1996) involved both inertial reference units shutting down after an unhandled software exception, after which the flight computer acted on diagnostic data; a separate summary exists. The Proton-M 2013 loss, also summarised separately, is attributed to angular-rate sensors installed upside down.
+
+LESSONS LEARNED
+- Use dissimilar or cross-checked inertial sensing to detect single-unit failures
+- Verify sensor orientation and polarity end-to-end with physical stimulus
+- Never route diagnostic data into a control path

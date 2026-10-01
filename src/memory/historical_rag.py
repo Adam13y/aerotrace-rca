@@ -1,19 +1,25 @@
-"""Retrieval-augmented generation over historical aerospace failure reports.
+"""Retrieval-augmented generation over the aerospace failure knowledge base.
 
-Text files in ``data/historical_failures/`` are split into ~500-token chunks, embedded
-locally with ``nomic-embed-text`` through Ollama and stored in a persistent ChromaDB
-collection under ``data/vector_store/``. At analysis time the detected anomalies are
-turned into a query and the most similar historical *cases* (files, not chunks) are
-returned for injection into the hypothesis prompt.
+Text files under ``data/historical_failures/`` (scanned recursively: one sub-folder per failure
+category plus ``historical/`` for real incidents) are split into ~500-token chunks, embedded
+locally with ``nomic-embed-text`` through Ollama and stored in a persistent ChromaDB collection
+under ``data/vector_store/`` together with their category, failure mode and source type
+(``synthetic`` engineering summary or ``historical`` real incident).
 
-Build the store with ``python scripts/build_knowledge_base.py``.
+At analysis time the detected anomalies are turned into a query; the most similar *cases*
+(files, not chunks) are returned, with cases from the anomalies' own failure categories ranked
+ahead of comparably similar cases from other categories.
+
+Generate the documents with ``python scripts/acquire_aerospace_data.py`` and build the store
+with ``python scripts/build_knowledge_base.py``.
 """
 
 from __future__ import annotations
 
 import math
 import re
-from collections.abc import Callable, Sequence
+from collections import Counter
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
@@ -27,6 +33,24 @@ logger = get_logger("memory.historical_rag")
 COLLECTION_NAME = "historical_failures"
 #: Rough English tokens-per-word ratio used for chunk sizing (no tokenizer dependency).
 TOKENS_PER_WORD = 4 / 3
+#: Knowledge-base failure categories (sub-folders of ``data/historical_failures``).
+KB_CATEGORIES = (
+    "propulsion", "pressurization", "structural", "thermal",
+    "electrical", "avionics", "separation", "aerodynamic",
+)
+#: Triage categories (anomaly classification) -> knowledge-base categories.
+TRIAGE_TO_KB_CATEGORY = {
+    "propulsion": "propulsion",
+    "pressurisation": "pressurization",
+    "pressurization": "pressurization",
+    "structural": "structural",
+    "thermal": "thermal",
+    "electrical": "electrical",
+    "gnc": "avionics",
+    "avionics": "avionics",
+    "separation": "separation",
+    "aerodynamic": "aerodynamic",
+}
 
 
 class Embedder(Protocol):
@@ -49,7 +73,7 @@ class OllamaEmbedder:
     nomic-embed-text expects task prefixes; they are added automatically.
     """
 
-    def __init__(self, base_url: str, model: str = "nomic-embed-text", timeout: float = 60.0) -> None:
+    def __init__(self, base_url: str, model: str = "nomic-embed-text", timeout: float = 120.0) -> None:
         """Create the embedder.
 
         Args:
@@ -95,22 +119,30 @@ class OllamaEmbedder:
 
 @dataclass(slots=True)
 class HistoricalDocument:
-    """A historical failure report loaded from disk."""
+    """A knowledge-base report loaded from disk."""
 
     source_file: str
     title: str
     text: str
+    category: str = "uncategorized"
+    failure_mode: str = ""
+    source_type: str = "custom"
     metadata: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
 class HistoricalCase:
-    """A retrieved historical case: the best-matching chunk of one report."""
+    """A retrieved case: the best-matching chunk of one report."""
 
     title: str
     source_file: str
     text: str
     score: float
+    category: str = "uncategorized"
+    failure_mode: str = ""
+    source_type: str = "custom"
+    category_match: bool = False
+    rank_score: float = 0.0
 
 
 def estimate_tokens(text: str) -> int:
@@ -140,7 +172,11 @@ def chunk_text(text: str, chunk_tokens: int = 500, overlap_tokens: int = 50) -> 
 
 
 def load_documents(directory: str | Path) -> list[HistoricalDocument]:
-    """Load ``*.txt`` reports. ``Key: value`` lines before the first blank line are metadata.
+    """Recursively load ``*.txt`` reports.
+
+    ``Key: value`` lines before the first blank line are metadata. ``Category``/``Source type``
+    fall back to the folder layout: ``historical/`` -> source type ``historical``; a category
+    folder -> that category with source type ``synthetic``; anything else -> ``custom``.
 
     Raises:
         FileNotFoundError: If the directory does not exist.
@@ -149,7 +185,9 @@ def load_documents(directory: str | Path) -> list[HistoricalDocument]:
     if not directory.is_dir():
         raise FileNotFoundError(f"Historical failures directory not found: {directory}")
     documents: list[HistoricalDocument] = []
-    for path in sorted(directory.glob("*.txt")):
+    for path in sorted(directory.rglob("*.txt")):
+        if any(part.startswith(".") for part in path.relative_to(directory).parts):
+            continue
         raw = path.read_text(encoding="utf-8").strip()
         header, _, body = raw.partition("\n\n")
         metadata = {
@@ -159,14 +197,36 @@ def load_documents(directory: str | Path) -> list[HistoricalDocument]:
         }
         if "title" not in metadata:  # no header block: the whole file is the body
             metadata, body = {}, raw
+        folder = path.parent.name.lower() if path.parent != directory else ""
+        category = metadata.get("category") or (folder if folder in KB_CATEGORIES else "uncategorized")
+        source_type = metadata.get("source type") or (
+            "historical" if folder == "historical" else "synthetic" if folder in KB_CATEGORIES else "custom"
+        )
         documents.append(
-            HistoricalDocument(path.name, metadata.get("title", path.stem.replace("_", " ")), body.strip(), metadata)
+            HistoricalDocument(
+                source_file=path.relative_to(directory).as_posix(),
+                title=metadata.get("title", path.stem.replace("_", " ")),
+                text=body.strip(),
+                category=category.lower(),
+                failure_mode=metadata.get("failure mode", ""),
+                source_type=source_type.lower(),
+                metadata=metadata,
+            )
         )
     return documents
 
 
+def anomaly_categories(anomalies: Iterable[AnomalyEvent]) -> set[str]:
+    """Knowledge-base categories implied by the anomalies' triage classifications."""
+    return {
+        TRIAGE_TO_KB_CATEGORY[c]
+        for a in anomalies
+        if (c := str(a.classification.get("category", "")).lower()) in TRIAGE_TO_KB_CATEGORY
+    }
+
+
 class HistoricalRAG:
-    """ChromaDB-backed retrieval of historical failure cases."""
+    """ChromaDB-backed retrieval of knowledge-base cases."""
 
     def __init__(
         self,
@@ -174,6 +234,7 @@ class HistoricalRAG:
         embedder: Embedder,
         chunk_tokens: int = 500,
         overlap_tokens: int = 50,
+        category_boost: float = 0.05,
     ) -> None:
         """Open the vector store.
 
@@ -182,11 +243,13 @@ class HistoricalRAG:
             embedder: Embedding backend; must match the one used to build the store.
             chunk_tokens: Target chunk size in tokens.
             overlap_tokens: Overlap between consecutive chunks.
+            category_boost: Similarity bonus for cases in the anomalies' failure categories.
         """
         self.store_dir = Path(store_dir)
         self.embedder = embedder
         self.chunk_tokens = chunk_tokens
         self.overlap_tokens = overlap_tokens
+        self.category_boost = category_boost
         self._client: Any = None
 
     def _chroma(self) -> Any:
@@ -207,7 +270,7 @@ class HistoricalRAG:
             return None
 
     def build(self, docs_dir: str | Path, progress: Callable[[str], None] | None = None) -> dict[str, int]:
-        """(Re)build the collection from all reports in ``docs_dir``.
+        """(Re)build the collection from every report under ``docs_dir`` (recursively).
 
         Returns:
             ``{"documents": n, "chunks": m}``.
@@ -237,15 +300,22 @@ class HistoricalRAG:
                 documents=texts,
                 embeddings=self.embedder.embed_documents(texts),
                 metadatas=[
-                    {"source_file": document.source_file, "title": document.title, "chunk": i,
-                     "tokens": estimate_tokens(chunk)}
+                    {
+                        "source_file": document.source_file,
+                        "title": document.title,
+                        "category": document.category,
+                        "failure_mode": document.failure_mode,
+                        "source_type": document.source_type,
+                        "chunk": i,
+                        "tokens": estimate_tokens(chunk),
+                    }
                     for i, chunk in enumerate(chunks)
                 ],
             )
             total += len(texts)
             if progress:
                 progress(f"{document.source_file}: {len(texts)} chunk(s), ~{estimate_tokens(document.text)} tokens")
-        logger.info("Built historical knowledge base: %d documents, %d chunks", len(documents), total)
+        logger.info("Built knowledge base: %d documents, %d chunks", len(documents), total)
         return {"documents": len(documents), "chunks": total}
 
     def status(self) -> tuple[bool, str]:
@@ -261,8 +331,27 @@ class HistoricalRAG:
             return False, f"embedding model {self.embedder.name} is not available"
         return True, f"{collection.count()} chunks indexed with {self.embedder.name}"
 
-    def search(self, query: str, k: int = 3) -> list[HistoricalCase]:
-        """Return the ``k`` most similar historical cases (best chunk per report).
+    def stats(self) -> dict[str, Any]:
+        """Counts of indexed chunks and cases, by category and source type (empty if not built)."""
+        collection = self._collection()
+        if collection is None:
+            return {"chunks": 0, "cases": 0, "by_category": {}, "by_source_type": {}, "embedding_model": None}
+        metadatas = collection.get(include=["metadatas"])["metadatas"]
+        cases = {m.get("source_file"): m for m in metadatas}
+        return {
+            "chunks": len(metadatas),
+            "cases": len(cases),
+            "by_category": dict(Counter(m.get("category", "?") for m in cases.values())),
+            "by_source_type": dict(Counter(m.get("source_type", "?") for m in cases.values())),
+            "embedding_model": (collection.metadata or {}).get("embedding_model"),
+        }
+
+    def search(self, query: str, k: int = 5, prefer_categories: Iterable[str] | None = None) -> list[HistoricalCase]:
+        """Return the ``k`` best cases (best chunk per report).
+
+        Cases whose category is in ``prefer_categories`` get ``category_boost`` added to their
+        cosine similarity for ranking, so same-category cases come first unless a case from
+        another category is clearly more similar. ``score`` stays the raw similarity.
 
         Raises:
             LLMUnavailableError: If the store or embedder is unusable.
@@ -270,24 +359,38 @@ class HistoricalRAG:
         ok, reason = self.status()
         if not ok:
             raise LLMUnavailableError(reason)
+        preferred = set(prefer_categories or ())
         collection = self._collection()
         result = collection.query(
             query_embeddings=[self.embedder.embed_query(query)],
-            n_results=min(collection.count(), max(k * 4, k)),
+            n_results=min(collection.count(), max(k * 10, 50)),
             include=["documents", "metadatas", "distances"],
         )
         best: dict[str, HistoricalCase] = {}
         for text, meta, distance in zip(result["documents"][0], result["metadatas"][0], result["distances"][0]):
             source = str(meta.get("source_file", "?"))
             score = 1.0 - float(distance)
-            if source not in best or score > best[source].score:
-                body = text.split("\n\n", 1)[1] if "\n\n" in text else text
-                best[source] = HistoricalCase(str(meta.get("title", source)), source, body, score)
-        return sorted(best.values(), key=lambda c: c.score, reverse=True)[:k]
+            if source in best and score <= best[source].score:
+                continue
+            category = str(meta.get("category", "uncategorized"))
+            match = category in preferred
+            body = text.split("\n\n", 1)[1] if "\n\n" in text else text
+            best[source] = HistoricalCase(
+                title=str(meta.get("title", source)),
+                source_file=source,
+                text=body,
+                score=score,
+                category=category,
+                failure_mode=str(meta.get("failure_mode", "")),
+                source_type=str(meta.get("source_type", "custom")),
+                category_match=match,
+                rank_score=score + (self.category_boost if match else 0.0),
+            )
+        return sorted(best.values(), key=lambda c: (c.rank_score, c.score), reverse=True)[:k]
 
-    def search_for_anomalies(self, anomalies: Sequence[AnomalyEvent], k: int = 3) -> list[HistoricalCase]:
-        """Retrieve cases similar to a set of anomalies (see :func:`anomaly_query`)."""
-        return self.search(anomaly_query(anomalies), k)
+    def search_for_anomalies(self, anomalies: Sequence[AnomalyEvent], k: int = 5) -> list[HistoricalCase]:
+        """Retrieve cases similar to a set of anomalies, preferring their failure categories."""
+        return self.search(anomaly_query(anomalies), k, prefer_categories=anomaly_categories(anomalies))
 
 
 def anomaly_query(anomalies: Sequence[AnomalyEvent]) -> str:
@@ -300,13 +403,21 @@ def anomaly_query(anomalies: Sequence[AnomalyEvent]) -> str:
     return "Rocket flight telemetry anomaly sequence:\n" + "\n".join(lines)
 
 
-def format_historical_context(cases: Sequence[HistoricalCase], max_words: int = 220) -> str:
-    """Render retrieved cases for the hypothesis prompt."""
+def format_historical_context(cases: Sequence[HistoricalCase], max_words: int = 150) -> str:
+    """Render retrieved cases for the hypothesis prompt, labelling real vs. synthetic cases."""
     if not cases:
         return "- none retrieved"
+    kinds = {
+        "historical": "REAL historical incident",
+        "synthetic": "synthetic failure-mode summary (generic engineering reference, not a real event)",
+    }
     blocks = []
     for i, case in enumerate(cases, 1):
         words = re.sub(r"\s+", " ", case.text).split()
         excerpt = " ".join(words[:max_words]) + (" ..." if len(words) > max_words else "")
-        blocks.append(f"### Case {i}: {case.title}\n(similarity {case.score:.2f}, source: {case.source_file})\n{excerpt}")
+        blocks.append(
+            f"### Case {i}: {case.title}\n"
+            f"({kinds.get(case.source_type, 'reference case')}; category: {case.category}; "
+            f"similarity {case.score:.2f}; source: {case.source_file})\n{excerpt}"
+        )
     return "\n\n".join(blocks)

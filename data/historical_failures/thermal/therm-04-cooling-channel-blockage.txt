@@ -1,0 +1,29 @@
+Title: Blockage of regenerative cooling channels in a liquid engine
+Category: thermal
+Failure mode: Cooling channel blockage
+Source type: synthetic
+Case ID: therm-04-cooling-channel-blockage
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Regeneratively cooled chambers and nozzles circulate propellant through small channels in the wall. Cooling channel blockage occurs when one or more channels are obstructed by debris, braze material, coking deposits from hydrocarbon fuel, or manufacturing defects, so that the local wall loses cooling while the overall coolant flow appears nearly normal.
+
+CAUSAL CHAIN
+A local obstruction reduces flow in a few channels. Because total coolant flow barely changes, the first observable is usually subtle: a small rise in cooling jacket pressure drop and a localized increase in coolant outlet temperature. The hot wall under the blocked channel rises toward its melting or oxidation limit. Within seconds to tens of seconds the liner can crack, bulge or burn through, releasing fuel into the chamber. This produces a hot streak, changes injector-chamber pressure balance and can lead to external burn-through of the chamber jacket.
+
+TELEMETRY SIGNATURES
+- Increase in cooling jacket pressure drop or decrease in jacket flow relative to pump discharge (earliest sign)
+- Coolant outlet manifold temperature rising above nominal
+- External chamber wall thermocouple hot spot localized circumferentially
+- Chamber pressure fluctuations or fuel manifold pressure drop if a burn-through opens a leak
+
+ROOT CAUSE
+Typical causes are braze or machining debris left in channels, inadequate flow testing of individual channels, hydrocarbon fuel coking at high wall temperatures, contamination from upstream filters or lines, and erosion of internal coatings.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Flow-test and inspect cooling channels after manufacture and after hot fire
+- Control fuel quality and wall temperature to limit coking in hydrocarbon engines
+- Trend jacket pressure drop and outlet temperature across tests and flights

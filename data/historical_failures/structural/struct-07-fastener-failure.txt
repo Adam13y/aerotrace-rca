@@ -1,0 +1,29 @@
+Title: Fastener failure in a bolted structural joint
+Category: structural
+Failure mode: Fastener failure
+Source type: synthetic
+Case ID: struct-07-fastener-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Fastener failure covers fracture, thread stripping, pull-through or loss of preload of bolts, rivets and inserts that join structural parts. It affects stage joints, engine mounts, fairing attachments and equipment brackets. Because joints often have many fasteners in a load-sharing pattern, a single failure can cascade to neighbours.
+
+CAUSAL CHAIN
+The initiating cause is often a fastener with low strength, hydrogen embrittlement, incorrect torque, or improper material. Under vibration and pulsating loads, a weakened or under-preloaded fastener sees full cyclic load and fails by fatigue or overload. The first observable is local: a strain change at the joint or a change in vibration transmissibility across it as the joint becomes compliant. Load shifts to adjacent fasteners, accelerating their failure. Within seconds to tens of seconds the joint can unzip, giving large relative motion, loss of alignment, and secondary failures of lines or harnesses crossing the joint.
+
+TELEMETRY SIGNATURES
+- Strain step at a joint gauge or change in strain distribution around the joint (first deviation)
+- Rising vibration amplitude or new rattle harmonics across the joint
+- Relative motion indications such as changed alignment or attitude disturbance if a mount is affected
+- Secondary loss of signal or pressure in lines and harnesses crossing the joint
+
+ROOT CAUSE
+Counterfeit or nonconforming fasteners, hydrogen embrittlement from plating, incorrect torque or lubrication, galvanic corrosion, omitted locking features, and joint designs where prying or bending amplifies fastener loads are common root causes.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Maintain fastener traceability and lot testing for critical joints
+- Verify preload directly where possible rather than relying on torque alone
+- Design joints so the loss of one fastener does not overload its neighbours

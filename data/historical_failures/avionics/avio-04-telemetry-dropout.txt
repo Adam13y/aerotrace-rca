@@ -1,0 +1,29 @@
+Title: Loss of downlink telemetry frames or link
+Category: avionics
+Failure mode: Telemetry dropout
+Source type: synthetic
+Case ID: avio-04-telemetry-dropout
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A telemetry dropout is a loss of received data from the vehicle, from a few frames to a complete loss of signal. It may be caused by the ground segment, the RF link (antenna pattern nulls, plume attenuation, ionisation, range) or the onboard encoder and transmitter. A dropout is not necessarily a vehicle failure, and distinguishing link problems from vehicle loss is a central RCA task.
+
+CAUSAL CHAIN
+For link-related causes, received signal strength (AGC) falls FIRST, then bit error rate and frame-sync errors rise, then frames are lost. For onboard encoder or transmitter failures, frames stop abruptly with no prior AGC fade, or frames arrive with valid sync but corrupted content. For a genuine vehicle event, the last valid frames usually show physical anomalies (rates, pressures, voltages) immediately before loss of signal.
+
+TELEMETRY SIGNATURES
+- Ground AGC or signal-to-noise falling, followed by rising frame-sync loss and checksum or CRC error counters
+- Dropouts repeating at predictable events: staging, antenna switching, plume shadowing or vehicle roll positions
+- Abrupt loss of all frames with strong signal persisting, pointing to onboard encoder or data source
+- Distinguishing check: if data resumes with continuous onboard time and nominal state, the dropout was link-related; recorded onboard data can confirm
+
+ROOT CAUSE
+Typical root causes include antenna placement producing pattern nulls at certain attitudes, insufficient link margin, plume or plasma attenuation, ground station handover errors, transmitter power or thermal failures, and encoder software faults.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Always check ground AGC and frame-sync counters before interpreting a dropout as vehicle loss
+- Record critical data onboard or retransmit buffered data after dropouts
+- Model antenna coverage against the planned trajectory and attitude

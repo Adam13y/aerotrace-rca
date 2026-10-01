@@ -1,0 +1,222 @@
+{
+  "category": "pressurization",
+  "source_type": "synthetic",
+  "cases": [
+    {
+      "id": "press-01-tank-overpressure",
+      "title": "Propellant tank overpressure",
+      "category": "pressurization",
+      "failure_mode": "Tank overpressure",
+      "failure_mode_description": "Tank overpressure is a rise of ullage pressure above the tank's maximum expected operating pressure. Causes include pressurant control failures, excessive boil-off, failed relief or vent valves, or an uncontrolled pressurant release inside the tank. Flight tanks carry modest burst margins, often a safety factor of roughly 1.25 to 1.5, so overpressure can quickly cause structural failure.",
+      "causal_chain": "The first observable is ullage pressure rising faster than the pressurisation schedule predicts, often while the pressurant supply valve is commanded closed. If pressurant is leaking into the tank, pressurant bottle pressure falls at the same time. The relief valve should crack and produce a plateau; if it fails or its capacity is exceeded, pressure keeps rising and wall strain rises with it. Within seconds a dome or wall can fail, causing abrupt loss of ullage pressure, acceleration and attitude disturbances, and loss of telemetry.",
+      "telemetry_signatures": [
+        "Ullage pressure rises above the control band while pressurisation valves are closed; the rate of rise is the first anomaly",
+        "Pressurant bottle pressure drops simultaneously if pressurant is leaking into the tank",
+        "Relief valve indicates open, or no pressure plateau appears if relief fails",
+        "Abrupt ullage pressure loss, acceleration transient and telemetry dropout if the tank fails"
+      ],
+      "root_cause": "Root causes include regulators or solenoid valves failing open, control software errors, undersized relief capacity, failure of pressurant lines or bottle mounts inside the tank, and boil-off above prediction due to insulation damage.",
+      "historical_reference": "Comparable to the 2015 loss of Falcon 9 on the CRS-7 mission; SpaceX's public summary attributed it to failure of a strut retaining a helium pressure vessel inside the second-stage liquid oxygen tank, leading to helium release and overpressurisation of that tank.",
+      "lessons_learned": [
+        "Size relief capacity for the worst credible pressurant inflow, including an internal line or bottle failure",
+        "Qualify internal mounts and struts with lot-level testing rather than relying only on supplier certification",
+        "Use high-rate ullage pressure telemetry so the rate of rise is visible before failure"
+      ]
+    },
+    {
+      "id": "press-02-ullage-pressure-loss",
+      "title": "Loss of tank ullage pressure",
+      "category": "pressurization",
+      "failure_mode": "Ullage pressure loss",
+      "failure_mode_description": "Ullage pressure loss is a decline of tank ullage pressure below the required operating band during pre-launch or flight. It reduces engine inlet pressure and, in stages that rely on internal pressure for structural stiffness, reduces load-carrying margin. It differs from feed-line blockage, where ullage pressure stays normal and only inlet pressure falls.",
+      "causal_chain": "Initiators include insufficient pressurant flow, a leak at a tank fitting or vent, or rapid ullage cooling (pressurant collapse) when warm gas contacts cold propellant, for example when sloshing mixes liquid into the ullage. The first observable is ullage pressure falling below its control band, while pressurisation valves show increased duty cycle as the controller compensates. Pump inlet pressure follows within about a second, reducing NPSH margin; turbopump speed and vibration may then rise from cavitation, and chamber pressure falls. On pressure-stabilised structures, compressive load margin decreases, raising buckling risk under flight loads.",
+      "telemetry_signatures": [
+        "Ullage pressure falls below the control band first, with pressurant valves commanded open more often",
+        "Pressurant bottle pressure falls faster than expected if a leak exists downstream",
+        "Ullage gas temperature drops sharply in pressurant collapse, often coinciding with slosh or manoeuvres",
+        "Pump inlet pressure tracks ullage pressure down, followed by turbopump speed and vibration rise",
+        "Chamber pressure and thrust decrease if inlet margin is lost"
+      ],
+      "root_cause": "Root causes include undersized pressurant flow paths, regulator under-delivery, leaking seals or fittings, pressurant supplied colder than intended, inadequate anti-slosh baffling, and failure to model ullage collapse during manoeuvres, staging or engine restarts. Low pressurant reserves leave little capacity to recover from collapse events.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Ullage collapse is a recognised design concern for cryogenic upper stages that coast and restart.",
+      "lessons_learned": [
+        "Model pressurant heat and mass transfer, including slosh-induced ullage collapse",
+        "Monitor pressurant valve duty cycle as an early indicator of leaks or collapse",
+        "Hold pressurant reserves sized for worst-case collapse scenarios"
+      ]
+    },
+    {
+      "id": "press-03-regulator-failure",
+      "title": "Pressurant regulator failure",
+      "category": "pressurization",
+      "failure_mode": "Regulator failure",
+      "failure_mode_description": "Regulator failure is a pressure regulator that fails to hold its set point: failing open and delivering high outlet pressure, failing closed and stopping flow, drifting, or oscillating (chatter). Regulators reduce stored helium or nitrogen, often at several hundred bar, to tank pressurisation or pneumatic control pressures, typically a few to tens of bar.",
+      "causal_chain": "The first observable is regulator outlet pressure leaving its set band, either high (fail-open), low (fail-closed), or oscillating rapidly. In fail-open cases, downstream pressure rises toward relief settings and supply bottle pressure falls faster than predicted. In fail-closed cases, outlet pressure decays as downstream consumers draw gas, followed by falling ullage pressure or loss of pneumatic actuation. Chatter produces pressure ripple that can fatigue internal parts and later lead to a hard failure. Consequences reach ullage pressure, engine inlet pressure or valve actuation within seconds.",
+      "telemetry_signatures": [
+        "Regulator outlet pressure outside its set band first, whether high, low or oscillating",
+        "Supply bottle pressure decay rate changes: faster for fail-open, slower for fail-closed",
+        "Downstream relief valve opens in fail-open cases",
+        "Ullage or pneumatic manifold pressure follows outlet pressure within seconds",
+        "Pressure ripple at tens to hundreds of Hz during chatter"
+      ],
+      "root_cause": "Root causes include particulate contamination on the poppet or seat, spring relaxation, diaphragm or seal damage, incorrect set-point adjustment, dynamic instability with the downstream volume, and seal hardening from cold gas during high-flow helium expansion. Redundant regulators in series or parallel mitigate single failures only if each is monitored independently.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Regulator anomalies are commonly found during stage acceptance testing and countdown pressurisation checks.",
+      "lessons_learned": [
+        "Use redundant regulation with independent outlet pressure monitoring",
+        "Test regulator stability with flight-representative downstream volumes and flow demands",
+        "Enforce particulate cleanliness on high-pressure gas systems"
+      ]
+    },
+    {
+      "id": "press-04-relief-valve-malfunction",
+      "title": "Tank relief valve malfunction",
+      "category": "pressurization",
+      "failure_mode": "Relief valve malfunction",
+      "failure_mode_description": "Relief valve malfunction is a failure of a tank or line relief valve to crack at its set pressure, to reseat after relieving, or to pass its rated flow, or premature cracking below its set pressure. Relief valves are the last line of protection against overpressure, so failure to open is hazardous, while failure to reseat wastes pressurant and propellant and can lower ullage pressure.",
+      "causal_chain": "In a failure to open, the first observable is ullage pressure crossing the crack pressure without the expected plateau while the relief position indicator remains closed; pressure continues upward and the event becomes a tank overpressure. In premature opening or failure to reseat, the first observable is a relief-open indication or unexplained ullage pressure decay below the set point, followed by increased pressurisation demand, faster pressurant depletion and, on cryogenic tanks, falling vent-line temperatures. Downstream effects then mirror ullage pressure loss: reduced pump inlet pressure and suction margin within seconds.",
+      "telemetry_signatures": [
+        "Failure to open: ullage pressure passes the relief set point with no plateau and no valve-open indication",
+        "Premature opening or failure to reseat: relief-open indication or vent-line temperature drop at pressures below set point",
+        "Pressurant bottle pressure decreases faster as the controller compensates for venting",
+        "Ullage pressure sawtooth with cracking and reseating at drifting pressures",
+        "Pump inlet pressure follows ullage pressure down in leaking cases"
+      ],
+      "root_cause": "Root causes include seat contamination, ice formation in cryogenic vent paths, spring drift or incorrect set point, seal damage from repeated cycling, and flow capacity that is undersized for credible failure inflows. Testing only at ambient temperature may not reveal cryogenic behaviour of seats and springs.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Relief valve crack and reseat drift is typically detected during propellant loading and tanking tests.",
+      "lessons_learned": [
+        "Verify crack pressure, reseat pressure and flow capacity at flight temperatures",
+        "Provide independent position indication on relief valves",
+        "Use vent-line temperature as a secondary indicator of relief flow"
+      ]
+    },
+    {
+      "id": "press-05-helium-system-leak",
+      "title": "Helium pressurant system leak",
+      "category": "pressurization",
+      "failure_mode": "Helium system leak",
+      "failure_mode_description": "A helium system leak is an external or internal loss of helium from pressurant bottles, lines, regulators, valves or manifolds. Helium's small molecular size makes it hard to seal, and leaks are common at fittings, seals and valve seats, especially after thermal cycling. A leak depletes the finite pressurant supply and can eventually starve tank pressurisation, pneumatic valve actuation or reaction-control propellant feed.",
+      "causal_chain": "The first observable is a decline in helium bottle mass, computed from pressure and temperature with the gas law, that exceeds expected consumption, or a decay during periods when no gas is being used. Downstream manifold pressure may remain nominal because the regulator compensates, so the leak can go unnoticed if only regulated pressures are watched. As supply pressure approaches the regulator's minimum inlet pressure, outlet pressure begins to droop, followed by falling ullage pressure or sluggish pneumatic valves. Leaks into enclosed compartments may also show as rising compartment pressure or helium detected by gas sensors.",
+      "telemetry_signatures": [
+        "Temperature-corrected helium bottle mass decreases during periods of no commanded use; this deviates first",
+        "Bottle pressure trend inconsistent with a closed-volume model given measured bottle temperature",
+        "Compartment pressure or helium concentration rises in enclosed bays",
+        "Regulator outlet pressure droops once supply pressure nears its minimum",
+        "Ullage or pneumatic manifold pressures fall later, possibly late in the mission"
+      ],
+      "root_cause": "Root causes include seal degradation, improperly torqued fittings, valve seat damage, seal shrinkage at cryogenic temperatures, and seal material incompatibility with propellant vapours. Leak rates measured on the ground can increase significantly under flight thermal and vibration conditions.",
+      "historical_reference": "Comparable to the helium leaks reported in the service module reaction control system manifolds of Boeing's Starliner during its 2024 crewed flight test; NASA and Boeing public statements described multiple leaks that were assessed alongside thruster performance issues.",
+      "lessons_learned": [
+        "Compute helium mass from pressure and temperature, not pressure alone, to detect leaks",
+        "Perform leak checks at flight-representative temperatures and after vibration exposure",
+        "Budget helium reserves for credible leak rates and allow isolation of leaking manifolds"
+      ]
+    },
+    {
+      "id": "press-06-pneumatic-line-rupture",
+      "title": "High-pressure pneumatic line rupture",
+      "category": "pressurization",
+      "failure_mode": "Pneumatic line rupture",
+      "failure_mode_description": "Pneumatic line rupture is the sudden failure of a high-pressure gas line, fitting or flex hose that supplies valve actuation gas or pressurant. A rupture releases gas quickly, producing a pressure collapse in the affected circuit and possibly mechanical damage or local cooling of nearby hardware. Pneumatic circuits typically operate at tens to hundreds of bar.",
+      "causal_chain": "Initiators include vibration fatigue of a poorly supported line, chafing against structure, overpressure surges, or weld and fitting defects. The first observable is a rapid pressure drop in the affected pneumatic manifold, reaching near-ambient within a fraction of a second to a few seconds depending on line size, together with a step drop in supply bottle pressure and a bottle temperature decrease from rapid blowdown. Nearby accelerometers may register a transient at rupture. Valves depending on that supply then fail to actuate or move to their fail-safe positions; this can close main propellant valves, causing loss of thrust, or prevent commanded sequences such as staging or shutdown.",
+      "telemetry_signatures": [
+        "Abrupt pneumatic manifold pressure drop is the first anomaly, falling toward ambient within seconds",
+        "Supply bottle pressure step decrease and bottle temperature drop from rapid blowdown",
+        "Local accelerometer or acoustic transient at the time of rupture",
+        "Valves on the affected circuit report fail-safe positions or fail to respond to commands",
+        "Engine shutdown or sequence abort shortly afterwards"
+      ],
+      "root_cause": "Root causes include inadequate clamping that leaves line natural frequencies within the vibration environment, defects in welds or brazed joints, incorrect fitting torque, chafing, and pressure surges from fast-opening valves. Lack of vibration testing on flight-configuration routing is a common contributor.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It is most often associated with vibration qualification gaps in line routing and support.",
+      "lessons_learned": [
+        "Support pneumatic lines so their natural frequencies avoid dominant vibration environments",
+        "Inspect welds and brazed joints with radiography or an equivalent method",
+        "Design pneumatically actuated valves with safe failure positions and isolate pneumatic circuits"
+      ]
+    },
+    {
+      "id": "press-07-copv-burst",
+      "title": "Composite overwrapped pressure vessel burst",
+      "category": "pressurization",
+      "failure_mode": "COPV burst",
+      "failure_mode_description": "A composite overwrapped pressure vessel (COPV) burst is the structural failure of a high-pressure gas bottle, typically a thin metallic liner wrapped in carbon fibre and storing helium or nitrogen at several hundred bar. COPVs are often submerged in cryogenic propellant to increase stored gas density. Failure releases a large amount of stored energy as blast and fragments and can ignite materials in an oxygen environment.",
+      "causal_chain": "Contributing mechanisms include stress rupture of the composite under sustained load, liner buckling, impact or handling damage, and, for COPVs immersed in liquid oxygen, oxygen condensed or frozen between liner and overwrap that can ignite through friction or fibre breakage. The first observable, if any, is often subtle: an unexpected deviation in bottle pressure or temperature during loading or pressurisation. The burst itself is effectively instantaneous: bottle pressure collapses, the surrounding tank pressure spikes, and accelerometers and strain gauges register a shock within milliseconds, followed by tank failure and loss of telemetry.",
+      "telemetry_signatures": [
+        "Possible subtle precursors, such as unexpected bottle pressure or temperature deviations during loading",
+        "Near-instant collapse of COPV pressure",
+        "Simultaneous spike in surrounding tank pressure and shock-level accelerometer response",
+        "Loss of telemetry within milliseconds to seconds"
+      ],
+      "root_cause": "Root causes include loading conditions not represented in qualification, such as particular cryogenic loading sequences or temperatures, underestimated composite stress-rupture life, manufacturing defects in liner or overwrap, handling damage, and insufficient understanding of oxygen compatibility at the liner-overwrap interface.",
+      "historical_reference": "Comparable to the 2016 AMOS-6 Falcon 9 pad anomaly during propellant loading; SpaceX's public summary attributed it to a breach of a helium COPV in the second-stage liquid oxygen tank, likely involving oxygen accumulating in buckles or voids under the overwrap.",
+      "lessons_learned": [
+        "Qualify COPVs under flight-representative cryogenic loading sequences and temperatures",
+        "Account for oxygen compatibility and trapped propellant at liner-overwrap interfaces",
+        "Record COPV pressure and temperature at high rate during loading to capture precursors"
+      ]
+    },
+    {
+      "id": "press-08-vent-valve-stuck",
+      "title": "Stuck tank vent valve",
+      "category": "pressurization",
+      "failure_mode": "Vent valve stuck",
+      "failure_mode_description": "A stuck vent valve is a tank vent valve that fails to close after venting or fails to open when commanded. Vent valves release boil-off and ullage gas during loading and pre-launch hold and are normally closed before flight pressurisation. A stuck-open valve prevents the tank from reaching flight pressure; a stuck-closed valve allows pressure to build from boil-off, leaving only the relief valve for protection.",
+      "causal_chain": "If the valve sticks open, the first observable is position feedback still showing open after a close command, followed by an inability to raise ullage pressure: pressurant flow increases but ullage pressure stays low and vent-line temperatures remain cold. Countdown sequencers typically hold or abort; in flight, pressurant is depleted rapidly. If the valve sticks closed, the first observable is position feedback not changing on an open command, followed by a steady ullage pressure rise from boil-off until the relief valve cracks; if relief also fails, the event becomes a tank overpressure.",
+      "telemetry_signatures": [
+        "Vent valve position feedback inconsistent with command; this deviates first",
+        "Stuck open: ullage pressure does not rise despite pressurant flow, and vent-line temperatures stay cold",
+        "Stuck closed: ullage pressure rises steadily from boil-off until relief cracks",
+        "Pressurant bottle pressure decays faster when pressurising against an open vent"
+      ],
+      "root_cause": "Causes include ice formed from moisture ingestion into cold vent paths, contamination on seats, loss of actuation pressure, seal damage, and faulty position switches that misreport valve state. Cryogenic vent valves exposed to humid air during long holds are especially vulnerable to icing.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Vent valve faults are a common cause of countdown holds and scrubs on cryogenic vehicles.",
+      "lessons_learned": [
+        "Purge vent paths with dry gas to prevent ice formation",
+        "Verify vent valve closure by both position feedback and ullage pressure response",
+        "Keep relief protection independent of the vent valve"
+      ]
+    },
+    {
+      "id": "press-09-autogenous-heat-exchanger-fault",
+      "title": "Autogenous pressurisation heat-exchanger fault",
+      "category": "pressurization",
+      "failure_mode": "Autogenous pressurization heat-exchanger fault",
+      "failure_mode_description": "Autogenous pressurisation vaporises a small flow of propellant in an engine-mounted heat exchanger, or taps it from the regenerative cooling circuit, and returns the gas to pressurise its own tank, for example gaseous oxygen for a liquid-oxygen tank or gaseous methane or hydrogen for a fuel tank. A heat-exchanger fault, such as fouling, cracking, internal leakage or insufficient heating, changes the temperature, phase or flow of the returning pressurant.",
+      "causal_chain": "The first observable is typically the heat-exchanger outlet temperature deviating from prediction. A low temperature indicates insufficient heat transfer or liquid carryover; a high temperature can indicate reduced flow. Cold pressurant delivers less pressurising effect per unit mass and can condense in the ullage, so within seconds ullage pressure droops or the autogenous flow control valve opens wider to hold it. If a crack lets oxidiser leak into hot turbine exhaust or the engine bay, a fire or explosion can follow, shown by rising local temperatures and shutdown. Falling ullage pressure then reduces pump inlet pressure and suction margin.",
+      "telemetry_signatures": [
+        "Heat-exchanger outlet temperature deviates from prediction first",
+        "Autogenous flow control valve position opens further to maintain ullage pressure",
+        "Ullage pressure droops or oscillates, with ullage gas temperature below nominal",
+        "Turbine exhaust or engine-bay temperature rise if the exchanger leaks into hot gas",
+        "Pump inlet pressure decreases following ullage pressure"
+      ],
+      "root_cause": "Root causes include thermal fatigue cracking of heat-exchanger tubes, fouling from contaminants, operation at low throttle settings where less heat is available, flow control valve faults, and inadequate modelling of ullage condensation when pressurant temperature is close to saturation.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It applies mainly to stages that use autogenous or heat-exchanger-based pressurisation instead of stored helium.",
+      "lessons_learned": [
+        "Instrument heat-exchanger outlet temperature and pressure to detect degradation early",
+        "Qualify heat exchangers for thermal fatigue across throttle and restart cycles",
+        "Model ullage condensation effects when pressurant temperature approaches saturation"
+      ]
+    },
+    {
+      "id": "press-10-check-valve-backflow",
+      "title": "Check valve leakage and propellant vapour backflow into pressurant system",
+      "category": "pressurization",
+      "failure_mode": "Check valve backflow",
+      "failure_mode_description": "Check valve leakage or backflow is a failure of pressurant-system check valves to prevent propellant liquid or vapour from migrating upstream into pressurant lines and regulators. It is a particular concern in hypergolic bipropellant systems, where oxidiser and fuel vapours can meet in a shared pressurant manifold, and on long-duration missions where slow vapour migration accumulates over weeks or months.",
+      "causal_chain": "Initiators include seat contamination, soft-seat degradation from propellant vapour attack, and low or reversed differential pressure across the valve during long quiescent periods. The first observable is often subtle: pressure drift in a pressurant line section that should be static, or temperature changes on pressurant lines near the check valve as vapour or liquid migrates. Accumulated propellant can corrode regulators and seals, leading later to regulator instability. In hypergolic systems, fuel and oxidiser residues meeting in the pressurant manifold can react when pressurisation begins, producing a pressure spike, line rupture and propellant leakage within seconds.",
+      "telemetry_signatures": [
+        "Unexpected pressure drift in isolated pressurant line sections first",
+        "Temperature anomalies on pressurant lines near check valves",
+        "Pressure spike in the pressurant manifold at pressurisation if reactive residues are present",
+        "Subsequent regulator outlet instability or loss of line pressure"
+      ],
+      "root_cause": "Root causes include check valves with insufficient tightness for long missions, seal materials incompatible with propellant vapours, absence of pyrotechnic or latch isolation valves between propellant and pressurant, and system designs in which fuel and oxidiser tanks share pressurant paths.",
+      "historical_reference": "Comparable to the 1993 loss of contact with the Mars Observer spacecraft; the failure review board could not determine the cause conclusively, but its most probable scenario involved oxidiser that had migrated past check valves reacting with fuel in the pressurisation lines when the system was pressurised.",
+      "lessons_learned": [
+        "Use pyrotechnic or latch isolation valves between propellants and pressurant on long missions",
+        "Select seal materials compatible with propellant vapours over the full mission duration",
+        "Separate fuel and oxidiser pressurant paths where practical"
+      ]
+    }
+  ]
+}

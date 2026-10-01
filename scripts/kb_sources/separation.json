@@ -1,0 +1,216 @@
+{
+  "category": "separation",
+  "source_type": "synthetic",
+  "cases": [
+    {
+      "id": "sep-01-stage-separation-anomaly",
+      "title": "Stage separation anomaly: incomplete or disturbed staging event",
+      "category": "separation",
+      "failure_mode": "Stage separation anomaly",
+      "failure_mode_description": "A stage separation anomaly is any deviation from the planned sequence that releases the spent lower stage and lets the upper stage clear it: main engine cutoff, thrust tail-off, separation command, release of the interstage joint, push-off, and upper-stage ignition. Anomalies range from a delayed or partial release to an excessive tip-off rate that leaves the upper stage misaligned when its engine lights.",
+      "causal_chain": "The first deviation is usually in the sequence itself: residual thrust tail-off is longer than modelled, or one release device on the separation plane fires late or not at all. If the joint releases asymmetrically, the upper stage receives a tip-off moment and its attitude rate rises within tens of milliseconds of the separation command. If the joint holds at one point, breakwires on that side stay intact and the upper stage ignites while partly attached. The resulting attitude error at ignition saturates the thrust vector control, and the upper-stage guidance either recovers with a large transient or loses control within seconds.",
+      "telemetry_signatures": [
+        "Separation command and pyro-fire currents recorded, but one or more breakwire or separation-switch channels change state late or never",
+        "Pyroshock spike on interstage accelerometers that is weaker or more asymmetric than in qualification data",
+        "Upper-stage pitch/yaw rates jump within 10-100 ms of separation, before upper-stage ignition",
+        "Upper-stage engine gimbal reaches its limit within seconds of ignition while chamber pressure is nominal"
+      ],
+      "root_cause": "Typical root causes are an under-predicted thrust tail-off, a degraded or incorrectly installed release device, a cross-wired firing circuit, and timing margins set too short between cutoff, separation and ignition. Insufficient stage-level separation testing is a frequent contributor.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Model thrust tail-off from measured engine data and keep explicit timing margin before separation and ignition",
+        "Instrument every release point with breakwires so a partial release is visible in telemetry",
+        "Rank the earliest separation-plane signal, not the later attitude divergence, as the likely root cause"
+      ]
+    },
+    {
+      "id": "sep-02-fairing-separation-failure",
+      "title": "Payload fairing fails to separate during ascent",
+      "category": "separation",
+      "failure_mode": "Fairing separation failure",
+      "failure_mode_description": "The payload fairing protects the spacecraft through the atmosphere and is jettisoned once aerodynamic heating is low, typically a few minutes after liftoff. A separation failure occurs when the base or longitudinal joints do not fully release, or the halves do not move clear. The retained mass, hundreds of kilograms to a few tonnes, reduces achievable velocity.",
+      "causal_chain": "The separation command is issued, but one joint fails to release or a half stays attached. The first observable is the fairing separation status: some breakwires or switches never change state, and the expected pyroshock is missing or abnormal. Because the vehicle carries unplanned mass, acceleration falls below prediction from that moment onward. Velocity then falls short and the vehicle ends on a suborbital trajectory, even though propulsion parameters stay nominal.",
+      "telemetry_signatures": [
+        "Fairing separation command issued, but some fairing breakwires or separation switches never change state",
+        "Missing or reduced pyroshock/pneumatic signature on fairing-base accelerometers",
+        "Axial acceleration a few percent below prediction immediately after the jettison time while chamber pressure and thrust are nominal",
+        "Increasing velocity and altitude shortfall versus the reference trajectory until engine cutoff"
+      ],
+      "root_cause": "Root causes include a frangible joint that does not fully fracture, binding of hinges, a firing-circuit fault, out-of-specification separation hardware, and inadequate verification of joint material properties across production lots. Ground tests that do not reproduce flight conditions can hide marginal designs.",
+      "historical_reference": "NASA's Orbiting Carbon Observatory (2009) and Glory (2011) missions were both lost when the Taurus XL payload fairing reportedly failed to separate, leaving the vehicle too heavy to reach orbit. Investigations pointed to the fairing separation system, with the Glory investigation later linked to material quality problems in the joint hardware.",
+      "lessons_learned": [
+        "Give each fairing half and joint its own separation indication so a partial release is unambiguous",
+        "Verify separation-system material properties per production lot rather than relying on supplier certification alone",
+        "When acceleration drops at the moment of jettison with nominal thrust, suspect retained mass before propulsion"
+      ]
+    },
+    {
+      "id": "sep-03-payload-deploy-malfunction",
+      "title": "Payload deployment malfunction at spacecraft separation",
+      "category": "separation",
+      "failure_mode": "Payload deploy malfunction",
+      "failure_mode_description": "Payload deployment releases the spacecraft from the payload adapter, usually by a clamp band, separation nuts or a dispenser with springs, after the upper stage has reached the target orbit and orientation. A malfunction is a failure to release, a delayed release, or a release with excessive tip-off rates or recontact that leaves the spacecraft tumbling or damaged.",
+      "causal_chain": "The upper stage reaches its deployment attitude and issues the separation command. The first deviation is at the interface: the clamp band does not open fully, one of several release points holds, or the springs push unequally. Separation switches then show partial or late indication. If the payload stays attached, upper-stage attitude control sees unexpected mass properties. If it separates with a moment, the spacecraft's first telemetry after power-on shows body rates well above specification, typically several degrees per second rather than below one, and its attitude control must work to null the tumble before solar arrays can deploy.",
+      "telemetry_signatures": [
+        "Separation command issued with nominal firing current, but adapter separation switches show partial or delayed indication",
+        "Upper-stage attitude rates and thruster duty cycle change unexpectedly at the deployment time",
+        "Spacecraft first-contact telemetry shows tip-off rates above specification",
+        "Spacecraft bus voltage falling on battery because arrays cannot deploy or sun-point while tumbling"
+      ],
+      "root_cause": "Typical causes are clamp band preload outside tolerance, spring energy mismatch, interference from harnesses or blankets, incorrect mass properties in separation analysis, and gaps in interface verification when adapter and launcher come from different organisations.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Treat the payload adapter as part of the separation system and verify it end to end with flight-like hardware",
+        "Check clearances against harnesses and blankets in the final flight configuration",
+        "Correlate upper-stage and spacecraft telemetry on a common time base to see which side deviated first"
+      ]
+    },
+    {
+      "id": "sep-04-umbilical-release-failure",
+      "title": "Umbilical release or retraction failure at liftoff",
+      "category": "separation",
+      "failure_mode": "Umbilical release failure",
+      "failure_mode_description": "Umbilicals carry power, data, purge gas and propellant fill and drain lines from the launch tower to the vehicle. At or just before liftoff they must disconnect cleanly and retract out of the vehicle's path. A release failure leaves an umbilical attached, retracts it too slowly, or tears it off, which can damage vehicle ports or the tower and can corrupt power and data paths during the first seconds of flight.",
+      "causal_chain": "The disconnect command is issued during the terminal count or by liftoff motion itself. The first deviation is a missing or late disconnect indication: a plate stays latched, a lanyard does not pull the connector, or a retract arm stalls. If launch proceeds, the vehicle drags or strikes the umbilical; electrical lines may short or open, producing noise or brief dropouts on vehicle buses, and a propellant or gas line may leak at the vehicle-side quick-disconnect. Within seconds, debris or a leaking port can produce local pressure loss or contamination.",
+      "telemetry_signatures": [
+        "Umbilical disconnect or arm-retract indication missing or later than the scripted time relative to liftoff",
+        "Short voltage transients or dropouts on vehicle power buses at liftoff as ground power is lost abnormally",
+        "Lateral accelerometer spikes during the first seconds of rise",
+        "Pressure decay in a tank or purge line served by the umbilical port shortly after liftoff"
+      ],
+      "root_cause": "Root causes include ice on cryogenic umbilical plates, worn or misadjusted latches and lanyards, low pressure in the retract system, wind loads outside design, and procedural errors such as a locking pin left installed.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Make positive umbilical disconnect a hard launch-commit item with independent indications",
+        "Protect cryogenic umbilical interfaces from icing and verify them with test fixtures that reproduce frost loads",
+        "When anomalies start in the first second after liftoff, check ground-system disconnect data first"
+      ]
+    },
+    {
+      "id": "sep-05-pyrotechnic-misfire",
+      "title": "Pyrotechnic device misfire or failure to fire",
+      "category": "separation",
+      "failure_mode": "Pyrotechnic misfire",
+      "failure_mode_description": "Pyrotechnic devices such as initiators, detonators, bolt cutters, explosive bolts, separation nuts and linear shaped charges perform most separation and valve-actuation events in launch vehicles. A misfire is a failure to fire, a late fire, or an inadvertent fire. Because these devices are single-use, a missing or extra event usually cannot be corrected in flight.",
+      "causal_chain": "The flight computer issues an arm and fire command. The first deviation appears in the pyro controller: firing current is missing or low, the bridgewire resistance indication is open, or the redundant channel fires but the primary does not. If the energetic chain fails at a transfer point, current flows but no shock follows. The mechanism then stays closed, so the dependent event (a separation, valve opening or deployment) does not happen, and the downstream signals deviate within milliseconds to seconds. An inadvertent fire works in reverse: a shock and separation indication appear with no command.",
+      "telemetry_signatures": [
+        "Arm and fire command recorded, but pyro firing current is missing, low or present on only one redundant channel",
+        "Bridgewire continuity reading changes before the event, for example open or high resistance",
+        "Expected pyroshock on nearby accelerometers is missing, or an unexpected shock appears with no command",
+        "Dependent mechanism status such as a separation switch or valve position fails to change after the command"
+      ],
+      "root_cause": "Typical causes are connector or harness faults, wrong pin assignment, low firing current from battery sag or circuit resistance, aged energetic material, a broken explosive transfer line, stray energy causing inadvertent firing, and incorrectly installed enabling sensors.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Provide redundant initiators and independent firing circuits for every critical event",
+        "Telemeter firing current and bridgewire status, not just command issuance",
+        "Verify the polarity and orientation of any sensor or switch that enables firing as part of final assembly"
+      ]
+    },
+    {
+      "id": "sep-06-pneumatic-pusher-fault",
+      "title": "Pneumatic pusher fault during separation",
+      "category": "separation",
+      "failure_mode": "Pneumatic pusher fault",
+      "failure_mode_description": "Some vehicles use pneumatic actuators instead of pyrotechnic devices to release latches and push stages, fairings or payloads apart. A pressurised gas, often helium or nitrogen, drives pistons that provide the separation impulse. A fault means one or more pushers deliver too little force, act too late, or act unequally, giving low separation velocity or a tip-off moment.",
+      "causal_chain": "The first deviation is usually upstream of the motion: the pneumatic supply pressure is low before the event because of a slow leak or regulator drift, or a valve opens late. When the command is issued, the pressure in that pusher rises slowly or to a lower peak. The stroke is shortened or delayed, so separation velocity is reduced and, if pushers act unequally, a rotation rate appears. Low relative velocity raises the risk of recontact once upper-stage ignition or residual thrust acts.",
+      "telemetry_signatures": [
+        "Pneumatic supply or bottle pressure lower than predicted before the separation command, or decaying over minutes",
+        "Pusher pressure rise after the valve command slower or lower than nominal on one or more actuators",
+        "Separation switches change state later than nominal and at different times around the circumference",
+        "Relative separation velocity lower than predicted and attitude rate appearing after release"
+      ],
+      "root_cause": "Typical causes are seal leakage at low temperature, contamination in valves or regulators, a mis-set regulator, an undersized gas reserve that does not cover cold-soak pressure loss, and piston friction or binding from debris or lubricant changes. Failure to telemeter pneumatic pressure makes slow leaks invisible until the event.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Pneumatic separation systems are valued because they are reusable and testable, but they depend on gas supply integrity throughout flight.",
+      "lessons_learned": [
+        "Telemeter supply and actuator pressures so a slow leak is visible before the event",
+        "Size gas reserves for worst-case cold soak and leakage",
+        "Test pushers at flight temperature and confirm symmetry of stroke timing across all actuators"
+      ]
+    },
+    {
+      "id": "sep-07-separation-recontact",
+      "title": "Recontact between separated stages",
+      "category": "separation",
+      "failure_mode": "Separation-induced recontact",
+      "failure_mode_description": "Recontact occurs when two bodies that have released from each other collide shortly afterward, at stage separation, fairing jettison or payload deployment. Usually the trailing body keeps accelerating from residual thrust or venting, or separation velocity is too small for the required clearance.",
+      "causal_chain": "Release happens on time and the separation indications are nominal, which can hide the problem. The first deviation is in relative motion: the lower stage's residual thrust lasts longer than modelled, so its acceleration does not fall to zero and it catches up with the upper stage. Within roughly one to a few seconds, the bodies touch; accelerometers record a shock with no command, and the upper stage receives an attitude disturbance or damage to its engine nozzle. If the upper-stage engine is damaged or its ignition is disturbed, thrust and chamber pressure fall short and the mission is lost.",
+      "telemetry_signatures": [
+        "Nominal separation switch indications followed by an uncommanded shock on upper-stage accelerometers within seconds",
+        "Lower-stage axial acceleration or chamber pressure decaying more slowly than predicted after cutoff",
+        "Upper-stage attitude rate step at the moment of contact",
+        "Upper-stage chamber pressure low or erratic, or nozzle-area temperature sensors abnormal, after the contact"
+      ],
+      "root_cause": "Typical causes are an underestimated tail-off impulse, especially after an engine design change, separation velocity margins set too tight, venting that pushes the spent body forward, and analyses that ignore timing dispersions.",
+      "historical_reference": "The third Falcon 1 flight (2008) was publicly reported to have been lost when residual thrust from the first-stage engine, after a change to a regeneratively cooled engine, caused the first stage to recontact the second stage after separation. The fix reported was a longer delay between cutoff and separation.",
+      "lessons_learned": [
+        "Re-validate tail-off and separation timing whenever the engine or propellant feed design changes",
+        "Show positive separation distance for worst-case dispersions, not only nominal values",
+        "An uncommanded shock after nominal separation indications points to recontact"
+      ]
+    },
+    {
+      "id": "sep-08-strap-on-booster-separation-anomaly",
+      "title": "Strap-on booster separation anomaly and core-stage impact",
+      "category": "separation",
+      "failure_mode": "Booster strap-on separation anomaly",
+      "failure_mode_description": "Vehicles with strap-on boosters release them from the core stage partway through first-stage flight, while the core continues to burn. The boosters are usually held at forward and aft attach points and pushed or rotated away, sometimes using venting gas or small motors. An anomaly occurs when a booster does not release cleanly, rotates the wrong way, or collides with the core.",
+      "causal_chain": "The booster separation command is issued at booster burnout. The first deviation is local to one booster: an attach point does not release, a vent valve that should push the booster away does not open, or a sensor triggers the wrong sequence. The booster then moves toward rather than away from the core. Within about a second, accelerometers show a shock, the core stage's attitude rates rise, and tank pressure may drop if the impact damages the core tank. Guidance then cannot hold attitude and an abort is triggered or the vehicle breaks up.",
+      "telemetry_signatures": [
+        "Separation sensor for one booster changes state late, early or not at all compared with the others",
+        "Asymmetric shock on core-stage accelerometers within about a second of the separation event",
+        "Rapid growth in core-stage attitude rates and control actuator saturation after separation",
+        "Core-stage tank pressure decay following the impact"
+      ],
+      "root_cause": "Typical causes are assembly errors such as a deformed sensor or latch, designs relying on a single sensor to trigger release, inadequate inspection of the attach mechanism, and push-off systems not verified at integration.",
+      "historical_reference": "The Soyuz MS-10 crewed launch (2018) was aborted when one strap-on booster did not separate correctly and struck the core stage; the investigation attributed this to a separation sensor pin deformed during assembly, which prevented a booster vent valve from opening. The crew landed safely by the launch escape system.",
+      "lessons_learned": [
+        "Inspect and photograph separation sensors and latches after final assembly",
+        "Avoid single-sensor dependencies for critical separation actions",
+        "Compare the separation timing of each booster individually; the outlier is the starting point for RCA"
+      ]
+    },
+    {
+      "id": "sep-09-hot-staging-plume-damage",
+      "title": "Hot-staging plume interaction damage",
+      "category": "separation",
+      "failure_mode": "Hot-staging plume interaction damage",
+      "failure_mode_description": "In hot staging, the upper-stage engine ignites before or at the moment the stages separate, while the lower stage is still producing thrust or has only just shut down. The upper-stage plume impinges on the lower stage's forward dome or an interstage, which must be vented and protected. Damage occurs when plume heating or pressure on the lower stage, or reflected flow back to the upper stage, exceeds design allowances.",
+      "causal_chain": "The upper-stage engine starts, and the plume fills the interstage gap before the bodies have moved far apart. The first deviation is usually thermal or pressure: interstage pressure rises faster or higher than predicted because vents are partly blocked, and temperature sensors on the lower-stage dome climb. Within a second or two, plume pressure can push back on the upper-stage nozzle and disturb attitude, or heat can damage the lower stage's forward dome, causing a tank pressure loss. Lower-stage recovery or boostback may then fail later.",
+      "telemetry_signatures": [
+        "Interstage pressure rising faster or higher than predicted during the overlap of upper-stage ignition and separation",
+        "Rapid temperature rise on lower-stage forward dome or interstage thermocouples",
+        "Upper-stage attitude rates or gimbal transients during the first second after ignition",
+        "Lower-stage tank pressure decay or loss of downstream instrumentation after staging"
+      ],
+      "root_cause": "Typical causes are insufficient interstage vent area, thin thermal protection, plume models that omit start transients, and ignition-to-shutdown timing that differs from analysis. Retrofitting hot staging to a cold-staged design increases exposure.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Instrument the interstage and lower-stage dome with pressure and temperature sensors on early flights",
+        "Validate plume impingement models for start transients and off-nominal conditions",
+        "Treat staging-time pressure and temperature rises as the first indicator of later lower-stage failures"
+      ]
+    },
+    {
+      "id": "sep-10-frangible-joint-separation-nut-release-failure",
+      "title": "Incomplete frangible joint or separation nut release",
+      "category": "separation",
+      "failure_mode": "Incomplete frangible joint / separation nut release",
+      "failure_mode_description": "Frangible joints use an expanding tube or a linear charge to fracture a notched structural ring along its whole circumference. Separation nuts are segmented nuts that release a bolt when fired. Both are used for stage, fairing and payload separation. An incomplete release leaves a section of ring unbroken or a bolt still held, keeping the bodies mechanically linked even though the ordnance fired.",
+      "causal_chain": "The fire command is issued and firing current is nominal, so the pyrotechnic chain appears healthy. The first deviation is mechanical: a segment of the joint does not fully fracture, or a nut segment binds. Separation switches near the held point stay closed while others open. Bodies then either stay attached, so the vehicle continues with unexpected mass and a misaligned load path, or tear free late with a large tip-off, producing a sudden attitude rate on the free body.",
+      "telemetry_signatures": [
+        "Nominal firing current and initiator status, yet one sector's separation switches or breakwires remain intact",
+        "Pyroshock amplitude lower than qualification levels on accelerometers near the held sector",
+        "Delayed tear-out transient followed by attitude rate jump, or continued coupled motion of the two bodies",
+        "Acceleration lower than predicted when the lower body stays attached"
+      ],
+      "root_cause": "Typical causes are joint material outside specification (strength, ductility or wall thickness at the notch), a charge with reduced loading or a gap in the expanding tube, corrosion or contamination in a nut, preload above design, and assembly errors such as an incorrectly seated tube. Lot acceptance testing that does not reproduce flight temperatures can miss marginal hardware.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Fairing joint failures discussed in a separate summary show how material properties can affect release.",
+      "lessons_learned": [
+        "Control and test joint material properties per lot, especially at the notch",
+        "Place separation indicators around the full circumference so a held sector is located",
+        "Nominal firing current does not prove separation; check the mechanical indicators"
+      ]
+    }
+  ]
+}

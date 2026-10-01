@@ -1,0 +1,29 @@
+Title: Unplanned reset or reboot of the flight computer
+Category: avionics
+Failure mode: Flight computer reset
+Source type: synthetic
+Case ID: avio-03-flight-computer-reset
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A flight computer reset is an unplanned restart of a processor executing guidance, navigation and control or sequencing software. Triggers include watchdog timeouts, power brown-outs, radiation-induced single-event upsets and software faults. During the restart, outputs freeze or default, and state may be lost unless saved in protected memory.
+
+CAUSAL CHAIN
+The trigger occurs first: a bus voltage dip, a software overrun or deadlock, or a memory upset. The FIRST observable depends on the trigger; for brown-outs a bus voltage dip precedes the reset, while for software causes processor load, task overrun or watchdog counters change first. The reset itself appears as a gap in computer-generated telemetry, a reset counter increment, and a boot status word. Actuator commands hold or go to safe defaults during the gap, causing attitude errors to grow until control resumes, typically from hundreds of milliseconds to seconds later.
+
+TELEMETRY SIGNATURES
+- Reset counter increment, boot or power-on flag, and mission elapsed time discontinuity in computer telemetry
+- Gap in GNC telemetry with actuator commands frozen or at default, followed by growing attitude error
+- Preceding bus voltage dip (power-related) or rising CPU load and task-overrun counters (software-related)
+- Distinguishing check: a telemetry-only gap with no reset counter change and continued normal vehicle response indicates a downlink problem, not a reset
+
+ROOT CAUSE
+Root causes include insufficient processing margin, priority inversion or deadlock in real-time software, watchdog thresholds set too tightly, inadequate power hold-up, unmitigated single-event effects, and missing warm-restart logic to preserve navigation state.
+
+HISTORICAL REFERENCE
+Mars Pathfinder (1997) experienced repeated system resets on the surface; the cause was identified as a priority inversion in its real-time operating system and was corrected by a parameter change uploaded from the ground.
+
+LESSONS LEARNED
+- Telemeter reset cause and counters so triggers can be identified
+- Design warm-restart that preserves navigation and sequence state
+- Maintain timing margin and analyse task priorities for inversion

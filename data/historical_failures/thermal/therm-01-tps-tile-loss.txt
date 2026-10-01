@@ -1,0 +1,29 @@
+Title: Loss of thermal protection tiles exposing underlying structure
+Category: thermal
+Failure mode: TPS tile loss
+Source type: synthetic
+Case ID: therm-01-tps-tile-loss
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Reusable entry vehicles and some booster bases use discrete ceramic or ablative tiles bonded or mechanically attached to the structure. Tile loss occurs when a tile detaches through bond failure, attachment failure or debris impact, leaving a gap where the structure, typically aluminium or steel with a much lower temperature limit than the tile, is exposed to aerodynamic heating.
+
+CAUSAL CHAIN
+The initiating event is usually during ascent or earlier: a weak bond, damaged attachment, or a debris strike loosens a tile, and aerodynamic loads or vibration remove it. The loss itself often leaves little trace except perhaps a brief acceleration spike. The first thermal observable appears during entry or high-heating flight: the bondline or structure temperature beneath the gap rises much faster than neighbouring locations. Gap edges also trip local flow, heating downstream tiles. If heating persists, the structure softens or burns through, which can then affect internal systems.
+
+TELEMETRY SIGNATURES
+- Bondline or structure thermocouple at one location rising well above neighbouring sensors during peak heating (first thermal deviation)
+- Elevated temperatures downstream of the gap from disturbed boundary-layer flow
+- Thermocouple going off-scale or open-circuit as the sensor or its wiring is damaged
+- Possible small acceleration impulse during ascent when the tile is shed
+
+ROOT CAUSE
+Root causes include bond adhesive cure or surface preparation defects, gap filler or attachment degradation over reuse, debris impact from the vehicle itself, and inspection methods that cannot detect weak bonds before flight.
+
+HISTORICAL REFERENCE
+Public accounts of Space Shuttle mission STS-27 in 1988 describe extensive tile damage from ascent debris and the loss of at least one tile; the underlying structure in that area reportedly avoided burn-through partly because a thick antenna mounting plate lay beneath it.
+
+LESSONS LEARNED
+- Control ascent debris sources, since tile loss often originates during launch
+- Verify bond strength by process control and pull testing of witness samples
+- Place bondline thermocouples in high-heating areas so local overheating can be localized

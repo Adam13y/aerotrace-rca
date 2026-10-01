@@ -1,0 +1,29 @@
+Title: Recontact between separated stages
+Category: separation
+Failure mode: Separation-induced recontact
+Source type: synthetic
+Case ID: sep-07-separation-recontact
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Recontact occurs when two bodies that have released from each other collide shortly afterward, at stage separation, fairing jettison or payload deployment. Usually the trailing body keeps accelerating from residual thrust or venting, or separation velocity is too small for the required clearance.
+
+CAUSAL CHAIN
+Release happens on time and the separation indications are nominal, which can hide the problem. The first deviation is in relative motion: the lower stage's residual thrust lasts longer than modelled, so its acceleration does not fall to zero and it catches up with the upper stage. Within roughly one to a few seconds, the bodies touch; accelerometers record a shock with no command, and the upper stage receives an attitude disturbance or damage to its engine nozzle. If the upper-stage engine is damaged or its ignition is disturbed, thrust and chamber pressure fall short and the mission is lost.
+
+TELEMETRY SIGNATURES
+- Nominal separation switch indications followed by an uncommanded shock on upper-stage accelerometers within seconds
+- Lower-stage axial acceleration or chamber pressure decaying more slowly than predicted after cutoff
+- Upper-stage attitude rate step at the moment of contact
+- Upper-stage chamber pressure low or erratic, or nozzle-area temperature sensors abnormal, after the contact
+
+ROOT CAUSE
+Typical causes are an underestimated tail-off impulse, especially after an engine design change, separation velocity margins set too tight, venting that pushes the spent body forward, and analyses that ignore timing dispersions.
+
+HISTORICAL REFERENCE
+The third Falcon 1 flight (2008) was publicly reported to have been lost when residual thrust from the first-stage engine, after a change to a regeneratively cooled engine, caused the first stage to recontact the second stage after separation. The fix reported was a longer delay between cutoff and separation.
+
+LESSONS LEARNED
+- Re-validate tail-off and separation timing whenever the engine or propellant feed design changes
+- Show positive separation distance for worst-case dispersions, not only nominal values
+- An uncommanded shock after nominal separation indications points to recontact

@@ -1,0 +1,29 @@
+Title: Injector clogging causing mixture maldistribution
+Category: propulsion
+Failure mode: Injector clogging
+Source type: synthetic
+Case ID: prop-03-injector-clogging
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Injector clogging is partial blockage of injector orifices by particulates, debris, frozen contaminants or coking deposits. It occurs in main-chamber, gas-generator, preburner and thruster injectors. Because only some elements are affected, clogging distorts the local mixture ratio and spray pattern, producing hot streaks rather than a uniform performance loss.
+
+CAUSAL CHAIN
+Contaminants enter with the propellant or originate in the feed system and lodge in the smallest passages. The first observable is typically a rise in injector manifold pressure relative to chamber pressure for the affected propellant, because the same flow must pass through less area; where supply pressure is fixed, that propellant's flow decreases instead. Chamber pressure and thrust then drop modestly. Near blocked elements the mixture ratio shifts, creating hot streaks that raise wall or nozzle temperatures in specific circumferential sectors over seconds. Severe cases can trigger combustion roughness or burn-through.
+
+TELEMETRY SIGNATURES
+- Injector pressure drop increases for one propellant while chamber pressure stays flat or falls slightly; this deviates first
+- Flow of the affected propellant decreases by a few percent
+- Chamber pressure, thrust and estimated specific impulse decline slowly
+- Circumferentially non-uniform wall or nozzle temperatures appear seconds later
+
+ROOT CAUSE
+Typical root causes include inadequate filtration, manufacturing or maintenance debris, cleaning-fluid residue, moisture freezing in cryogenic circuits, and hydrocarbon fuel coking in hot passages during post-shutdown soak-back. Without post-test flow checks, partial blockage carries into the next firing.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It is commonly found during acceptance testing and post-test injector flow inspection, especially on reusable or hydrocarbon-fuelled engines.
+
+LESSONS LEARNED
+- Trend injector pressure drop per propellant across tests and flights
+- Verify cleanliness with particle counts at the engine interface
+- Flow-check injectors exposed to coking or contamination after firing

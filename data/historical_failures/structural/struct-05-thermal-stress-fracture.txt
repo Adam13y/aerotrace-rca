@@ -1,0 +1,29 @@
+Title: Thermal stress fracture from steep temperature gradients
+Category: structural
+Failure mode: Thermal stress fracture
+Source type: synthetic
+Case ID: struct-05-thermal-stress-fracture
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Thermal stress fracture occurs when constrained thermal expansion or contraction produces stresses exceeding material strength. It is common at junctions between cryogenic tanks and warm structure, at dissimilar-metal joints, in nozzle extensions and in brittle materials such as ceramics, where a rapid temperature change creates large gradients through the thickness.
+
+CAUSAL CHAIN
+A rapid temperature change, such as cryogenic propellant loading, engine chilldown, or engine ignition heating, creates a steep thermal gradient. The cold region contracts while adjacent warm material resists, generating tensile stress that can approach several hundred megapascals in metals with high expansion coefficients. The first observable is the temperature gradient itself: a rapid temperature drop or rise on one sensor while a neighbouring sensor lags. Strain gauges then show thermally driven strain. If a flaw or brittle zone is present, a crack initiates; in a tank it can produce a leak shortly afterwards, and in a nozzle or hot structure it can propagate under subsequent vibration.
+
+TELEMETRY SIGNATURES
+- Large rate of temperature change on skin or structure thermocouples, with a widening difference between adjacent sensors (first deviation)
+- Strain excursions correlated in time with the temperature transient rather than with mechanical load
+- Acoustic emission or accelerometer clicks during chilldown
+- Subsequent leak indications such as tank pressure decay or local cold spots
+
+ROOT CAUSE
+Typical causes are chilldown or loading rates faster than qualified, inadequate allowance for differential expansion in joint design, use of materials with low toughness at cryogenic temperature, and residual stresses from manufacturing that add to thermal stress.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Limit and monitor cryogenic loading and chilldown rates as structural parameters
+- Design joints between dissimilar materials with compliance for differential expansion
+- Pair thermocouples with strain gauges so thermal and mechanical strain can be separated

@@ -1,0 +1,29 @@
+Title: Radiative heating anomaly from plumes, shock layers or solar exposure
+Category: thermal
+Failure mode: Radiative heating anomaly
+Source type: synthetic
+Case ID: therm-06-radiative-heating-anomaly
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Radiative heating is heat transfer by thermal radiation from hot engine plumes, particle-laden solid motor exhaust, high-temperature shock layers during fast entries, or the sun during coast phases. A radiative heating anomaly occurs when absorbed radiation exceeds the design, overheating surfaces, propellant tanks or sensitive equipment that convective analyses alone would not flag.
+
+CAUSAL CHAIN
+Typical triggers are an unexpected plume shape at altitude, higher particle loading, a changed attitude that exposes a surface to the sun or plume, or degraded surface optical properties such as soot deposits raising absorptance. The first observable is a temperature rise on surfaces with line of sight to the source, often on one side of the vehicle and correlated with attitude or plume conditions. Heat soaks inward over tens of seconds to minutes, raising tank or bay temperatures, increasing cryogenic boil-off and ullage pressure, or pushing electronics toward limits.
+
+TELEMETRY SIGNATURES
+- Surface thermocouple or radiometer rise on the side facing the plume or sun, correlated with attitude (first deviation)
+- Temperature asymmetry between opposite sides of the vehicle
+- Delayed rise in cryogenic tank ullage pressure or vent activity from increased boil-off
+- Equipment bay temperature increases lagging the surface rise by minutes
+
+ROOT CAUSE
+Root causes include plume radiation models not validated at altitude, surface coatings contaminated or degraded, mission attitude profiles that differ from analysed cases, and insufficient margins on coating optical properties.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Validate plume radiation models with flight radiometer data
+- Protect and verify thermal coatings and their optical properties before launch
+- Analyse thermal effects of off-nominal attitudes and extended coasts

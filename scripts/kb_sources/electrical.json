@@ -1,0 +1,216 @@
+{
+  "category": "electrical",
+  "source_type": "synthetic",
+  "cases": [
+    {
+      "id": "elec-01-battery-cell-failure",
+      "title": "Internal short or capacity loss in a single cell of a flight battery",
+      "category": "electrical",
+      "failure_mode": "Battery cell failure",
+      "failure_mode_description": "A single cell in a series-connected flight battery (lithium-ion, silver-zinc or nickel-based) loses capacity, develops high internal resistance or suffers an internal short. Because cells are stacked in series to reach bus voltage (typically 28 V nominal), one weak cell lowers pack voltage and, under load, can be driven into reversal or thermal runaway. It occurs in avionics, pyro and actuator batteries on stages and payloads.",
+      "causal_chain": "A latent defect (separator puncture, metallic contamination, dendrite) or prior abuse degrades one cell. The FIRST observable is usually that cell's voltage diverging from its neighbours, often while pack voltage is still within limits. Under load it sags further and cell or pack temperature climbs within seconds to minutes. If the cell shorts internally, it self-heats and may vent, and propagation to adjacent cells produces a stepwise pack voltage drop followed by bus undervoltage alarms and load shedding.",
+      "telemetry_signatures": [
+        "One cell voltage drifts 50-200 mV below the cell-average before any pack-level alarm; pack voltage follows later",
+        "Cell or pack temperature rises with little or no rise in load current, indicating internal heat generation",
+        "Pack voltage drops in discrete steps (roughly one cell voltage each) as further cells fail",
+        "Artefact check: a single cell reading that jumps instantly to zero or full scale with no change in pack voltage or temperature suggests a broken sense lead, not a cell failure"
+      ],
+      "root_cause": "Typical root causes are manufacturing defects (contamination, electrode misalignment, separator damage), weak cell screening, overcharge or over-discharge during ground processing, storage outside temperature limits, and packs lacking cell-to-cell thermal barriers.",
+      "historical_reference": "The 2013 Boeing 787 lithium-ion battery events are a well-known aviation example in which investigators attributed the incidents to internal short-circuit and thermal runaway in a single cell spreading to others. No launch-vehicle incident is cited here.",
+      "lessons_learned": [
+        "Telemeter individual cell or cell-group voltages, not only pack voltage, so divergence is seen first",
+        "Screen cells by lot and match them for capacity and internal resistance",
+        "Design packs to tolerate a single-cell thermal runaway without propagation"
+      ]
+    },
+    {
+      "id": "elec-02-bus-voltage-transient",
+      "title": "Main power bus voltage transient during load switching or external disturbance",
+      "category": "electrical",
+      "failure_mode": "Bus voltage transient",
+      "failure_mode_description": "A bus voltage transient is a short-duration excursion (microseconds to hundreds of milliseconds) of the DC power bus above or below its regulated band. It arises when large inductive or capacitive loads switch, when sources transfer (ground to internal power), when pyrotechnic or actuator loads draw inrush current, or from external events such as lightning. Avionics with insufficient hold-up can brown out or reset.",
+      "causal_chain": "A load step or source disturbance occurs first; the bus voltage dips (or spikes) because of source impedance and wiring inductance. The bus voltage excursion is the FIRST observable, usually coincident with a current step on the offending load channel. Within milliseconds, sensitive units may drop below their undervoltage threshold and reset, producing secondary signatures such as frame gaps and restart counters. The bus usually recovers within a fraction of a second unless a protection trip latches.",
+      "telemetry_signatures": [
+        "Bus voltage dip or spike that recovers within one or a few samples, time-aligned with a load-current step or commanded event",
+        "Reset counters, power-on flags or watchdog events in avionics units a few milliseconds to seconds after the dip",
+        "Short frame-sync loss or checksum errors coinciding with the transient",
+        "Artefact check: low telemetry sample rates can alias or miss fast transients; a dip seen on one voltage monitor only, with no current step and no unit resets, is more likely a measurement artefact"
+      ],
+      "root_cause": "Underlying causes include insufficient bus capacitance or hold-up time, high source or harness impedance, simultaneous switching of large loads, poor inrush limiting, and lightning or electrostatic discharge exposure.",
+      "historical_reference": "Apollo 12 (1969) is a widely cited example: the vehicle was struck by lightning shortly after liftoff, the fuel cells dropped off the spacecraft buses and telemetry became garbled until the crew switched the signal-conditioning equipment to its auxiliary supply and restored the fuel cells.",
+      "lessons_learned": [
+        "Specify and test bus transient envelopes and unit hold-up times together",
+        "Sample bus voltage fast enough, or capture min/max, to see transients",
+        "Sequence large loads rather than switching them simultaneously"
+      ]
+    },
+    {
+      "id": "elec-03-short-circuit",
+      "title": "Short circuit in a power harness or unit causing overcurrent and protection trip",
+      "category": "electrical",
+      "failure_mode": "Short circuit",
+      "failure_mode_description": "A short circuit is an unintended low-impedance path between a powered conductor and return, structure or another circuit. It typically occurs in harnesses where insulation is chafed, cut or heat-damaged, at connectors, or inside units after component failure. Consequences range from a blown fuse or tripped solid-state power controller to arcing, fire, and loss of all loads on the affected bus.",
+      "causal_chain": "Insulation damage exposes a conductor; vibration, thermal motion or contamination then completes the path. The FIRST observable is a sharp current increase on the affected feeder, followed within milliseconds by a bus voltage dip proportional to source impedance. Protection (fuse, breaker, SSPC) should clear the fault, so the current then falls to zero and the downstream loads go dead. If protection is slow or absent, sustained current heats the wiring, temperature sensors near the harness rise, and arcing can ignite nearby materials.",
+      "telemetry_signatures": [
+        "Feeder current spikes to many times nominal, simultaneous with a bus voltage dip",
+        "Within milliseconds, SSPC trip flag set or current falls to zero; downstream unit telemetry goes static or missing",
+        "Harness or compartment temperature rise when the fault persists or arcs intermittently",
+        "Artefact check: a real short shows correlated current, voltage and load-loss signatures; an isolated current spike with no voltage dip is more likely a sensor glitch"
+      ],
+      "root_cause": "Common root causes are harness routing over sharp edges or without adequate clamping, tooling damage during installation, insulation degraded by heat or by unsuitable materials, conductive debris (FOD) inside units, and protection devices sized too large or responding too slowly.",
+      "historical_reference": "The Apollo 13 oxygen-tank failure (1970) is attributed to wiring whose insulation had been damaged by overheating during ground testing; in flight, electrical arcing inside the tank is believed to have ignited the fire. A separate detailed summary exists for that event.",
+      "lessons_learned": [
+        "Inspect harness routing and protect wiring at edges and pass-throughs",
+        "Size protection so that it clears faults before wiring overheats",
+        "Use fault current and voltage correlation to confirm a real short"
+      ]
+    },
+    {
+      "id": "elec-04-emi-emc-interference",
+      "title": "Electromagnetic interference corrupting sensor or data signals",
+      "category": "electrical",
+      "failure_mode": "EMI/EMC interference",
+      "failure_mode_description": "Electromagnetic interference (EMI) is unwanted coupling of energy from one circuit or external source into another, through radiation, conducted paths or shared impedance. On launch vehicles sources include RF transmitters, switching power converters, motor drives, pyrotechnic firing, plasma and lightning. Victims are typically low-level analog sensors, data buses and digital logic.",
+      "causal_chain": "An interfering source switches on or changes state (transmitter keyed, converter mode change, actuator slewing). Energy couples into a susceptible harness or unit. The FIRST observable is usually a step in noise floor or a periodic artefact on low-level sensor channels exactly synchronized with the source activity, before any physical parameter changes. Severe interference can cause bit errors on data buses, spurious discrete commands, or memory corruption in processors, producing control anomalies that follow within milliseconds to seconds.",
+      "telemetry_signatures": [
+        "Increased noise or offset on several unrelated sensor channels, beginning at the moment a known emitter or switching load activates",
+        "Periodic spikes at a frequency tied to a converter or motor drive switching rate",
+        "Data-bus parity or checksum error counts rising in step with the source",
+        "Distinguishing check: EMI appears simultaneously on channels sharing routing or grounding and disappears when the source stops; a real physical event follows plausible physics and is corroborated by independent sensors"
+      ],
+      "root_cause": "Root causes include inadequate shielding or shield termination, signal and power wiring bundled together, poor bonding, missing filtering on unit inputs, insufficient system-level EMC test coverage of real flight configurations, and operation near natural or triggered lightning.",
+      "historical_reference": "The Atlas-Centaur AC-67 loss (1987) is commonly cited: the vehicle was launched into conditions that triggered lightning, and the resulting electromagnetic upset is reported to have altered data in the guidance computer, leading to an erroneous steering command and vehicle breakup.",
+      "lessons_learned": [
+        "Perform system-level EMC testing with flight harnesses and active emitters",
+        "Correlate anomalies against a timeline of RF and switching events",
+        "Enforce weather and triggered-lightning launch rules"
+      ]
+    },
+    {
+      "id": "elec-05-sensor-wiring-fault",
+      "title": "Open, shorted or miswired sensor circuit producing false telemetry",
+      "category": "electrical",
+      "failure_mode": "Sensor wiring fault",
+      "failure_mode_description": "A sensor wiring fault is an open circuit, short, high-resistance joint, reversed polarity or swapped channel in the wiring between a transducer and its signal conditioner. It is an instrumentation failure rather than a vehicle failure, but if the reading feeds closed-loop control or abort logic it can cause real consequences such as unnecessary aborts or incorrect control action.",
+      "causal_chain": "A conductor breaks or a crimp loosens under vibration, or a wiring error exists from integration. The FIRST observable is the sensor reading itself: a jump to a rail value (zero, full scale or the conditioner's open-circuit value), an implausible step, or a reversed sign. Critically, physically coupled parameters do NOT follow. If the faulty channel is used by software, a control or redline response follows within the software cycle time, and that response then produces genuine secondary changes elsewhere.",
+      "telemetry_signatures": [
+        "Instantaneous step to a rail or fixed value with no transition consistent with the physical time constant",
+        "Intermittent dropouts correlated with vibration levels or staging shocks",
+        "Reading of correct magnitude but opposite sign, or two channels exchanged, from first power-up",
+        "Distinguishing check: compare with redundant sensors and physically linked quantities (pressure vs flow, temperature vs heater current); if they remain steady, the anomaly is instrumentation"
+      ],
+      "root_cause": "Typical root causes are crimp or solder defects, connector pin back-out, harness strain at clamps, drawing or pin-out errors, mislabelled harness branches, and incomplete end-to-end polarity and stimulus testing after integration.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. The Proton-M 2013 loss, covered separately, illustrates a related polarity error caused by inverted sensor installation rather than wiring.",
+      "lessons_learned": [
+        "Perform end-to-end stimulus and polarity tests on every channel after final integration",
+        "Use sensor voting or plausibility checks before acting on a single channel",
+        "Treat non-physical step changes as instrumentation until corroborated"
+      ]
+    },
+    {
+      "id": "elec-06-relay-malfunction",
+      "title": "Electromechanical relay fails to change state or chatters",
+      "category": "electrical",
+      "failure_mode": "Relay malfunction",
+      "failure_mode_description": "Electromechanical relays and latching relays switch power to loads such as heaters, valves, pyro buses and avionics. Malfunctions include failure to close or open, contact welding, high contact resistance and chatter (rapid bouncing). Failures are most likely during high-vibration phases or when switching inductive or high inrush loads.",
+      "causal_chain": "A relay is commanded; the coil energises but contacts do not transfer, transfer partially, or bounce. The FIRST observable is a mismatch between the command discrete and the relay status (position) word, or between relay status and the downstream load voltage or current. Shortly after, the load fails to act: a valve does not move, a heater stays cold, or a bus segment remains dead. With chatter, the load current oscillates, generating bus noise and possible resets in nearby units.",
+      "telemetry_signatures": [
+        "Command issued but relay status word unchanged, or status changed but load current stays at zero",
+        "Load current or downstream voltage toggling rapidly during vibration peaks (chatter)",
+        "Elevated voltage drop across closed contacts indicating high contact resistance and possible heating",
+        "Distinguishing check: if load current is correct but the status bit is wrong, the fault is in the auxiliary status contact or its wiring, not the power path"
+      ],
+      "root_cause": "Root causes include contamination or particles inside the relay, contact erosion or welding from switching inrush or inductive loads without suppression, insufficient coil drive voltage under low bus conditions, mounting orientation that is sensitive to vibration, and relays used beyond their rated life or derating.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Telemeter both relay status and downstream load current to confirm state",
+        "Apply arc suppression and derate contacts for inductive and inrush loads",
+        "Perform particle impact noise detection and vibration screening on relays"
+      ]
+    },
+    {
+      "id": "elec-07-power-distribution-failure",
+      "title": "Loss of a power distribution unit or bus segment",
+      "category": "electrical",
+      "failure_mode": "Power distribution failure",
+      "failure_mode_description": "A power distribution failure is loss of a power distribution unit (PDU), switching module or bus segment that feeds multiple loads. Because many units share the path, the failure appears as near-simultaneous loss of several otherwise unrelated subsystems. It can occur at power transfer from ground to internal power, at staging, or at random during flight.",
+      "causal_chain": "An internal PDU fault (failed switch, converter, controller or bus-bar connection) or an upstream protection trip interrupts power to a segment. The FIRST observable is the segment voltage dropping and the PDU status word changing, followed within milliseconds by loss of telemetry from every unit on that segment. If redundant feeds exist, cross-strap logic switches to the alternate path and loads recover after a short gap; otherwise loss of valves, heaters or avionics produces physical consequences over seconds to minutes.",
+      "telemetry_signatures": [
+        "Segment or PDU output voltage drops to near zero while the main bus remains healthy",
+        "Simultaneous loss or freeze of telemetry from all loads on the affected segment",
+        "Redundancy switch-over flags and a short gap before loads recover on the alternate feed",
+        "Distinguishing check: if only the telemetry multiplexer for that segment fails, loads keep working (other evidence like attitude control or pressures stays normal); a real power loss produces physical consequences"
+      ],
+      "root_cause": "Typical root causes are single points of failure in distribution architecture, inadequate thermal design of switching components, loose bus-bar or connector joints, protection coordination errors causing upstream trips for downstream faults, and software or logic errors in switching controllers.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Map every load to its distribution path so common-cause losses can be recognised quickly",
+        "Coordinate protection so that a downstream fault does not trip an upstream feeder",
+        "Avoid placing redundant strings on the same distribution segment"
+      ]
+    },
+    {
+      "id": "elec-08-solar-array-deployment-fault",
+      "title": "Solar array fails to fully deploy after separation",
+      "category": "electrical",
+      "failure_mode": "Solar array deployment fault",
+      "failure_mode_description": "After separation, spacecraft and some upper stages deploy solar arrays using hold-down release mechanisms, hinges and springs or motors. A deployment fault leaves one or more wings stowed or partially deployed, reducing generated power and possibly disturbing attitude control. The vehicle then runs on battery and can reach critical depth of discharge within hours.",
+      "causal_chain": "The release command is sent; one hold-down fails to release, a hinge binds, or a harness or blanket snags. The FIRST observable is deployment telemetry: release-device or deploy-complete switches not indicating, or a hinge potentiometer stopping short. Solar array current is then lower than predicted when illuminated, while battery current remains in discharge. Over orbits, battery state of charge and bus voltage trend downward, and load shedding follows. Asymmetric deployment can also produce a small attitude disturbance at the release time.",
+      "telemetry_signatures": [
+        "Missing deploy-complete or latch microswitch indication after the release command",
+        "Array current well below predicted for the measured sun angle; battery stays in discharge in sunlight",
+        "Battery state-of-charge and bus voltage trending downward over successive orbits",
+        "Distinguishing check: a failed latch switch with normal array current and charging indicates an instrumentation problem, not a deployment failure"
+      ],
+      "root_cause": "Root causes include release mechanisms sensitive to temperature or preload, interference between arrays and adjacent structure or blankets, harness routing that restricts motion, ground deployment testing that did not represent zero-g or thermal conditions, and damage during ascent.",
+      "historical_reference": "Skylab (1973) is a well-documented example: loss of its micrometeoroid shield during ascent tore away one main solar array wing and left the other jammed by debris, until astronauts freed it during an extravehicular activity.",
+      "lessons_learned": [
+        "Verify deployment with both mechanism switches and array current",
+        "Test release mechanisms across the full flight thermal range",
+        "Size batteries and load-shed plans to survive a delayed deployment"
+      ]
+    },
+    {
+      "id": "elec-09-connector-intermittency-vibration",
+      "title": "Intermittent connector contact under flight vibration",
+      "category": "electrical",
+      "failure_mode": "Connector intermittency under vibration",
+      "failure_mode_description": "Connector intermittency is the momentary opening or resistance increase of an electrical contact when vibration or shock moves mating parts. Causes include partially mated or unlocked connectors, pin back-out, fretting corrosion and worn sockets. Because the fault is intermittent and depends on dynamic environment, it often passes static ground tests and appears only at liftoff, transonic buffet, max-q or staging.",
+      "causal_chain": "Vibration excites the connector or harness; a marginal contact opens for microseconds to milliseconds. The FIRST observable is a burst of dropouts, spikes or bit errors on signals through that connector, temporally correlated with vibration accelerometer levels. Power contacts produce brief voltage dips on the downstream unit, possibly triggering resets. As vibration subsides the symptoms disappear, which is the characteristic pattern. Repeated fretting gradually increases resistance and can make the fault permanent.",
+      "telemetry_signatures": [
+        "Spikes, dropouts or checksum errors on a group of channels sharing one connector, concentrated during high-vibration phases",
+        "Symptom rate tracks vibration amplitude and stops when vibration falls",
+        "Brief undervoltage events or resets of a unit powered through the connector",
+        "Distinguishing check: physical process changes would persist after vibration ends; intermittency that correlates with accelerometer RMS and channel grouping points to the connector"
+      ],
+      "root_cause": "Root causes include incomplete mating or missing lock-wire and safety checks, contacts not fully seated, inadequate strain relief and harness support, connector selection not rated for the vibration environment, and repeated mate-demate cycles during ground processing.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Group telemetry anomalies by connector to reveal common-cause intermittency",
+        "Verify connector mating and locking with independent inspection",
+        "Include powered, monitored vibration testing to catch intermittent contacts"
+      ]
+    },
+    {
+      "id": "elec-10-ground-loop-grounding-fault",
+      "title": "Ground loop or lost ground reference causing measurement offsets",
+      "category": "electrical",
+      "failure_mode": "Ground loop / grounding fault",
+      "failure_mode_description": "A grounding fault occurs when the intended single-point or controlled return scheme is violated: a return lead opens, an unintended connection to structure creates a ground loop, or bonding resistance increases. Return currents then flow through signal references, shifting the zero of analog measurements and adding noise. It affects analog sensors, discrete interfaces and pyrotechnic circuit isolation.",
+      "causal_chain": "A return wire or bonding strap degrades, or an unintended structure contact forms. The FIRST observable is a simultaneous offset or noise change on multiple analog channels that share the affected reference, frequently correlated with current in a large load (heater, actuator, valve) that now returns through the signal ground. Readings move when the load switches, not when the physical quantity changes. Severe faults can shift discrete thresholds, causing false status indications or, in pyro circuits, loss of isolation detected by isolation monitors.",
+      "telemetry_signatures": [
+        "Common-mode offsets appearing on several analog channels at once, stepping when an unrelated high-current load switches",
+        "Increase in isolation-monitor reading or chassis-to-return voltage",
+        "Noise at power-converter switching frequency on low-level channels",
+        "Distinguishing check: real physical changes affect one parameter consistently with physics; ground faults shift many channels together and track load current"
+      ],
+      "root_cause": "Typical root causes are undocumented or inconsistent grounding architecture across subsystems, bonding surfaces painted or anodised, corrosion, loose fasteners, shield drains terminated at both ends against design intent, and harness changes made without grounding review.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Maintain a single documented grounding and bonding philosophy for the vehicle",
+        "Measure bonding resistance and isolation after every integration change",
+        "Check whether channel offsets correlate with load switching before diagnosing a physical anomaly"
+      ]
+    }
+  ]
+}

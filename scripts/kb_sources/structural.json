@@ -1,0 +1,216 @@
+{
+  "category": "structural",
+  "source_type": "synthetic",
+  "cases": [
+    {
+      "id": "struct-01-strut-failure",
+      "title": "Internal strut failure releasing a tank-mounted component under flight acceleration",
+      "category": "structural",
+      "failure_mode": "Strut failure",
+      "failure_mode_description": "Struts and brackets carry concentrated loads from heavy internal components, such as pressurant bottles (COPVs), engine thrust structure members or propellant feedlines, into the tank wall or thrust frame. A strut failure occurs when one of these discrete load paths breaks, usually in tension at a rod end, clevis or casting, letting the supported mass move freely inside a pressurized tank or engine bay.",
+      "causal_chain": "Axial acceleration rises during ascent, so strut load grows through the burn. A strut with a material defect fractures near peak acceleration. The first observable is often an acceleration transient or strain-gauge step at the mounting location. The released component then shifts; if it is a pressurant bottle, its plumbing ruptures and helium floods the tank. Within a fraction of a second to a few seconds, ullage pressure exceeds the relief setting and the tank can burst before engine telemetry reacts.",
+      "telemetry_signatures": [
+        "Step change or loss of signal on strain gauges near the strut attachment, often the earliest deviation",
+        "Short high-frequency accelerometer spike (shock event) in the affected stage",
+        "Pressurant bottle pressure drop followed within seconds by tank ullage pressure rise toward relief limits",
+        "Relief valve open indications, then abrupt loss of telemetry if the tank bursts"
+      ],
+      "root_cause": "Typical causes are a defective batch of rod ends or castings with strength below specification, reliance on vendor certification without lot testing, margins that ignore material scatter, and fatigue or handling damage introduced during integration. Fracture usually occurs well below the predicted rated load.",
+      "historical_reference": "SpaceX's public account of the Falcon 9 CRS-7 loss in June 2015 attributed it to a failed steel strut supporting a helium bottle inside the second-stage liquid oxygen tank, leading to over-pressurization of that tank.",
+      "lessons_learned": [
+        "Test every flight lot of critical structural hardware rather than relying solely on supplier certification",
+        "Treat brackets and struts inside pressurized tanks as single-point failures with pressure-system consequences",
+        "Place strain or acceleration sensors near heavy internal components so the initiating event can be time-ordered"
+      ]
+    },
+    {
+      "id": "struct-02-weld-crack",
+      "title": "Weld crack growth in a propellant tank under pressure and flight loads",
+      "category": "structural",
+      "failure_mode": "Weld crack",
+      "failure_mode_description": "Launch-vehicle tanks are commonly assembled from aluminium-lithium or aluminium alloy panels and domes joined by fusion or friction-stir welds. A weld crack is a flaw in the weld nugget or heat-affected zone, such as porosity, lack of fusion or a hot crack, that grows under pressure cycling and flight loads until it leaks or ruptures the tank wall.",
+      "causal_chain": "The initiating condition is a pre-existing weld flaw that escaped inspection. Proof testing, cryogenic chilldown and repeated pressurization cycles extend the crack. In flight, combined hoop stress from tank pressure and axial load from thrust and bending push the stress intensity at the crack tip past fracture toughness. A through-wall crack first produces a slow leak, seen as a tank pressure decay that the pressurization system tries to compensate. If the crack becomes unstable, the leak becomes a rupture within milliseconds, followed by loss of structural integrity and breakup.",
+      "telemetry_signatures": [
+        "Tank ullage pressure decaying faster than propellant consumption explains, with pressurant flow rising to compensate (first deviation)",
+        "Local skin temperature drop near the leak on cryogenic tanks as propellant escapes",
+        "Strain gauge redistribution near a weld seam before rupture",
+        "Sudden ullage pressure collapse and accelerometer shock if the crack becomes unstable"
+      ],
+      "root_cause": "Root causes include weld process drift (heat input, tool wear, contamination), inspection methods with insufficient sensitivity to tight cracks, residual stress from welding, and repair welds that create new heat-affected zones with reduced toughness.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Weld flaws are a common finding in tank qualification and proof testing programmes.",
+      "lessons_learned": [
+        "Control weld parameters statistically and qualify every repair weld separately",
+        "Use proof testing and fracture-mechanics flaw screening sized to the inspection method's detection limit",
+        "Monitor pressurant consumption against prediction to detect slow leaks early in flight"
+      ]
+    },
+    {
+      "id": "struct-03-fatigue-fracture",
+      "title": "Fatigue fracture of a cyclically loaded structural member",
+      "category": "structural",
+      "failure_mode": "Fatigue fracture",
+      "failure_mode_description": "Fatigue fracture is crack initiation and growth under repeated stress cycles well below the static strength of the material. In launch vehicles it affects engine mounts, turbomachinery-adjacent brackets, feedline supports, and reusable stage structure that accumulates cycles over ground tests and multiple flights.",
+      "causal_chain": "Vibration from engines, pressure cycles, or repeated flights produce many stress cycles at a notch, fastener hole or surface defect. A microcrack initiates and grows a small amount each cycle, initially without any measurable effect on structural stiffness. As the crack lengthens, local compliance increases, so the first observable is usually a shift in a structural resonance frequency or in strain ratio between neighbouring gauges. Once the remaining ligament can no longer carry peak load, the member fractures suddenly, producing a shock and a redistribution of load to adjacent members, which may then fail in turn.",
+      "telemetry_signatures": [
+        "Gradual drift of a structural mode frequency in accelerometer spectra over a burn or across flights (earliest sign)",
+        "Changing strain ratio between gauges on redundant load paths",
+        "Sudden accelerometer impulse at fracture followed by changed vibration levels at the mounted equipment",
+        "Secondary effects such as engine gimbal or feedline pressure oscillation if the failed member supported them"
+      ],
+      "root_cause": "Underestimated vibration environments, stress concentrations at holes or fillets, poor surface finish, corrosion pits, and inadequate tracking of accumulated cycles on reusable hardware are the most frequent causes. Missing or insufficient inspection intervals for flown parts are a common contributing factor.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Track cycle counts and load spectra per serial number on reusable structure",
+        "Design with fatigue scatter factors and verify with representative vibration testing",
+        "Trend modal frequencies from flight accelerometer data to catch stiffness loss before fracture"
+      ]
+    },
+    {
+      "id": "struct-04-buckling",
+      "title": "Compressive buckling of a thin-walled tank or interstage shell",
+      "category": "structural",
+      "failure_mode": "Buckling",
+      "failure_mode_description": "Buckling is a stability failure in which a thin-walled shell or stiffened panel under axial compression or bending suddenly deforms out of plane. Propellant tanks often rely on internal pressure for stiffness, while unpressurized interstages and skirts rely on stringers and frames. Buckling typically occurs near maximum dynamic pressure, at peak axial acceleration, or when tank pressure is low.",
+      "causal_chain": "The usual trigger is a combination of high compressive load and reduced capacity. Capacity drops when tank pressure falls, for example from a pressurization fault, or when geometric imperfections exceed the design knockdown. Load rises with thrust, aerodynamic bending from wind shear or angle of attack, and dynamic events. The first observable is often the deviation that reduced capacity, such as low ullage pressure, or rising bending strain. At the critical load, the shell snaps into a buckled shape within milliseconds, producing a step in strain gauges, an acceleration transient and possibly a change in vehicle bending stiffness visible in attitude control.",
+      "telemetry_signatures": [
+        "Tank ullage pressure below its structural minimum, or rising bending strain, preceding the event",
+        "Abrupt divergence and sign reversal among circumferentially spaced strain gauges",
+        "Broadband accelerometer transient and changed bending-mode frequency",
+        "Attitude rate disturbance as the guidance system responds to changed structural dynamics"
+      ],
+      "root_cause": "Root causes include insufficient knockdown factors for manufacturing imperfections, pressurization system faults that remove pressure stabilization, unexpected aerodynamic loads, and ground handling or venting errors that allow a tank to collapse under external pressure.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Pressure-stabilized tanks are known to be vulnerable to collapse during ground venting or loss of pressurization.",
+      "lessons_learned": [
+        "Treat minimum tank pressure as a structural limit and monitor it in flight software",
+        "Measure as-built shell imperfections and use test-validated knockdown factors",
+        "Place strain gauges around the circumference so buckling can be distinguished from bending"
+      ]
+    },
+    {
+      "id": "struct-05-thermal-stress-fracture",
+      "title": "Thermal stress fracture from steep temperature gradients",
+      "category": "structural",
+      "failure_mode": "Thermal stress fracture",
+      "failure_mode_description": "Thermal stress fracture occurs when constrained thermal expansion or contraction produces stresses exceeding material strength. It is common at junctions between cryogenic tanks and warm structure, at dissimilar-metal joints, in nozzle extensions and in brittle materials such as ceramics, where a rapid temperature change creates large gradients through the thickness.",
+      "causal_chain": "A rapid temperature change, such as cryogenic propellant loading, engine chilldown, or engine ignition heating, creates a steep thermal gradient. The cold region contracts while adjacent warm material resists, generating tensile stress that can approach several hundred megapascals in metals with high expansion coefficients. The first observable is the temperature gradient itself: a rapid temperature drop or rise on one sensor while a neighbouring sensor lags. Strain gauges then show thermally driven strain. If a flaw or brittle zone is present, a crack initiates; in a tank it can produce a leak shortly afterwards, and in a nozzle or hot structure it can propagate under subsequent vibration.",
+      "telemetry_signatures": [
+        "Large rate of temperature change on skin or structure thermocouples, with a widening difference between adjacent sensors (first deviation)",
+        "Strain excursions correlated in time with the temperature transient rather than with mechanical load",
+        "Acoustic emission or accelerometer clicks during chilldown",
+        "Subsequent leak indications such as tank pressure decay or local cold spots"
+      ],
+      "root_cause": "Typical causes are chilldown or loading rates faster than qualified, inadequate allowance for differential expansion in joint design, use of materials with low toughness at cryogenic temperature, and residual stresses from manufacturing that add to thermal stress.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Limit and monitor cryogenic loading and chilldown rates as structural parameters",
+        "Design joints between dissimilar materials with compliance for differential expansion",
+        "Pair thermocouples with strain gauges so thermal and mechanical strain can be separated"
+      ]
+    },
+    {
+      "id": "struct-06-composite-delamination",
+      "title": "Delamination of composite skins, tanks or sandwich structure",
+      "category": "structural",
+      "failure_mode": "Composite delamination",
+      "failure_mode_description": "Delamination is separation between plies of a laminated composite or between a face sheet and its honeycomb or foam core. It occurs in composite interstages, fairings, payload adapters, overwrapped pressure vessels and composite cryogenic tanks. Delaminated regions lose compressive and shear stiffness and can grow rapidly under load.",
+      "causal_chain": "A disbond originates from a manufacturing void, impact damage or cryogenic microcracking. In cryogenic sandwich structure, microcracks can let gas permeate into the core; on warming or depressurization the trapped gas expands and pressurizes the core, pushing the face sheet off. In flight, compressive or bending load causes the delaminated area to buckle locally and grow. The first observable is commonly a local strain or temperature anomaly at the disbond, followed by a change in local vibration response. If the disbond reaches critical size, the panel loses stability and fails, transferring load abruptly.",
+      "telemetry_signatures": [
+        "Local strain gauge reading diverging from neighbouring gauges under the same load (earliest sign)",
+        "Unexpected temperature change on a sandwich panel indicating gas ingress or loss of insulation",
+        "Increase in local vibration amplitude or new low-frequency panel mode",
+        "Sudden load redistribution and accelerometer shock at final panel failure"
+      ],
+      "root_cause": "Root causes include inadequate cure or bonding processes, porosity, undetected impact damage, resin systems that microcrack at cryogenic temperatures, and non-destructive inspection that cannot reliably detect disbonds in thick or curved parts.",
+      "historical_reference": "During NASA's X-33 programme in 1999, a composite honeycomb liquid-hydrogen tank failed in ground testing when its outer face sheet separated from the core; public accounts attribute this to microcracking and gas infiltration into the core.",
+      "lessons_learned": [
+        "Characterize permeability and microcracking of composites under cryogenic cycling before flight design",
+        "Use impact damage control and thorough non-destructive inspection of bonded structure",
+        "Instrument composite structure with distributed strain sensing to detect local stiffness loss"
+      ]
+    },
+    {
+      "id": "struct-07-fastener-failure",
+      "title": "Fastener failure in a bolted structural joint",
+      "category": "structural",
+      "failure_mode": "Fastener failure",
+      "failure_mode_description": "Fastener failure covers fracture, thread stripping, pull-through or loss of preload of bolts, rivets and inserts that join structural parts. It affects stage joints, engine mounts, fairing attachments and equipment brackets. Because joints often have many fasteners in a load-sharing pattern, a single failure can cascade to neighbours.",
+      "causal_chain": "The initiating cause is often a fastener with low strength, hydrogen embrittlement, incorrect torque, or improper material. Under vibration and pulsating loads, a weakened or under-preloaded fastener sees full cyclic load and fails by fatigue or overload. The first observable is local: a strain change at the joint or a change in vibration transmissibility across it as the joint becomes compliant. Load shifts to adjacent fasteners, accelerating their failure. Within seconds to tens of seconds the joint can unzip, giving large relative motion, loss of alignment, and secondary failures of lines or harnesses crossing the joint.",
+      "telemetry_signatures": [
+        "Strain step at a joint gauge or change in strain distribution around the joint (first deviation)",
+        "Rising vibration amplitude or new rattle harmonics across the joint",
+        "Relative motion indications such as changed alignment or attitude disturbance if a mount is affected",
+        "Secondary loss of signal or pressure in lines and harnesses crossing the joint"
+      ],
+      "root_cause": "Counterfeit or nonconforming fasteners, hydrogen embrittlement from plating, incorrect torque or lubrication, galvanic corrosion, omitted locking features, and joint designs where prying or bending amplifies fastener loads are common root causes.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Maintain fastener traceability and lot testing for critical joints",
+        "Verify preload directly where possible rather than relying on torque alone",
+        "Design joints so the loss of one fastener does not overload its neighbours"
+      ]
+    },
+    {
+      "id": "struct-08-acoustic-fatigue",
+      "title": "Acoustic fatigue of thin panels and fairing structure",
+      "category": "structural",
+      "failure_mode": "Acoustic fatigue",
+      "failure_mode_description": "Acoustic fatigue is high-cycle fatigue driven by intense broadband pressure fluctuations rather than mechanical vibration. Lift-off acoustics reflected from the pad and aerodynamic noise near transonic flight and maximum dynamic pressure can exceed roughly 140 to 150 dB in some regions. Thin skins, fairing panels, stiffener attachments and lightweight brackets resonate and accumulate many cycles quickly.",
+      "causal_chain": "The acoustic environment excites panel resonances in the hundreds of hertz, accumulating a very large number of cycles in tens of seconds. Cracks initiate at rivet rows, spot welds or bonded edges where stress concentrates. The first observable is rising response on microphones and panel accelerometers, peaking at lift-off and again near transonic flight and maximum dynamic pressure. A cracked panel then shows a shifted resonance or rattle. Failed panels can detach, admitting aerodynamic flow, or damage nearby equipment and harnesses; failures often become visible shortly after the acoustic peak rather than during it.",
+      "telemetry_signatures": [
+        "Elevated sound pressure level on internal or external microphones exceeding the predicted envelope (first deviation)",
+        "High panel accelerometer response at specific resonance frequencies",
+        "Shift in panel resonance or appearance of nonlinear harmonics indicating cracking",
+        "Compartment pressure or temperature change if a panel opens to the airstream"
+      ],
+      "root_cause": "Typical causes are underpredicted acoustic environments, ineffective pad sound suppression, lack of damping treatments, panel designs with resonances in the dominant acoustic band, and test programmes that did not reproduce the flight acoustic spectrum.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Pad water deluge systems exist largely to reduce lift-off acoustic loads.",
+      "lessons_learned": [
+        "Qualify panels and brackets in reverberant acoustic testing to flight-derived spectra",
+        "Add damping and avoid placing panel resonances in the peak acoustic band",
+        "Fly microphones to validate and update acoustic predictions"
+      ]
+    },
+    {
+      "id": "struct-09-joint-preload-loss",
+      "title": "Preload loss and slippage in an interstage or thrust-structure joint",
+      "category": "structural",
+      "failure_mode": "Joint preload loss and slippage",
+      "failure_mode_description": "Large bolted or clamped joints, such as interstage flanges, engine thrust structure attachments and payload adapter rings, rely on preload so that load is carried by friction and contact rather than by bolt bending. Preload loss lets mating surfaces gap or slip, reducing joint stiffness and changing vehicle dynamics without necessarily breaking any part.",
+      "causal_chain": "Preload is lost through thermal contraction mismatch between flange and bolt materials, gasket or coating creep, vibration-induced loosening, or embedment of surfaces. As preload falls, peak bending load opens the joint on the tension side. The first observable is usually a change in joint strain gauges or a drop in the vehicle bending-mode frequency because the joint is softer. Slippage events produce small, repeated acceleration impulses. Reduced stiffness can couple with the control system, producing attitude oscillation; in severe cases the gap allows hot gas or aerodynamic flow into the joint, or fasteners fail in bending.",
+      "telemetry_signatures": [
+        "Downward shift of first bending-mode frequency in body accelerometers or rate gyro spectra (first deviation)",
+        "Strain gauges across the joint showing nonlinear, hysteretic response to bending load",
+        "Repeated small acceleration impulses consistent with stick-slip",
+        "Attitude rate oscillation near the bending frequency as control loops interact with reduced stiffness"
+      ],
+      "root_cause": "Root causes include incorrect torque procedures, flange materials with different thermal expansion from bolts, cryogenic cooling of joints near tanks, insufficient margin against gapping in design, and reuse of fasteners beyond their qualified life.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Account for thermal preload loss in joint design, especially near cryogenic tanks",
+        "Verify preload with ultrasonic or load-indicating fasteners",
+        "Include measured joint stiffness in the structural model used for control-system stability analysis"
+      ]
+    },
+    {
+      "id": "struct-10-slosh-baffle-failure",
+      "title": "Propellant slosh loading and slosh baffle failure",
+      "category": "structural",
+      "failure_mode": "Slosh baffle failure",
+      "failure_mode_description": "Liquid propellant in large tanks can oscillate laterally in slosh modes, typically at frequencies below a few hertz. Baffles, rings and anti-vortex devices damp this motion. Slosh baffle failure occurs when these internal structures crack, detach or are undersized, leaving slosh undamped and imposing large oscillating loads on tank walls and the vehicle.",
+      "causal_chain": "Steering manoeuvres, wind gusts, engine shutdown or stage separation excite the slosh mode. If a baffle has cracked or detached, perhaps from fatigue under earlier slosh cycles, damping drops sharply. The first observable is a growing low-frequency oscillation in lateral acceleration and attitude rates near the predicted slosh frequency. The thrust vector control system then shows increasing gimbal activity as it reacts. Slosh can couple with control, growing in amplitude; large slosh can uncover the tank outlet, causing engine inlet pressure fluctuations, and loose baffle pieces can block outlets or damage feed systems.",
+      "telemetry_signatures": [
+        "Low-frequency lateral acceleration and attitude-rate oscillation at the slosh frequency, growing over several cycles (first deviation)",
+        "Increasing thrust vector control gimbal angle and actuator activity at the same frequency",
+        "Oscillating tank bottom or engine inlet pressure as propellant moves",
+        "Liquid level sensor fluctuations and, in severe cases, engine shutdown on low inlet pressure"
+      ],
+      "root_cause": "Underestimated slosh mass or damping, baffles designed only for static loads, fatigue of baffle welds, inadequate control-system filtering at the slosh frequency, and propellant fill levels outside the analysed range are common root causes.",
+      "historical_reference": "SpaceX's account of the second Falcon 1 flight in March 2007 attributed the early second-stage shutdown to liquid oxygen slosh coupling with the control system, causing a roll oscillation. That event was a control-structure interaction rather than a baffle structural failure.",
+      "lessons_learned": [
+        "Verify slosh damping devices by test and analyse their fatigue under expected slosh cycles",
+        "Include slosh modes and their uncertainty in control-system stability margins",
+        "Monitor attitude rates for growing oscillation at the slosh frequency"
+      ]
+    }
+  ]
+}

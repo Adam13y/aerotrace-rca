@@ -1,0 +1,29 @@
+Title: Stuck tank vent valve
+Category: pressurization
+Failure mode: Vent valve stuck
+Source type: synthetic
+Case ID: press-08-vent-valve-stuck
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A stuck vent valve is a tank vent valve that fails to close after venting or fails to open when commanded. Vent valves release boil-off and ullage gas during loading and pre-launch hold and are normally closed before flight pressurisation. A stuck-open valve prevents the tank from reaching flight pressure; a stuck-closed valve allows pressure to build from boil-off, leaving only the relief valve for protection.
+
+CAUSAL CHAIN
+If the valve sticks open, the first observable is position feedback still showing open after a close command, followed by an inability to raise ullage pressure: pressurant flow increases but ullage pressure stays low and vent-line temperatures remain cold. Countdown sequencers typically hold or abort; in flight, pressurant is depleted rapidly. If the valve sticks closed, the first observable is position feedback not changing on an open command, followed by a steady ullage pressure rise from boil-off until the relief valve cracks; if relief also fails, the event becomes a tank overpressure.
+
+TELEMETRY SIGNATURES
+- Vent valve position feedback inconsistent with command; this deviates first
+- Stuck open: ullage pressure does not rise despite pressurant flow, and vent-line temperatures stay cold
+- Stuck closed: ullage pressure rises steadily from boil-off until relief cracks
+- Pressurant bottle pressure decays faster when pressurising against an open vent
+
+ROOT CAUSE
+Causes include ice formed from moisture ingestion into cold vent paths, contamination on seats, loss of actuation pressure, seal damage, and faulty position switches that misreport valve state. Cryogenic vent valves exposed to humid air during long holds are especially vulnerable to icing.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Vent valve faults are a common cause of countdown holds and scrubs on cryogenic vehicles.
+
+LESSONS LEARNED
+- Purge vent paths with dry gas to prevent ice formation
+- Verify vent valve closure by both position feedback and ullage pressure response
+- Keep relief protection independent of the vent valve

@@ -1,0 +1,29 @@
+Title: Off-nominal engine mixture ratio
+Category: propulsion
+Failure mode: Mixture ratio anomaly
+Source type: synthetic
+Case ID: prop-09-mixture-ratio-anomaly
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A mixture ratio anomaly is a departure of the oxidiser-to-fuel mass flow ratio from its design value. It affects specific impulse, combustion and turbine temperatures, and propellant utilisation. It can occur in the main chamber, gas generator or preburner; in staged-combustion engines an off-nominal preburner ratio can quickly drive turbine temperatures beyond limits.
+
+CAUSAL CHAIN
+A fault in one propellant circuit, such as a control-valve error, flow-sensor bias, regulator drift or a pressure change in one tank, alters that propellant's flow. The first observable is usually a divergence between oxidiser and fuel flow rates or inlet pressures, or a mixture-ratio control valve moving to an unusual position. Combustion temperature then changes: an oxidiser-rich shift raises temperatures and attacks hardware, while a fuel-rich shift lowers specific impulse and thrust. Turbine inlet temperatures follow within about a second. Over the burn one propellant depletes early, leaving residual in the other tank and risking premature shutdown.
+
+TELEMETRY SIGNATURES
+- Oxidiser and fuel flow or tank depletion rates diverge from the predicted ratio first
+- Mixture-ratio control valve trends toward one end stop
+- Turbine inlet temperature rises (oxidiser-rich), or chamber pressure and thrust fall (fuel-rich)
+- One propellant low-level sensor triggers early near the end of the burn
+
+ROOT CAUSE
+Typical root causes include flow-meter calibration errors, incorrect calibration orifices, control-valve hysteresis or failure, pressurisation imbalance between tanks, density errors from off-nominal propellant temperature, and software faults in mixture-ratio control. Loading errors can produce an apparent anomaly late in flight.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It is typically revealed by post-flight propellant utilisation reconstruction or acceptance-test trending.
+
+LESSONS LEARNED
+- Estimate mixture ratio from independent measurements and compare them
+- Bound control-valve authority so a single sensor fault cannot drive a hazardous ratio
+- Account for propellant density variation in calibration and loading

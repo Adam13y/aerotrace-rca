@@ -1,0 +1,29 @@
+Title: Grid fin deployment or actuation fault on a returning booster
+Category: aerodynamic
+Failure mode: Grid fin deployment fault
+Source type: synthetic
+Case ID: aero-05-grid-fin-deployment-fault
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Grid fins are lattice control surfaces stowed against a booster during ascent and deployed for descent, where they steer the stage through the atmosphere toward a landing site. A deployment fault means one or more fins fail to deploy, lock, or respond to commands, usually because of the hydraulic or electric actuation system.
+
+CAUSAL CHAIN
+The first deviation is usually in the actuation system: hydraulic pressure is low, a pump stalls, or one fin's deploy indication is missing. When aerodynamic loads build during descent, the affected fin cannot track commands, so fin position diverges from command. The asymmetric control causes roll or yaw rates to build within seconds, and the guidance cannot reach the target. The stage may use reaction control or engine gimbal to recover, but often lands off target or is lost.
+
+TELEMETRY SIGNATURES
+- Grid fin deploy indication missing or delayed for one or more fins after the deploy command
+- Hydraulic system pressure or pump speed dropping, or actuator motor current abnormal, before position errors appear
+- Fin position not matching command as dynamic pressure rises during descent
+- Roll or yaw rates growing and landing-point prediction drifting from target
+
+ROOT CAUSE
+Typical causes are actuator or pump failure, hydraulic fluid loss in open-loop systems, deploy latch binding from heating or debris, harness faults, and limited redundancy in actuation.
+
+HISTORICAL REFERENCE
+During the Falcon 9 CRS-16 mission (2018), the first-stage booster reportedly entered a roll during descent after a grid fin hydraulic pump stalled, and it landed in the water near the planned landing zone instead of on it. Separately, the 2014 SpaceShipTwo loss illustrates the broader hazard of an aerodynamic surface moving at the wrong time in transonic flight.
+
+LESSONS LEARNED
+- Telemeter pump speed and hydraulic pressure so actuation degradation is visible early
+- Provide redundancy or graceful degradation in fin actuation
+- Check actuation health before attributing descent attitude errors to aerodynamics

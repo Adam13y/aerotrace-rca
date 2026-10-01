@@ -1,8 +1,10 @@
 """Build the historical-failure vector store used for RAG.
 
-Reads every ``.txt`` report in ``data/historical_failures/``, splits it into ~500-token
-chunks, embeds the chunks locally with ``nomic-embed-text`` via Ollama and stores them in
-ChromaDB under ``data/vector_store/``. Re-running rebuilds the collection from scratch.
+Recursively reads every ``.txt`` report under ``data/historical_failures/`` (category
+sub-folders plus ``historical/``), splits it into ~500-token chunks, embeds the chunks locally
+with ``nomic-embed-text`` via Ollama and stores them in ChromaDB under ``data/vector_store/``
+with ``category``, ``failure_mode`` and ``source_type`` metadata. Re-running rebuilds the
+collection from scratch.
 
 Usage::
 
@@ -37,6 +39,7 @@ def main() -> int:
     parser.add_argument("--model", default=settings.embedding_model, help="Ollama embedding model.")
     parser.add_argument("--query", default="LOX tank pressure drop followed by turbopump vibration rise",
                         help="Test query to run after building.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="List every indexed file.")
     args = parser.parse_args()
     configure_logging("WARNING")
 
@@ -53,19 +56,22 @@ def main() -> int:
     )
     console.rule("[bold]Building historical failure knowledge base")
     try:
-        stats = rag.build(args.docs, progress=lambda line: console.print(f"  • {line}"))
+        stats = rag.build(args.docs, progress=lambda line: console.print(f"  • {line}") if args.verbose else None)
     except (FileNotFoundError, ValueError) as exc:
         console.print(f"[red]{exc}[/red]")
         return 1
     console.print(f"[green]Indexed {stats['documents']} reports as {stats['chunks']} chunks "
                   f"with {embedder.name} into {args.store}[/green]")
+    summary = rag.stats()
+    console.print("  by category:    " + ", ".join(f"{k} {v}" for k, v in sorted(summary["by_category"].items())))
+    console.print("  by source type: " + ", ".join(f"{k} {v}" for k, v in sorted(summary["by_source_type"].items())))
 
     if args.query:
         table = Table(title=f"Test query: {args.query}", header_style="bold")
-        for column in ("#", "Case", "Similarity", "File"):
+        for column in ("#", "Case", "Type", "Category", "Similarity", "File"):
             table.add_column(column)
-        for i, case in enumerate(rag.search(args.query, k=3), 1):
-            table.add_row(str(i), case.title, f"{case.score:.3f}", case.source_file)
+        for i, case in enumerate(rag.search(args.query, k=5), 1):
+            table.add_row(str(i), case.title, case.source_type, case.category, f"{case.score:.3f}", case.source_file)
         console.print(table)
     return 0
 

@@ -1,0 +1,29 @@
+Title: Composite overwrapped pressure vessel burst
+Category: pressurization
+Failure mode: COPV burst
+Source type: synthetic
+Case ID: press-07-copv-burst
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A composite overwrapped pressure vessel (COPV) burst is the structural failure of a high-pressure gas bottle, typically a thin metallic liner wrapped in carbon fibre and storing helium or nitrogen at several hundred bar. COPVs are often submerged in cryogenic propellant to increase stored gas density. Failure releases a large amount of stored energy as blast and fragments and can ignite materials in an oxygen environment.
+
+CAUSAL CHAIN
+Contributing mechanisms include stress rupture of the composite under sustained load, liner buckling, impact or handling damage, and, for COPVs immersed in liquid oxygen, oxygen condensed or frozen between liner and overwrap that can ignite through friction or fibre breakage. The first observable, if any, is often subtle: an unexpected deviation in bottle pressure or temperature during loading or pressurisation. The burst itself is effectively instantaneous: bottle pressure collapses, the surrounding tank pressure spikes, and accelerometers and strain gauges register a shock within milliseconds, followed by tank failure and loss of telemetry.
+
+TELEMETRY SIGNATURES
+- Possible subtle precursors, such as unexpected bottle pressure or temperature deviations during loading
+- Near-instant collapse of COPV pressure
+- Simultaneous spike in surrounding tank pressure and shock-level accelerometer response
+- Loss of telemetry within milliseconds to seconds
+
+ROOT CAUSE
+Root causes include loading conditions not represented in qualification, such as particular cryogenic loading sequences or temperatures, underestimated composite stress-rupture life, manufacturing defects in liner or overwrap, handling damage, and insufficient understanding of oxygen compatibility at the liner-overwrap interface.
+
+HISTORICAL REFERENCE
+Comparable to the 2016 AMOS-6 Falcon 9 pad anomaly during propellant loading; SpaceX's public summary attributed it to a breach of a helium COPV in the second-stage liquid oxygen tank, likely involving oxygen accumulating in buckles or voids under the overwrap.
+
+LESSONS LEARNED
+- Qualify COPVs under flight-representative cryogenic loading sequences and temperatures
+- Account for oxygen compatibility and trapped propellant at liner-overwrap interfaces
+- Record COPV pressure and temperature at high rate during loading to capture precursors

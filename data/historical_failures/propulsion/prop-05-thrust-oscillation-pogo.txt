@@ -1,0 +1,29 @@
+Title: Pogo thrust oscillation from structure-feed system coupling
+Category: propulsion
+Failure mode: Thrust oscillation
+Source type: synthetic
+Case ID: prop-05-thrust-oscillation-pogo
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Thrust oscillation in liquid-propellant stages most often refers to pogo: a closed-loop instability in which longitudinal structural vibration modulates propellant feed pressure, which modulates thrust, which reinforces the vibration. It typically appears at a few to tens of Hz when a structural mode crosses a feed-system resonance as propellant mass decreases.
+
+CAUSAL CHAIN
+As tanks drain, the vehicle's longitudinal mode frequency rises toward the feed-line resonance. Structural acceleration at the pump inlet modulates inlet pressure; the pump transmits this to chamber pressure; the resulting thrust fluctuation excites the structure further. The first observable is typically a growing low-frequency oscillation in longitudinal acceleration and pump inlet pressure at the same frequency with a consistent phase relationship. Coherent chamber pressure oscillation follows within a few cycles. Amplitude grows over seconds until the frequencies separate, non-linearities limit it, or loads exceed limits and an engine is shut down.
+
+TELEMETRY SIGNATURES
+- Longitudinal accelerometers show a growing sinusoidal oscillation at a few to tens of Hz, drifting as propellant depletes
+- Pump inlet pressure oscillates at the same frequency, phase-locked to acceleration
+- Chamber pressure and turbopump speed oscillate coherently shortly afterwards
+- Oscillation appears at a repeatable flight time and decays once frequencies separate
+
+ROOT CAUSE
+Root causes include insufficient separation between structural and feed-system frequencies, missing or ineffective accumulators, changes in engine gain or line compliance, and inaccurate structural-dynamic models. Heavier payloads, longer burns or uprated engines can remove previously adequate margin.
+
+HISTORICAL REFERENCE
+Comparable to the pogo oscillation on the Saturn V second (S-II) stage during Apollo 13, where NASA accounts describe the centre engine shutting down early after large longitudinal oscillations; pogo was also observed on Apollo 6.
+
+LESSONS LEARNED
+- Repeat pogo stability analysis whenever mass, engine or feed-line configuration changes
+- Use gas-charged accumulators to detune the feed system and verify their charge before flight
+- Monitor coherence between longitudinal acceleration and pump inlet pressure

@@ -1,0 +1,30 @@
+Title: Space Shuttle Challenger STS-51-L - solid rocket booster field joint seal failure
+Category: propulsion
+Failure mode: Solid rocket motor field joint O-ring seal failure and hot gas leak
+Source type: historical
+Case ID: challenger_oring
+Date: 28 January 1986
+Vehicle: Space Shuttle Challenger
+Sources: Report of the Presidential Commission on the Space Shuttle Challenger Accident (Rogers Commission, 1986)
+
+FAILURE MODE
+Hot combustion gas escaped past the O-ring seals of the aft field joint of the right solid rocket booster (SRB). The resulting plume impinged on the external tank and on the strut attaching the booster to the tank, leading to a hydrogen tank leak, failure of the aft attachment and structural breakup of the vehicle about 73 seconds after launch. All seven crew members were lost.
+
+CAUSAL CHAIN
+The launch morning was unusually cold, with an ambient temperature of about 36 deg F, roughly 15 deg F colder than any previous launch. Cold reduced the resilience of the rubber O-rings, so they could not follow the opening of the joint gap ('joint rotation') when the motor pressurised at ignition. Puffs of black smoke seen in imagery near the right booster's aft field joint within the first second showed early blow-by. Combustion products appear to have temporarily sealed the gap. At around 37 seconds the vehicle encountered strong wind shear, and the resulting loads likely disturbed that temporary seal. A flame plume became visible at about 59 seconds and grew rapidly. It impinged on the external tank and the booster's aft attach strut. By about 64-66 seconds the external tank's liquid hydrogen tank was leaking. At about 72 seconds the aft attachment between the right booster and the external tank failed, the booster rotated, the hydrogen tank's aft dome failed, and at about 73 seconds the vehicle broke up under aerodynamic loads.
+
+TELEMETRY SIGNATURES
+- No telemetry anomaly at ignition: the first physical cue (smoke at the joint) appeared only in imagery, about a minute before the first data anomaly.
+- Near 60 seconds, the right booster's chamber pressure began falling below the left booster's: an asymmetry between nominally identical units.
+- Increased steering activity of the booster nozzles and main engines counteracting the side force from the leak and wind loads.
+- Around 64-66 seconds, external tank liquid hydrogen ullage pressure dropped, indicating a leak.
+- In the final seconds, abrupt lateral accelerations and main engine propellant inlet pressure changes, followed by loss of data at about 73 seconds.
+
+ROOT CAUSE
+The Commission found the cause to be the failure of the pressure seal in the aft field joint of the right solid rocket motor. The joint design was unacceptably sensitive to temperature, dimensional tolerances, reuse, processing and joint loads. Contributing factors included decision-making that accepted repeated prior evidence of O-ring erosion and blow-by as normal, and engineering concerns about cold-temperature performance that were not effectively communicated to the launch decision.
+
+LESSONS LEARNED
+- The initiating event can precede the first telemetry anomaly by a long time; include environmental conditions such as temperature in the hypothesis set.
+- Compare redundant or symmetric units (left vs. right booster) for divergence.
+- A pressure decay in an adjacent tank after a propulsion asymmetry suggests external damage spreading between subsystems.
+- Prior in-family anomalies (erosion, blow-by) should be trended, not normalised.

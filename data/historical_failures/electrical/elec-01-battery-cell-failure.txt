@@ -1,0 +1,29 @@
+Title: Internal short or capacity loss in a single cell of a flight battery
+Category: electrical
+Failure mode: Battery cell failure
+Source type: synthetic
+Case ID: elec-01-battery-cell-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A single cell in a series-connected flight battery (lithium-ion, silver-zinc or nickel-based) loses capacity, develops high internal resistance or suffers an internal short. Because cells are stacked in series to reach bus voltage (typically 28 V nominal), one weak cell lowers pack voltage and, under load, can be driven into reversal or thermal runaway. It occurs in avionics, pyro and actuator batteries on stages and payloads.
+
+CAUSAL CHAIN
+A latent defect (separator puncture, metallic contamination, dendrite) or prior abuse degrades one cell. The FIRST observable is usually that cell's voltage diverging from its neighbours, often while pack voltage is still within limits. Under load it sags further and cell or pack temperature climbs within seconds to minutes. If the cell shorts internally, it self-heats and may vent, and propagation to adjacent cells produces a stepwise pack voltage drop followed by bus undervoltage alarms and load shedding.
+
+TELEMETRY SIGNATURES
+- One cell voltage drifts 50-200 mV below the cell-average before any pack-level alarm; pack voltage follows later
+- Cell or pack temperature rises with little or no rise in load current, indicating internal heat generation
+- Pack voltage drops in discrete steps (roughly one cell voltage each) as further cells fail
+- Artefact check: a single cell reading that jumps instantly to zero or full scale with no change in pack voltage or temperature suggests a broken sense lead, not a cell failure
+
+ROOT CAUSE
+Typical root causes are manufacturing defects (contamination, electrode misalignment, separator damage), weak cell screening, overcharge or over-discharge during ground processing, storage outside temperature limits, and packs lacking cell-to-cell thermal barriers.
+
+HISTORICAL REFERENCE
+The 2013 Boeing 787 lithium-ion battery events are a well-known aviation example in which investigators attributed the incidents to internal short-circuit and thermal runaway in a single cell spreading to others. No launch-vehicle incident is cited here.
+
+LESSONS LEARNED
+- Telemeter individual cell or cell-group voltages, not only pack voltage, so divergence is seen first
+- Screen cells by lot and match them for capacity and internal resistance
+- Design packs to tolerate a single-cell thermal runaway without propagation

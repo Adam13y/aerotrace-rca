@@ -1,0 +1,29 @@
+Title: Delta II GPS IIR-1 - solid rocket motor case rupture shortly after liftoff
+Category: structural
+Failure mode: Composite solid rocket motor case rupture from pre-flight damage
+Source type: historical
+Case ID: delta2_gps_iir1
+Date: 17 January 1997
+Vehicle: Delta II 7925 (McDonnell Douglas, now Boeing) with GPS IIR-1 satellite
+Sources: U.S. Air Force and launch provider accident investigation findings (1997)
+
+FAILURE MODE
+About 13 seconds after liftoff from Cape Canaveral, one of the nine graphite-epoxy strap-on solid rocket motors (GEM) of the Delta II ruptured. The rupture destroyed the vehicle and its payload, the first Block IIR GPS satellite. Burning propellant and debris fell over the launch complex area, damaging facilities and parked vehicles. No one was injured.
+
+CAUSAL CHAIN
+The Delta II 7925 configuration used nine Graphite Epoxy Motors around the first stage, six ignited at liftoff and three in the air. Investigators concluded that the composite case of one of the ground-lit motors had a crack or split that let hot gas escape shortly after ignition. The case breached about 13 seconds into flight, and the motor broke apart. The resulting failure tore into the first stage and the adjacent motors, and the vehicle was destroyed; destruct systems then terminated the remaining stages. The investigation concluded that the most probable cause was damage to the motor case that occurred before flight, likely during handling or transport, and was not detected by inspection. Damage to a filament-wound composite case can be internal and invisible from the outside, so routine visual inspection could not reliably detect it. Delta II flights resumed later in 1997 after the investigation, and the GPS IIR series went on to fly successfully on subsequent launches.
+
+TELEMETRY SIGNATURES
+- Nominal ignition and early ascent, with the anomaly occurring within seconds of liftoff during peak solid motor pressure.
+- An abrupt drop in chamber pressure on one strap-on motor relative to its nominally identical neighbours.
+- Sudden lateral and roll disturbances and steering activity from the asymmetric thrust and structural damage.
+- Breakup and flight termination within a fraction of a second to a few seconds, followed by loss of signal.
+
+ROOT CAUSE
+The most probable cause was a split in the composite case of one GEM solid rocket motor, resulting from pre-flight handling or transport damage that went undetected. Corrective actions reported publicly included improved handling procedures and inspection of composite motor cases before flight.
+
+LESSONS LEARNED
+- Composite structures can conceal damage; handling history belongs in root-cause analysis.
+- Compare identical strap-on motors for pressure divergence; one diverging unit localises the failure.
+- An anomaly in the first seconds of flight, at peak pressure, points towards a pre-existing defect rather than a flight-induced one.
+- Very short timelines mean the anomaly onset in high-rate data is the most valuable evidence.

@@ -1,0 +1,29 @@
+Title: Fatigue fracture of a cyclically loaded structural member
+Category: structural
+Failure mode: Fatigue fracture
+Source type: synthetic
+Case ID: struct-03-fatigue-fracture
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Fatigue fracture is crack initiation and growth under repeated stress cycles well below the static strength of the material. In launch vehicles it affects engine mounts, turbomachinery-adjacent brackets, feedline supports, and reusable stage structure that accumulates cycles over ground tests and multiple flights.
+
+CAUSAL CHAIN
+Vibration from engines, pressure cycles, or repeated flights produce many stress cycles at a notch, fastener hole or surface defect. A microcrack initiates and grows a small amount each cycle, initially without any measurable effect on structural stiffness. As the crack lengthens, local compliance increases, so the first observable is usually a shift in a structural resonance frequency or in strain ratio between neighbouring gauges. Once the remaining ligament can no longer carry peak load, the member fractures suddenly, producing a shock and a redistribution of load to adjacent members, which may then fail in turn.
+
+TELEMETRY SIGNATURES
+- Gradual drift of a structural mode frequency in accelerometer spectra over a burn or across flights (earliest sign)
+- Changing strain ratio between gauges on redundant load paths
+- Sudden accelerometer impulse at fracture followed by changed vibration levels at the mounted equipment
+- Secondary effects such as engine gimbal or feedline pressure oscillation if the failed member supported them
+
+ROOT CAUSE
+Underestimated vibration environments, stress concentrations at holes or fillets, poor surface finish, corrosion pits, and inadequate tracking of accumulated cycles on reusable hardware are the most frequent causes. Missing or insufficient inspection intervals for flown parts are a common contributing factor.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Track cycle counts and load spectra per serial number on reusable structure
+- Design with fatigue scatter factors and verify with representative vibration testing
+- Trend modal frequencies from flight accelerometer data to catch stiffness loss before fracture

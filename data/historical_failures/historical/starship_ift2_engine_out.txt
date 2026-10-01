@@ -1,0 +1,30 @@
+Title: Starship Integrated Flight Test 2 - Super Heavy booster loss during boostback
+Category: propulsion
+Failure mode: LOX filter blockage causing low turbopump inlet pressure and energetic engine failure
+Source type: historical
+Case ID: starship_ift2_engine_out
+Date: 18 November 2023
+Vehicle: SpaceX Starship / Super Heavy (Ship 25, Booster 9)
+Sources: SpaceX Starship Flight Test 2 summary (2024); FAA statements (2024)
+
+FAILURE MODE
+Loss of oxidizer turbopump inlet pressure on multiple Raptor engines during the booster's boostback burn, followed by an energetic engine failure and loss of the booster. The upper stage (Ship) was lost later in the flight from a separate cause, a leak and fire in its aft section.
+
+CAUSAL CHAIN
+All 33 booster engines operated through ascent, and the vehicle completed the first successful hot-stage separation. Shortly after the booster began its boostback burn, several Raptor engines started shutting down, and one engine then failed energetically; the booster was lost roughly three and a half minutes into flight. SpaceX identified the most likely root cause as a filter blockage where liquid oxygen (LOX) is supplied to the engines. The blockage reduced LOX inlet pressure at the engines' oxidizer turbopumps. Insufficient pump inlet pressure is the classic precondition for cavitation, which degrades pump performance and can damage turbomachinery. The degraded engines shut down, and one failed in a way that destroyed the vehicle. Separately, the Ship continued its ascent burn. Near the end of the burn, liquid oxygen was vented as planned, and SpaceX reported that a leak in the aft section that developed when LOX was vented led to a combustion event and fires. These caused a loss of communication between the ship's flight computers, a commanded shutdown of all six engines before burn completion, and activation of the autonomous flight safety system about eight minutes into flight.
+
+TELEMETRY SIGNATURES
+- Falling oxidizer pump inlet pressure on several engines at the same time: a shared-feed symptom (tank, filter, ducting), not a single-engine fault.
+- Engine shutdowns clustered in time during a manoeuvre that disturbs propellant settling (reorientation and boostback).
+- Turbopump speed and vibration excursions on the affected engines.
+- A rapid pressure and vibration transient immediately before booster loss of signal.
+- On the Ship, aft-section temperature rises after the LOX vent, followed by loss of flight-computer communication and engine shutdown.
+
+ROOT CAUSE
+Booster: blockage of the LOX supply filtration, causing low oxidizer turbopump inlet pressure and an engine failure. Reported corrective actions included hardware changes inside booster oxidizer tanks to improve propellant filtration and refined operations. Ship: an aft-section leak and fire associated with the LOX vent; corrective actions included hardware changes to prevent leaks and improve fire protection.
+
+LESSONS LEARNED
+- When inlet pressure falls first and turbopump vibration follows within seconds, treat the feed system as the initiating cause and turbopump distress as a consequence (possible cavitation).
+- Correlated faults across engines sharing a feed point to common hardware upstream.
+- Propellant management events (vents, slosh) are plausible triggers for leaks and feed problems.
+- Two stages can fail from unrelated causes on the same flight; analyse each stage's timeline separately.

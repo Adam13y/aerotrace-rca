@@ -1,0 +1,29 @@
+Title: Antares Orb-3 - first-stage engine turbopump failure shortly after liftoff
+Category: propulsion
+Failure mode: LOX turbopump failure in an AJ26 first-stage engine
+Source type: historical
+Case ID: antares_orb3
+Date: 28 October 2014
+Vehicle: Orbital Sciences Antares 130 with Cygnus (Orb-3 / CRS mission)
+Sources: Orbital Sciences Accident Investigation Board findings (2015); NASA Independent Review Team report on the Orb-3 accident (2015)
+
+FAILURE MODE
+Seconds after liftoff from Wallops Island, Virginia, one of the two AJ26 engines on the Antares first stage failed catastrophically. The vehicle lost thrust and fell back towards the launch pad, the flight termination system was activated, and the rocket and its Cygnus cargo spacecraft bound for the International Space Station were destroyed. The launch pad was significantly damaged. No one was injured.
+
+CAUSAL CHAIN
+The Antares first stage was powered by two AJ26 engines, which were modified NK-33 engines originally built in the Soviet Union decades earlier and refurbished and tested in the United States. Liftoff appeared normal. A few seconds into flight, a failure occurred in the liquid oxygen (LOX) turbopump of one engine, causing an explosion in the engine compartment and loss of thrust. The vehicle began to descend, and the range safety flight termination system was activated, with the vehicle impacting near the pad. The investigations agreed that the failure originated in the LOX turbopump, but differed on the underlying cause. Orbital's investigation concluded the most likely cause was a design deficiency in the turbopump's hydrostatic bearing, leading to bearing failure and rubbing that ignited the pump. NASA's Independent Review Team agreed that the turbopump was the source but could not identify a single root cause; it listed credible causes including inadequate design robustness of the bearing, foreign object debris in the pump, and manufacturing defects, and noted that foreign object debris could not be ruled out. An AJ26 engine had also failed during ground testing earlier in 2014.
+
+TELEMETRY SIGNATURES
+- Nominal ignition and liftoff, with the anomaly appearing seconds into flight rather than at a transient.
+- Turbopump speed and vibration anomalies on one engine, with the second engine nominal: a single-engine fault signature.
+- Abrupt loss of thrust and chamber pressure on the affected engine, with engine compartment temperature and pressure indications of fire or explosion.
+- Vehicle acceleration turning negative and attitude disturbances, followed by flight termination and loss of signal.
+
+ROOT CAUSE
+The failure originated in the LOX turbopump of one AJ26 engine. Orbital attributed it most likely to a hydrostatic bearing design deficiency; NASA's review team identified several credible causes, including bearing design, foreign object debris and manufacturing defects, without a single definitive root cause. Orbital subsequently replaced the AJ26 with RD-181 engines.
+
+LESSONS LEARNED
+- Asymmetry between two engines on one stage localises the fault quickly.
+- Turbopump vibration and speed trends are leading indicators of bearing distress; trend them against acceptance-test data.
+- Aging or refurbished hardware with a prior test-stand failure history deserves elevated scrutiny.
+- When investigations disagree, keep all credible causes in the hypothesis set.

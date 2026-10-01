@@ -1,0 +1,29 @@
+Title: Loss of a power distribution unit or bus segment
+Category: electrical
+Failure mode: Power distribution failure
+Source type: synthetic
+Case ID: elec-07-power-distribution-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A power distribution failure is loss of a power distribution unit (PDU), switching module or bus segment that feeds multiple loads. Because many units share the path, the failure appears as near-simultaneous loss of several otherwise unrelated subsystems. It can occur at power transfer from ground to internal power, at staging, or at random during flight.
+
+CAUSAL CHAIN
+An internal PDU fault (failed switch, converter, controller or bus-bar connection) or an upstream protection trip interrupts power to a segment. The FIRST observable is the segment voltage dropping and the PDU status word changing, followed within milliseconds by loss of telemetry from every unit on that segment. If redundant feeds exist, cross-strap logic switches to the alternate path and loads recover after a short gap; otherwise loss of valves, heaters or avionics produces physical consequences over seconds to minutes.
+
+TELEMETRY SIGNATURES
+- Segment or PDU output voltage drops to near zero while the main bus remains healthy
+- Simultaneous loss or freeze of telemetry from all loads on the affected segment
+- Redundancy switch-over flags and a short gap before loads recover on the alternate feed
+- Distinguishing check: if only the telemetry multiplexer for that segment fails, loads keep working (other evidence like attitude control or pressures stays normal); a real power loss produces physical consequences
+
+ROOT CAUSE
+Typical root causes are single points of failure in distribution architecture, inadequate thermal design of switching components, loose bus-bar or connector joints, protection coordination errors causing upstream trips for downstream faults, and software or logic errors in switching controllers.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Map every load to its distribution path so common-cause losses can be recognised quickly
+- Coordinate protection so that a downstream fault does not trip an upstream feeder
+- Avoid placing redundant strings on the same distribution segment

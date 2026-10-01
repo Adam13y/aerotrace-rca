@@ -1,0 +1,30 @@
+Title: High-pressure pneumatic line rupture
+Category: pressurization
+Failure mode: Pneumatic line rupture
+Source type: synthetic
+Case ID: press-06-pneumatic-line-rupture
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Pneumatic line rupture is the sudden failure of a high-pressure gas line, fitting or flex hose that supplies valve actuation gas or pressurant. A rupture releases gas quickly, producing a pressure collapse in the affected circuit and possibly mechanical damage or local cooling of nearby hardware. Pneumatic circuits typically operate at tens to hundreds of bar.
+
+CAUSAL CHAIN
+Initiators include vibration fatigue of a poorly supported line, chafing against structure, overpressure surges, or weld and fitting defects. The first observable is a rapid pressure drop in the affected pneumatic manifold, reaching near-ambient within a fraction of a second to a few seconds depending on line size, together with a step drop in supply bottle pressure and a bottle temperature decrease from rapid blowdown. Nearby accelerometers may register a transient at rupture. Valves depending on that supply then fail to actuate or move to their fail-safe positions; this can close main propellant valves, causing loss of thrust, or prevent commanded sequences such as staging or shutdown.
+
+TELEMETRY SIGNATURES
+- Abrupt pneumatic manifold pressure drop is the first anomaly, falling toward ambient within seconds
+- Supply bottle pressure step decrease and bottle temperature drop from rapid blowdown
+- Local accelerometer or acoustic transient at the time of rupture
+- Valves on the affected circuit report fail-safe positions or fail to respond to commands
+- Engine shutdown or sequence abort shortly afterwards
+
+ROOT CAUSE
+Root causes include inadequate clamping that leaves line natural frequencies within the vibration environment, defects in welds or brazed joints, incorrect fitting torque, chafing, and pressure surges from fast-opening valves. Lack of vibration testing on flight-configuration routing is a common contributor.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It is most often associated with vibration qualification gaps in line routing and support.
+
+LESSONS LEARNED
+- Support pneumatic lines so their natural frequencies avoid dominant vibration environments
+- Inspect welds and brazed joints with radiography or an equivalent method
+- Design pneumatically actuated valves with safe failure positions and isolate pneumatic circuits

@@ -1,0 +1,29 @@
+Title: Thrust vector control actuator lags its command
+Category: avionics
+Failure mode: Actuator response lag
+Source type: synthetic
+Case ID: avio-06-actuator-response-lag
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Actuator response lag is a degradation of the dynamic response of a thrust vector control (TVC) or aerodynamic surface actuator: increased delay, reduced rate capability or reduced bandwidth. The actuator may still reach the commanded position statically, but the extra phase lag reduces control-loop stability margin and can lead to oscillation or loss of control under high disturbance.
+
+CAUSAL CHAIN
+Hydraulic pressure loss, electromechanical motor current limiting, increased friction or a servo-loop fault reduces actuator capability. The FIRST observable is a growing difference between commanded and measured actuator position during dynamic manoeuvres, with position lagging command, or rate saturation. Because control phase margin decreases, attitude error and rate begin to oscillate at the control loop frequency, with amplitude growing over a few cycles. Hydraulic pressure or actuator motor current telemetry often deviates before or concurrently with the lag.
+
+TELEMETRY SIGNATURES
+- Actuator command vs position error increasing, with position lagging by tens to hundreds of milliseconds
+- Actuator rate clipped at a constant value during large commands
+- Hydraulic supply pressure drop or motor current at its limit preceding the lag
+- Growing attitude-rate oscillation at the control-loop frequency; distinguishing check: if position tracks command well, oscillations stem from control or structural coupling, not the actuator
+
+ROOT CAUSE
+Root causes include hydraulic pump degradation, leaks or air entrainment, contamination increasing friction, electromechanical actuator thermal limiting, undersized actuators for flight loads, and control laws designed with insufficient phase margin for realistic actuator dynamics.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Telemeter both command and measured position at the control loop rate
+- Verify actuator bandwidth under flight loads and temperatures
+- Retain stability margin for degraded actuator dynamics

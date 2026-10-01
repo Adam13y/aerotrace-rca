@@ -1,0 +1,29 @@
+Title: Short circuit in a power harness or unit causing overcurrent and protection trip
+Category: electrical
+Failure mode: Short circuit
+Source type: synthetic
+Case ID: elec-03-short-circuit
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A short circuit is an unintended low-impedance path between a powered conductor and return, structure or another circuit. It typically occurs in harnesses where insulation is chafed, cut or heat-damaged, at connectors, or inside units after component failure. Consequences range from a blown fuse or tripped solid-state power controller to arcing, fire, and loss of all loads on the affected bus.
+
+CAUSAL CHAIN
+Insulation damage exposes a conductor; vibration, thermal motion or contamination then completes the path. The FIRST observable is a sharp current increase on the affected feeder, followed within milliseconds by a bus voltage dip proportional to source impedance. Protection (fuse, breaker, SSPC) should clear the fault, so the current then falls to zero and the downstream loads go dead. If protection is slow or absent, sustained current heats the wiring, temperature sensors near the harness rise, and arcing can ignite nearby materials.
+
+TELEMETRY SIGNATURES
+- Feeder current spikes to many times nominal, simultaneous with a bus voltage dip
+- Within milliseconds, SSPC trip flag set or current falls to zero; downstream unit telemetry goes static or missing
+- Harness or compartment temperature rise when the fault persists or arcs intermittently
+- Artefact check: a real short shows correlated current, voltage and load-loss signatures; an isolated current spike with no voltage dip is more likely a sensor glitch
+
+ROOT CAUSE
+Common root causes are harness routing over sharp edges or without adequate clamping, tooling damage during installation, insulation degraded by heat or by unsuitable materials, conductive debris (FOD) inside units, and protection devices sized too large or responding too slowly.
+
+HISTORICAL REFERENCE
+The Apollo 13 oxygen-tank failure (1970) is attributed to wiring whose insulation had been damaged by overheating during ground testing; in flight, electrical arcing inside the tank is believed to have ignited the fire. A separate detailed summary exists for that event.
+
+LESSONS LEARNED
+- Inspect harness routing and protect wiring at edges and pass-throughs
+- Size protection so that it clears faults before wiring overheats
+- Use fault current and voltage correlation to confirm a real short

@@ -129,6 +129,7 @@ class Supervisor:
                 OllamaEmbedder(self.settings.ollama_base_url, self.settings.embedding_model),
                 chunk_tokens=int(rag_cfg.get("chunk_tokens", 500)),
                 overlap_tokens=int(rag_cfg.get("overlap_tokens", 50)),
+                category_boost=float(rag_cfg.get("category_boost", 0.05)),
             )
         self.hypothesis_generator = HypothesisGenerator(
             self.knowledge_base,
@@ -330,8 +331,12 @@ class Supervisor:
         )
         if generator.last_historical_cases:
             self.log_decision(
-                "historical_rag", f"Injected {len(generator.last_historical_cases)} historical cases into the prompt",
-                "; ".join(f"{c.title} [{c.source_file}] similarity={c.score:.3f}" for c in generator.last_historical_cases),
+                "historical_rag", f"Injected {len(generator.last_historical_cases)} knowledge-base cases into the prompt",
+                "; ".join(
+                    f"{c.title} [{c.source_file}; {c.source_type}; {c.category}"
+                    f"{'; same-category boost' if c.category_match else ''}] similarity={c.score:.3f}"
+                    for c in generator.last_historical_cases
+                ),
             )
         elif generator.last_historical_error:
             self.log_decision("historical_rag", "Historical context skipped", generator.last_historical_error)
@@ -378,7 +383,10 @@ class Supervisor:
             "source_file": input_path.name,
             "dataset_id": dataset_id,
             "historical_cases": [
-                {"title": c.title, "source_file": c.source_file, "similarity": round(c.score, 3)}
+                {
+                    "title": c.title, "source_file": c.source_file, "similarity": round(c.score, 3),
+                    "category": c.category, "source_type": c.source_type, "category_match": c.category_match,
+                }
                 for c in self.hypothesis_generator.last_historical_cases
             ],
         }

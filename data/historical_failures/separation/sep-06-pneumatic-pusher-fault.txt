@@ -1,0 +1,29 @@
+Title: Pneumatic pusher fault during separation
+Category: separation
+Failure mode: Pneumatic pusher fault
+Source type: synthetic
+Case ID: sep-06-pneumatic-pusher-fault
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Some vehicles use pneumatic actuators instead of pyrotechnic devices to release latches and push stages, fairings or payloads apart. A pressurised gas, often helium or nitrogen, drives pistons that provide the separation impulse. A fault means one or more pushers deliver too little force, act too late, or act unequally, giving low separation velocity or a tip-off moment.
+
+CAUSAL CHAIN
+The first deviation is usually upstream of the motion: the pneumatic supply pressure is low before the event because of a slow leak or regulator drift, or a valve opens late. When the command is issued, the pressure in that pusher rises slowly or to a lower peak. The stroke is shortened or delayed, so separation velocity is reduced and, if pushers act unequally, a rotation rate appears. Low relative velocity raises the risk of recontact once upper-stage ignition or residual thrust acts.
+
+TELEMETRY SIGNATURES
+- Pneumatic supply or bottle pressure lower than predicted before the separation command, or decaying over minutes
+- Pusher pressure rise after the valve command slower or lower than nominal on one or more actuators
+- Separation switches change state later than nominal and at different times around the circumference
+- Relative separation velocity lower than predicted and attitude rate appearing after release
+
+ROOT CAUSE
+Typical causes are seal leakage at low temperature, contamination in valves or regulators, a mis-set regulator, an undersized gas reserve that does not cover cold-soak pressure loss, and piston friction or binding from debris or lubricant changes. Failure to telemeter pneumatic pressure makes slow leaks invisible until the event.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Pneumatic separation systems are valued because they are reusable and testable, but they depend on gas supply integrity throughout flight.
+
+LESSONS LEARNED
+- Telemeter supply and actuator pressures so a slow leak is visible before the event
+- Size gas reserves for worst-case cold soak and leakage
+- Test pushers at flight temperature and confirm symmetry of stroke timing across all actuators

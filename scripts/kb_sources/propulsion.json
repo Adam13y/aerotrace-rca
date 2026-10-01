@@ -1,0 +1,218 @@
+{
+  "category": "propulsion",
+  "source_type": "synthetic",
+  "cases": [
+    {
+      "id": "prop-01-turbopump-cavitation",
+      "title": "Turbopump cavitation from low inlet pressure",
+      "category": "propulsion",
+      "failure_mode": "Turbopump cavitation",
+      "failure_mode_description": "Turbopump cavitation occurs when static pressure at the pump inducer or impeller inlet falls below the propellant vapour pressure, forming vapour cavities that collapse downstream. It is most likely at cryogenic pump inlets during start transients or late in a burn when tank head and ullage pressure are low. Severe cavitation causes head breakdown, loss of flow and inducer or bearing damage.",
+      "causal_chain": "The initiating condition is insufficient net positive suction head (NPSH): ullage pressure drops, propellant warms toward saturation, or a feed restriction increases inlet losses. Pump inlet pressure is therefore the first observable to deviate, typically hundreds of milliseconds to seconds before other effects. Vapour cavities then reduce pump discharge pressure and flow. With less hydraulic load the turbine accelerates, so shaft speed rises unless the controller intervenes. Cavity collapse produces broadband vibration, and unsteady flow drives chamber pressure fluctuations. Sustained head breakdown leads to thrust loss or an automatic shutdown on speed or pressure redlines.",
+      "telemetry_signatures": [
+        "Pump inlet pressure decreases toward vapour pressure first; computed NPSH margin trends to zero",
+        "Pump discharge pressure drops or becomes noisy within roughly 0.1-1 s",
+        "Turbopump speed rises by a few percent as pump load decreases",
+        "Pump-housing accelerometers show elevated broadband vibration",
+        "Chamber pressure decreases and fluctuates; turbine temperature may rise as mixture ratio shifts"
+      ],
+      "root_cause": "Typical root causes include ullage pressurisation shortfalls, propellant loaded warmer than specification, inadequate inducer suction margin, excessive feed-line pressure drop, and acceleration or slosh transients that reduce hydrostatic head. Margins set from steady-state analysis without dynamic transients are a recurring contributor.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Cavitation margins are routinely mapped in ground testing by lowering inlet pressure until head breakdown occurs.",
+      "lessons_learned": [
+        "Monitor NPSH margin from inlet pressure and propellant temperature, not inlet pressure alone",
+        "Verify suction margin across start, throttle and low-tank-level conditions",
+        "Treat a pump-speed rise with a discharge-pressure drop as a cavitation signature and check ullage pressure"
+      ]
+    },
+    {
+      "id": "prop-02-combustion-instability",
+      "title": "High-frequency combustion instability in the main chamber",
+      "category": "propulsion",
+      "failure_mode": "Combustion instability",
+      "failure_mode_description": "Combustion instability is a coupling between unsteady heat release and acoustic modes of the combustion chamber or feed system. High-frequency instability, typically above about 1 kHz, couples to chamber acoustic modes; low-frequency chugging, from tens to a few hundred Hz, couples to feed-system dynamics. High-frequency modes can grow within milliseconds and destroy an injector face or chamber wall.",
+      "causal_chain": "A disturbance such as an ignition pressure spike, a propellant slug or a local mixture non-uniformity perturbs the flame. If heat-release fluctuations are in phase with pressure oscillations (the Rayleigh criterion) and damping is insufficient, amplitude grows. The first observable is a narrowband chamber pressure oscillation, often visible only on high-bandwidth transducers, accompanied within milliseconds by a step rise in engine vibration. Oscillating flow sharply increases wall heat transfer, so wall and coolant outlet temperatures climb over tens to hundreds of milliseconds. Without cutoff, injector or wall burn-through, loss of chamber pressure and shutdown follow.",
+      "telemetry_signatures": [
+        "High-bandwidth chamber pressure shows a growing narrowband oscillation at a chamber acoustic mode, reaching tens of percent of mean pressure",
+        "Engine accelerometers jump to many times nominal levels essentially simultaneously",
+        "Coolant outlet and wall temperatures rise within tens to hundreds of milliseconds",
+        "Mean chamber pressure may stay near nominal at first, so low-rate telemetry can miss onset"
+      ],
+      "root_cause": "Root causes are usually design-related: injector patterns sensitive to acoustic coupling, insufficient injector pressure drop to isolate the feed system, missing or inadequate baffles and acoustic cavities, or off-design operating points. Injector manufacturing variation or damaged elements can push a marginally stable engine into instability.",
+      "historical_reference": "Comparable to the combustion instability encountered during development of the F-1 engine for the Saturn V; public histories describe extensive injector redesign, baffles and deliberate bomb-test stability rating to resolve it.",
+      "lessons_learned": [
+        "Sample chamber pressure and vibration at high rate; averaged telemetry can hide onset",
+        "Demonstrate dynamic stability with deliberate perturbation testing",
+        "Maintain injector pressure-drop margin across the throttle range"
+      ]
+    },
+    {
+      "id": "prop-03-injector-clogging",
+      "title": "Injector clogging causing mixture maldistribution",
+      "category": "propulsion",
+      "failure_mode": "Injector clogging",
+      "failure_mode_description": "Injector clogging is partial blockage of injector orifices by particulates, debris, frozen contaminants or coking deposits. It occurs in main-chamber, gas-generator, preburner and thruster injectors. Because only some elements are affected, clogging distorts the local mixture ratio and spray pattern, producing hot streaks rather than a uniform performance loss.",
+      "causal_chain": "Contaminants enter with the propellant or originate in the feed system and lodge in the smallest passages. The first observable is typically a rise in injector manifold pressure relative to chamber pressure for the affected propellant, because the same flow must pass through less area; where supply pressure is fixed, that propellant's flow decreases instead. Chamber pressure and thrust then drop modestly. Near blocked elements the mixture ratio shifts, creating hot streaks that raise wall or nozzle temperatures in specific circumferential sectors over seconds. Severe cases can trigger combustion roughness or burn-through.",
+      "telemetry_signatures": [
+        "Injector pressure drop increases for one propellant while chamber pressure stays flat or falls slightly; this deviates first",
+        "Flow of the affected propellant decreases by a few percent",
+        "Chamber pressure, thrust and estimated specific impulse decline slowly",
+        "Circumferentially non-uniform wall or nozzle temperatures appear seconds later"
+      ],
+      "root_cause": "Typical root causes include inadequate filtration, manufacturing or maintenance debris, cleaning-fluid residue, moisture freezing in cryogenic circuits, and hydrocarbon fuel coking in hot passages during post-shutdown soak-back. Without post-test flow checks, partial blockage carries into the next firing.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It is commonly found during acceptance testing and post-test injector flow inspection, especially on reusable or hydrocarbon-fuelled engines.",
+      "lessons_learned": [
+        "Trend injector pressure drop per propellant across tests and flights",
+        "Verify cleanliness with particle counts at the engine interface",
+        "Flow-check injectors exposed to coking or contamination after firing"
+      ]
+    },
+    {
+      "id": "prop-04-nozzle-erosion",
+      "title": "Excessive nozzle throat erosion",
+      "category": "propulsion",
+      "failure_mode": "Nozzle erosion",
+      "failure_mode_description": "Nozzle erosion is the progressive loss of throat or divergent-section material through thermochemical attack, particle abrasion, or ablation beyond the design allowance. It is most associated with ablative and carbon-based solid rocket motor nozzles and ablatively cooled liquid engines, though cooled throats can erode after loss of cooling. Erosion enlarges the throat and reduces performance and structural margin.",
+      "causal_chain": "Excessive erosion starts with higher-than-predicted heat flux, oxidising species, particle impingement, or material defects such as voids and delaminations. Because throat area grows, the first observable is typically a gradual, monotonic decline in chamber pressure relative to the prediction for the actual flow rate, or for a solid motor, relative to the predicted pressure-time curve. Thrust falls correspondingly. Asymmetric erosion creates a side force, visible as increasing thrust-vector-control deflection to hold attitude. If erosion reaches the structure, burn-through follows with external temperature rise and possible hot-gas leakage.",
+      "telemetry_signatures": [
+        "Chamber pressure drifts below prediction with a slow, monotonic trend over seconds to tens of seconds",
+        "Thrust and vehicle acceleration fall below prediction in proportion",
+        "Thrust-vector-control actuator positions bias away from null",
+        "Nozzle or nearby structural thermocouples rise late in the burn as burn-through approaches"
+      ],
+      "root_cause": "Root causes include material variability in density, fibre orientation and porosity, ply or bond-line defects, erosion rates underpredicted by models, propellant changes that increase oxidising species or particle loading, and burns longer than the qualified envelope. Limited sectioning of test articles hides the true margin.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Erosion margins are usually quantified by measuring and sectioning nozzles after solid rocket motor static firings.",
+      "lessons_learned": [
+        "Compare chamber pressure against a flow-normalised prediction to isolate throat growth",
+        "Track thrust-vector-control bias as an indicator of asymmetric erosion",
+        "Verify nozzle material lots with non-destructive inspection and witness samples"
+      ]
+    },
+    {
+      "id": "prop-05-thrust-oscillation-pogo",
+      "title": "Pogo thrust oscillation from structure-feed system coupling",
+      "category": "propulsion",
+      "failure_mode": "Thrust oscillation",
+      "failure_mode_description": "Thrust oscillation in liquid-propellant stages most often refers to pogo: a closed-loop instability in which longitudinal structural vibration modulates propellant feed pressure, which modulates thrust, which reinforces the vibration. It typically appears at a few to tens of Hz when a structural mode crosses a feed-system resonance as propellant mass decreases.",
+      "causal_chain": "As tanks drain, the vehicle's longitudinal mode frequency rises toward the feed-line resonance. Structural acceleration at the pump inlet modulates inlet pressure; the pump transmits this to chamber pressure; the resulting thrust fluctuation excites the structure further. The first observable is typically a growing low-frequency oscillation in longitudinal acceleration and pump inlet pressure at the same frequency with a consistent phase relationship. Coherent chamber pressure oscillation follows within a few cycles. Amplitude grows over seconds until the frequencies separate, non-linearities limit it, or loads exceed limits and an engine is shut down.",
+      "telemetry_signatures": [
+        "Longitudinal accelerometers show a growing sinusoidal oscillation at a few to tens of Hz, drifting as propellant depletes",
+        "Pump inlet pressure oscillates at the same frequency, phase-locked to acceleration",
+        "Chamber pressure and turbopump speed oscillate coherently shortly afterwards",
+        "Oscillation appears at a repeatable flight time and decays once frequencies separate"
+      ],
+      "root_cause": "Root causes include insufficient separation between structural and feed-system frequencies, missing or ineffective accumulators, changes in engine gain or line compliance, and inaccurate structural-dynamic models. Heavier payloads, longer burns or uprated engines can remove previously adequate margin.",
+      "historical_reference": "Comparable to the pogo oscillation on the Saturn V second (S-II) stage during Apollo 13, where NASA accounts describe the centre engine shutting down early after large longitudinal oscillations; pogo was also observed on Apollo 6.",
+      "lessons_learned": [
+        "Repeat pogo stability analysis whenever mass, engine or feed-line configuration changes",
+        "Use gas-charged accumulators to detune the feed system and verify their charge before flight",
+        "Monitor coherence between longitudinal acceleration and pump inlet pressure"
+      ]
+    },
+    {
+      "id": "prop-06-feed-line-blockage",
+      "title": "Propellant feed line blockage upstream of the pump",
+      "category": "propulsion",
+      "failure_mode": "Feed line blockage",
+      "failure_mode_description": "Feed line blockage is a partial or complete flow restriction between the tank outlet and the engine pump inlet or main valve. Causes include foreign object debris, a collapsed liner or bellows, ice or solidified propellant, or a dislodged filter screen. Unlike injector clogging, the restriction lies upstream of the pump, so its first effect appears on the suction side.",
+      "causal_chain": "A restriction adds feed-line pressure loss. The first observable is a drop in pump inlet pressure relative to ullage pressure plus hydrostatic head, while ullage pressure itself remains normal; this distinguishes blockage from a pressurisation fault. Flow then falls, so pump discharge and chamber pressure decrease within seconds. Reduced inlet pressure erodes NPSH margin and can induce cavitation, with turbopump speed rise and vibration. If only one propellant is affected, mixture ratio shifts and turbine temperatures may rise. Complete blockage causes rapid thrust loss and shutdown on low-inlet-pressure or overspeed limits.",
+      "telemetry_signatures": [
+        "Ullage pressure nominal while pump inlet pressure drops; the tank-to-inlet differential grows first",
+        "Flow or tank depletion rate decreases for the affected propellant",
+        "Chamber pressure falls within seconds and mixture ratio deviates",
+        "Turbopump speed and vibration rise if cavitation develops"
+      ],
+      "root_cause": "Typical causes include debris left during assembly or maintenance, liner or flex-hose collapse from pressure reversal, moisture freezing in cryogenic lines after inadequate purging, and filter screen failure. Limited inspection access and sparse feed-line instrumentation hinder detection.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Debris and ice restrictions are mainly controlled through foreign-object-debris programmes and purge procedures during ground processing.",
+      "lessons_learned": [
+        "Instrument both tank outlet and pump inlet so feed-line pressure drop can be computed",
+        "Apply strict debris controls and borescope inspection before closeout",
+        "Validate purge and dryness procedures for cryogenic lines before loading"
+      ]
+    },
+    {
+      "id": "prop-07-valve-malfunction",
+      "title": "Main propellant valve malfunction",
+      "category": "propulsion",
+      "failure_mode": "Valve malfunction",
+      "failure_mode_description": "Valve malfunction covers main propellant, igniter, bleed and throttle or mixture control valves that fail to open, fail to close, move too slowly, or stall mid-travel. These valves are typically pneumatically or electromechanically actuated, with position feedback from limit switches or potentiometers. A malfunction disrupts start and shutdown sequencing, flow regulation or thrust control.",
+      "causal_chain": "The initiating event is a valve command. The first observable is a discrepancy between commanded and measured position: the valve misses its limit switch within the expected stroke time, or a continuous position sensor lags or stalls. Actuator pressure or motor current deviates at the same time, for example sustained high current on a jammed electromechanical valve. Within milliseconds to seconds the affected flow, pressure or temperature fails to reach its expected value, controllers saturate while compensating, and sequencing logic may abort the start or shut the engine down.",
+      "telemetry_signatures": [
+        "Valve position feedback disagrees with command; stroke time exceeds limit or position stalls mid-travel",
+        "Actuation pressure drops, or motor current spikes and stays high at command time",
+        "Downstream pressure or flow fails to follow the command within the expected time",
+        "Sequencer abort or shutdown referencing a valve timing limit"
+      ],
+      "root_cause": "Root causes include contamination or ice at seals and seats, insufficient actuator pressure, seal hardening at cryogenic temperatures, binding from differential thermal contraction, feedback wiring faults, and software timing errors. A failed position sensor can mimic a valve fault, so feedback must be cross-checked against process variables.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Valve timing faults are a frequent cause of automated aborts during engine start sequences.",
+      "lessons_learned": [
+        "Cross-check valve feedback against downstream pressure or flow to separate sensor faults from valve faults",
+        "Characterise stroke times at flight temperatures and actuation pressures, including cold soak",
+        "Include contamination tolerance and seat-leak checks in valve acceptance testing"
+      ]
+    },
+    {
+      "id": "prop-08-ignition-failure",
+      "title": "Engine ignition failure or delayed hard start",
+      "category": "propulsion",
+      "failure_mode": "Ignition failure",
+      "failure_mode_description": "Ignition failure is the failure of an engine to establish sustained combustion when commanded, or a hard start in which ignition is delayed and accumulated propellant ignites violently. It applies to pyrotechnic, spark-torch and augmented spark igniters and to hypergolic ignition fluids such as TEA-TEB, for both ground starts and in-flight restarts.",
+      "causal_chain": "The first observable is usually the igniter's own indication: missing or low igniter chamber pressure, no igniter temperature rise or light detection, or no exciter current. Main valves may still open on sequence, so propellant flows without sustained combustion and inlet pressures sag. Chamber pressure fails to reach its start threshold within a fixed window, often a few hundred milliseconds. If ignition then occurs late, accumulated propellant produces a sharp chamber pressure overshoot and vibration spike that can damage the injector or nozzle. Sequencers typically abort when the threshold is missed, closing valves and purging.",
+      "telemetry_signatures": [
+        "No igniter pressure or temperature rise after the ignition command; the igniter deviates first",
+        "Main chamber pressure stays near zero while valves open and inlet pressures sag",
+        "Low or missing exciter current, or no ignition-fluid flow indication",
+        "In delayed ignition, a sharp chamber pressure overshoot and accelerometer spike"
+      ],
+      "root_cause": "Root causes include depleted or contaminated ignition fluid, exciter or harness faults, igniter mixture outside flammability limits, moisture or ice in the igniter, incorrect valve timing, and, for restarts, unsettled propellant or poor thermal conditioning. Vacuum and microgravity restarts add risks ground tests may not reproduce.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It is most often encountered as a pad abort at ignition or a failed upper-stage restart.",
+      "lessons_learned": [
+        "Gate main-valve opening on confirmed igniter operation",
+        "Size the start window to prevent hard starts from accumulated propellant",
+        "Verify restart ignition under representative settling, thermal and vacuum conditions"
+      ]
+    },
+    {
+      "id": "prop-09-mixture-ratio-anomaly",
+      "title": "Off-nominal engine mixture ratio",
+      "category": "propulsion",
+      "failure_mode": "Mixture ratio anomaly",
+      "failure_mode_description": "A mixture ratio anomaly is a departure of the oxidiser-to-fuel mass flow ratio from its design value. It affects specific impulse, combustion and turbine temperatures, and propellant utilisation. It can occur in the main chamber, gas generator or preburner; in staged-combustion engines an off-nominal preburner ratio can quickly drive turbine temperatures beyond limits.",
+      "causal_chain": "A fault in one propellant circuit, such as a control-valve error, flow-sensor bias, regulator drift or a pressure change in one tank, alters that propellant's flow. The first observable is usually a divergence between oxidiser and fuel flow rates or inlet pressures, or a mixture-ratio control valve moving to an unusual position. Combustion temperature then changes: an oxidiser-rich shift raises temperatures and attacks hardware, while a fuel-rich shift lowers specific impulse and thrust. Turbine inlet temperatures follow within about a second. Over the burn one propellant depletes early, leaving residual in the other tank and risking premature shutdown.",
+      "telemetry_signatures": [
+        "Oxidiser and fuel flow or tank depletion rates diverge from the predicted ratio first",
+        "Mixture-ratio control valve trends toward one end stop",
+        "Turbine inlet temperature rises (oxidiser-rich), or chamber pressure and thrust fall (fuel-rich)",
+        "One propellant low-level sensor triggers early near the end of the burn"
+      ],
+      "root_cause": "Typical root causes include flow-meter calibration errors, incorrect calibration orifices, control-valve hysteresis or failure, pressurisation imbalance between tanks, density errors from off-nominal propellant temperature, and software faults in mixture-ratio control. Loading errors can produce an apparent anomaly late in flight.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It is typically revealed by post-flight propellant utilisation reconstruction or acceptance-test trending.",
+      "lessons_learned": [
+        "Estimate mixture ratio from independent measurements and compare them",
+        "Bound control-valve authority so a single sensor fault cannot drive a hazardous ratio",
+        "Account for propellant density variation in calibration and loading"
+      ]
+    },
+    {
+      "id": "prop-10-gas-generator-failure",
+      "title": "Gas generator malfunction reducing turbine power",
+      "category": "propulsion",
+      "failure_mode": "Gas generator failure",
+      "failure_mode_description": "Gas generator failure covers malfunctions of the small combustor that produces turbine drive gas in gas-generator-cycle engines: off-nominal mixture ratio, blockage, combustion instability, ignition failure or burn-through. Because the gas generator powers the turbopump, its failure directly changes pump output and engine thrust, and hot-gas leakage can damage adjacent engine-bay hardware.",
+      "causal_chain": "The first observable is a deviation in gas generator chamber pressure or turbine inlet temperature. A rich or lean shift changes gas temperature, a blockage lowers gas generator pressure, and burn-through causes a sudden pressure drop with local temperature rise. Turbine power changes accordingly, so turbopump speed decreases, or increases for an over-hot mixture, within hundreds of milliseconds. Pump discharge pressures and flows follow, changing main chamber pressure and thrust. Excessive turbine inlet temperature can damage blades and raise vibration, while escaping hot gas can trigger engine-bay temperature alarms before shutdown.",
+      "telemetry_signatures": [
+        "Gas generator chamber pressure or turbine inlet temperature deviates first",
+        "Turbopump speed changes within a fraction of a second in the direction of turbine power",
+        "Pump discharge pressures and main chamber pressure follow the speed change",
+        "Engine-bay temperatures rise in burn-through or leak cases",
+        "Turbopump vibration increases if turbine blades are damaged by over-temperature"
+      ],
+      "root_cause": "Typical root causes include gas generator injector contamination or erosion, valve or orifice calibration errors, combustion instability within the gas generator, thermal fatigue cracking of the gas generator or turbine manifold, and igniter faults. Reused hardware can accumulate hot-gas-path damage that is invisible without inspection.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It is mainly encountered in development and acceptance testing of gas-generator-cycle engines.",
+      "lessons_learned": [
+        "Instrument gas generator pressure and turbine inlet temperature at adequate rate",
+        "Set turbine inlet temperature redlines that act before blade damage occurs",
+        "Inspect the hot-gas path between uses on reusable hardware"
+      ]
+    }
+  ]
+}

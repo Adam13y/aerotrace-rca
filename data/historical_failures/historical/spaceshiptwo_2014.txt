@@ -1,0 +1,30 @@
+Title: SpaceShipTwo VSS Enterprise - premature feather unlock and in-flight breakup
+Category: aerodynamic
+Failure mode: Uncommanded feather deployment under transonic aerodynamic loads after early unlock
+Source type: historical
+Case ID: spaceshiptwo_2014
+Date: 31 October 2014
+Vehicle: Scaled Composites / Virgin Galactic SpaceShipTwo VSS Enterprise (powered flight 4)
+Sources: NTSB accident report and board meeting findings (2015)
+
+FAILURE MODE
+During a rocket-powered test flight over the Mojave Desert, SpaceShipTwo broke apart seconds after its feather system, a reconfigurable tail used for re-entry, was unlocked far earlier than the procedure called for. Aerodynamic loads then moved the feather into its deployed position without the separate deploy handle being operated, and the resulting forces destroyed the vehicle. The co-pilot was killed; the pilot was thrown clear, his parachute deployed, and he survived with serious injuries.
+
+CAUSAL CHAIN
+After release from the WhiteKnightTwo carrier aircraft, the hybrid rocket motor ignited normally. The procedure required the feather to be unlocked only after the vehicle passed about Mach 1.4. Roughly 10 seconds after ignition, while the vehicle was at about Mach 0.8 and still transonic, the co-pilot moved the feather lock handle to unlock. At those conditions the aerodynamic hinge moment on the tail surfaces exceeded what the feather actuators could hold without the locks, and the feather began to extend uncommanded about two seconds later. The rapid change in configuration produced severe aerodynamic loads and the vehicle broke up within a few seconds.
+
+TELEMETRY SIGNATURES
+- Normal motor ignition with nominal chamber pressure and accelerating Mach number
+- Feather lock status changing to unlocked while Mach is well below the procedural unlock threshold
+- Feather position beginning to increase without a corresponding deploy command
+- Rapid nose-up pitch rate and large normal acceleration as the feather extends
+- Loss of telemetry and vehicle breakup within seconds of feather movement
+
+ROOT CAUSE
+The NTSB found that the probable cause was the failure of the developer, Scaled Composites, to consider and protect against the possibility that a single human error could result in a catastrophic hazard. The early unlock was the initiating action, but the design had no safeguard such as an inhibit preventing unlock below a safe Mach number. Contributing factors included hazard analysis that did not address human error, training that did not emphasise the danger of early unlocking, and high workload during the transonic phase. The motor and its new fuel formulation were found not to be involved.
+
+LESSONS LEARNED
+- Check mode and configuration status changes against the flight envelope; a lock state change outside its allowed Mach window is a critical alarm
+- Uncommanded surface movement after an enabling action points to aerodynamic loads exceeding actuator holding capability
+- Correlate crew control inputs with vehicle state to separate human-initiated events from system faults
+- Single-point human actions with catastrophic consequences should be inhibited in software or hardware, and monitored in telemetry

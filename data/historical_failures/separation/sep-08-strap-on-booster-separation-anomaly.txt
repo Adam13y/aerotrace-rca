@@ -1,0 +1,29 @@
+Title: Strap-on booster separation anomaly and core-stage impact
+Category: separation
+Failure mode: Booster strap-on separation anomaly
+Source type: synthetic
+Case ID: sep-08-strap-on-booster-separation-anomaly
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Vehicles with strap-on boosters release them from the core stage partway through first-stage flight, while the core continues to burn. The boosters are usually held at forward and aft attach points and pushed or rotated away, sometimes using venting gas or small motors. An anomaly occurs when a booster does not release cleanly, rotates the wrong way, or collides with the core.
+
+CAUSAL CHAIN
+The booster separation command is issued at booster burnout. The first deviation is local to one booster: an attach point does not release, a vent valve that should push the booster away does not open, or a sensor triggers the wrong sequence. The booster then moves toward rather than away from the core. Within about a second, accelerometers show a shock, the core stage's attitude rates rise, and tank pressure may drop if the impact damages the core tank. Guidance then cannot hold attitude and an abort is triggered or the vehicle breaks up.
+
+TELEMETRY SIGNATURES
+- Separation sensor for one booster changes state late, early or not at all compared with the others
+- Asymmetric shock on core-stage accelerometers within about a second of the separation event
+- Rapid growth in core-stage attitude rates and control actuator saturation after separation
+- Core-stage tank pressure decay following the impact
+
+ROOT CAUSE
+Typical causes are assembly errors such as a deformed sensor or latch, designs relying on a single sensor to trigger release, inadequate inspection of the attach mechanism, and push-off systems not verified at integration.
+
+HISTORICAL REFERENCE
+The Soyuz MS-10 crewed launch (2018) was aborted when one strap-on booster did not separate correctly and struck the core stage; the investigation attributed this to a separation sensor pin deformed during assembly, which prevented a booster vent valve from opening. The crew landed safely by the launch escape system.
+
+LESSONS LEARNED
+- Inspect and photograph separation sensors and latches after final assembly
+- Avoid single-sensor dependencies for critical separation actions
+- Compare the separation timing of each booster individually; the outlier is the starting point for RCA

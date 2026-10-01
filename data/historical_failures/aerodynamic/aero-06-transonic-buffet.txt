@@ -1,0 +1,29 @@
+Title: Transonic buffet loading on fairing and interstage
+Category: aerodynamic
+Failure mode: Transonic buffet
+Source type: synthetic
+Case ID: aero-06-transonic-buffet
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Transonic buffet is unsteady aerodynamic loading caused by shock waves and separated flow that form and oscillate near Mach 0.8 to 1.2, especially around shape changes such as hammerhead fairings, boattails and interstage steps. The fluctuating pressure excites structural and acoustic vibration and can couple with body bending modes, producing large dynamic loads before or around Max-Q.
+
+CAUSAL CHAIN
+As the vehicle passes Mach 0.8, a shock forms near a shoulder, and the flow behind it separates. The first observable is broadband fluctuating pressure on fairing and interstage pressure transducers, followed within a fraction of a second by increased vibration on nearby accelerometers. If buffet frequencies match a bending mode, bending strain oscillations grow. Excessive buffet can loosen or crack fairing panels, damage payload components through vibration, or add enough dynamic load to exceed structural margins near Max-Q.
+
+TELEMETRY SIGNATURES
+- Rise in unsteady pressure amplitude on fairing or interstage transducers as Mach number passes about 0.8
+- Broadband vibration increase on nearby accelerometers coinciding with transonic flight
+- Bending strain oscillations at body bending frequencies during transonic flight
+- Payload interface vibration levels exceeding predicted environments
+
+ROOT CAUSE
+Typical causes are fairing shapes with abrupt shoulders or steep boattails, inaccurate buffet predictions from limited wind-tunnel data, structural modes lower than predicted, and changes to the outer mold line without new aerodynamic testing.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Fairing shape is usually chosen partly to limit buffet.
+
+LESSONS LEARNED
+- Test outer mold line changes in transonic wind tunnels with unsteady pressure measurements
+- Correlate buffet frequencies with modal test results
+- Vibration onset tied to Mach 0.8 points to buffet, not to propulsion

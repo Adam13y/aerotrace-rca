@@ -350,7 +350,7 @@ class HypothesisConfig:
     knowledge_base_matches: int = 3
     temperature: float = 0.0
     coverage_retries: int = 1
-    historical_cases: int = 3
+    historical_cases: int = 5
     correlation_window_seconds: float = 5.0
     flight_phases: list[FlightPhase] = field(default_factory=list)
 
@@ -373,7 +373,7 @@ class HypothesisConfig:
             knowledge_base_matches=int(data.get("knowledge_base_matches", 3)),
             temperature=float(data.get("temperature", 0.0)),
             coverage_retries=int(data.get("coverage_retries", 1)),
-            historical_cases=int(data.get("historical_cases", 3)),
+            historical_cases=int(data.get("historical_cases", 5)),
             correlation_window_seconds=correlation_window,
             flight_phases=list(flight_phases or []),
         )
@@ -485,7 +485,10 @@ class HypothesisGenerator:
             self.last_historical_error = str(exc)
             logger.warning("Historical RAG unavailable: %s", exc)
             return []
-        logger.info("Historical context: %s", "; ".join(f"{c.title} ({c.score:.2f})" for c in cases))
+        logger.info(
+            "Historical context: %s",
+            "; ".join(f"{c.title} ({c.category}, {c.source_type}, {c.score:.2f})" for c in cases),
+        )
         return cases
 
     @staticmethod

@@ -1,0 +1,29 @@
+Title: Hot-staging plume interaction damage
+Category: separation
+Failure mode: Hot-staging plume interaction damage
+Source type: synthetic
+Case ID: sep-09-hot-staging-plume-damage
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+In hot staging, the upper-stage engine ignites before or at the moment the stages separate, while the lower stage is still producing thrust or has only just shut down. The upper-stage plume impinges on the lower stage's forward dome or an interstage, which must be vented and protected. Damage occurs when plume heating or pressure on the lower stage, or reflected flow back to the upper stage, exceeds design allowances.
+
+CAUSAL CHAIN
+The upper-stage engine starts, and the plume fills the interstage gap before the bodies have moved far apart. The first deviation is usually thermal or pressure: interstage pressure rises faster or higher than predicted because vents are partly blocked, and temperature sensors on the lower-stage dome climb. Within a second or two, plume pressure can push back on the upper-stage nozzle and disturb attitude, or heat can damage the lower stage's forward dome, causing a tank pressure loss. Lower-stage recovery or boostback may then fail later.
+
+TELEMETRY SIGNATURES
+- Interstage pressure rising faster or higher than predicted during the overlap of upper-stage ignition and separation
+- Rapid temperature rise on lower-stage forward dome or interstage thermocouples
+- Upper-stage attitude rates or gimbal transients during the first second after ignition
+- Lower-stage tank pressure decay or loss of downstream instrumentation after staging
+
+ROOT CAUSE
+Typical causes are insufficient interstage vent area, thin thermal protection, plume models that omit start transients, and ignition-to-shutdown timing that differs from analysis. Retrofitting hot staging to a cold-staged design increases exposure.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Instrument the interstage and lower-stage dome with pressure and temperature sensors on early flights
+- Validate plume impingement models for start transients and off-nominal conditions
+- Treat staging-time pressure and temperature rises as the first indicator of later lower-stage failures

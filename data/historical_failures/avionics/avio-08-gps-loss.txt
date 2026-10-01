@@ -1,0 +1,29 @@
+Title: Loss of GPS navigation fix during ascent or flight
+Category: avionics
+Failure mode: GPS loss
+Source type: synthetic
+Case ID: avio-08-gps-loss
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Launch vehicles increasingly use GPS receivers for navigation aiding and range safety tracking. GPS loss is the inability to maintain a valid fix due to antenna blockage, high dynamics exceeding receiver tracking loops, interference or jamming, ionospheric effects or receiver faults. It degrades navigation to inertial-only mode and, for range safety, may trigger contingency procedures.
+
+CAUSAL CHAIN
+Signal conditions degrade, for example antenna masking during attitude manoeuvres, receiver tracking loss under high acceleration or jerk at staging, or interference. The FIRST observable is falling carrier-to-noise (C/N0) on tracked satellites and a decreasing number of satellites tracked, followed by fix validity flags dropping, rising position dilution of precision or covariance, and finally loss of fix. The navigation filter then propagates on inertial data, so the GPS-INS residual is no longer available and inertial drift begins to accumulate.
+
+TELEMETRY SIGNATURES
+- C/N0 decreasing and satellites-tracked count falling before the fix valid flag drops
+- Loss of fix coinciding with staging, high acceleration or attitude manoeuvres masking antennas
+- Navigation filter switching to inertial-only mode, with growing covariance
+- Distinguishing check: a sudden position jump with valid flags may indicate interference or spoofing rather than signal loss; compare with inertial data
+
+ROOT CAUSE
+Root causes include antenna placement with poor sky view at certain attitudes, receivers not rated for launch dynamics, insufficient tracking loop bandwidth, RF interference from onboard transmitters, and inadequate reacquisition time after outages.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Specify receivers for launch-vehicle dynamics and verify with simulator testing
+- Use multiple antennas to maintain sky view across attitudes
+- Ensure inertial navigation can carry the mission through GPS outages

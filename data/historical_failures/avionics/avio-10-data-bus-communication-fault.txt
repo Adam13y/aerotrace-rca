@@ -1,0 +1,29 @@
+Title: MIL-STD-1553 or similar avionics data bus communication fault
+Category: avionics
+Failure mode: Data bus communication fault
+Source type: synthetic
+Case ID: avio-10-data-bus-communication-fault
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Avionics units commonly communicate over a command/response data bus such as MIL-STD-1553, or over serial or network links. A communication fault occurs when messages are lost, corrupted or delayed due to a failed remote terminal, bus controller fault, damaged stub or coupler, missing termination, or babbling transmitter. Units that depend on the data may stale or default.
+
+CAUSAL CHAIN
+A physical-layer degradation or terminal fault arises. The FIRST observable is in bus diagnostics: rising message retry counts, no-response errors, parity or Manchester errors, or status word error bits from one terminal or one bus. If redundancy (dual A/B buses) works, the bus controller switches buses and data continues. If not, data from the affected terminal becomes stale; consumers detect stale data and use defaults or last values, causing actuator commands or sensor-dependent logic to behave abnormally within one or a few cycles.
+
+TELEMETRY SIGNATURES
+- Retry, no-response or error counters increasing for a specific remote terminal or bus channel
+- Bus A to B switchover events logged by the bus controller
+- Data from one terminal frozen (stale) while others update normally
+- Distinguishing check: errors confined to one terminal point to that unit or its stub; errors on all terminals point to the bus controller, trunk or termination
+
+ROOT CAUSE
+Root causes include connector and cable damage, incorrect or missing termination, shield or stub length violations, terminal hardware faults, babbling transmitters lacking timeout protection, and redundancy management that does not handle partial failures.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Telemeter per-terminal bus error and retry counters
+- Verify bus termination and stub lengths during integration
+- Test redundancy management with injected partial bus faults

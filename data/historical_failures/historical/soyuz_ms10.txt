@@ -1,0 +1,30 @@
+Title: Soyuz MS-10 - strap-on booster separation failure and crew abort
+Category: separation
+Failure mode: Abnormal strap-on booster separation causing collision with core stage
+Source type: historical
+Case ID: soyuz_ms10
+Date: 11 October 2018
+Vehicle: Soyuz-FG with Soyuz MS-10 crewed spacecraft
+Sources: Roscosmos state commission findings (announced November 2018); NASA statements on the abort
+
+FAILURE MODE
+About two minutes after launch from Baikonur, during separation of the four first-stage strap-on boosters from the core (second) stage, one booster did not separate cleanly and struck the core stage near its upper end. The impact damaged the core stage, which lost attitude control. The launch abort system separated the crew spacecraft, which made a ballistic descent and landed safely in Kazakhstan with both crew members, one Russian and one American, uninjured.
+
+CAUSAL CHAIN
+Lift-off and first-stage flight were nominal. At the planned strap-on separation time, roughly 118 seconds into flight, three boosters separated normally. On one booster, a separation sensor had been damaged during vehicle assembly at the launch site: a contact pin was bent. Because of this, the mechanism that opens the booster's oxidizer tank vent at the top of the booster did not operate as designed, so the booster did not pivot away from the core stage in the normal way. Its upper end struck the core stage near the top of the core stage's tank section, damaging it and causing a loss of stabilisation. The abort system detected the loss of control and separated the crewed spacecraft using the motors on the payload fairing (the escape tower had already been jettisoned earlier in ascent). The descent module followed a steep ballistic re-entry with high deceleration loads and landed under parachute.
+
+TELEMETRY SIGNATURES
+- Nominal chamber pressures and trajectory through the first-stage burn
+- Booster separation event with one booster's separation indication off-nominal or inconsistent with the other three
+- Sudden angular rate and attitude disturbance on the core stage immediately after separation, consistent with a collision
+- Possible core-stage tank pressure disturbance and loss of attitude stabilisation within seconds
+- Abort command, fairing motor firing and spacecraft separation, followed by ballistic descent with elevated g-loads
+
+ROOT CAUSE
+The Roscosmos commission concluded that the failure was caused by deformation of a separation sensor pin on one strap-on booster during assembly of the booster cluster at Baikonur, which prevented proper opening of the oxidizer tank vent cover and therefore normal separation. The damage was not caught before launch. Onboard camera footage released later showed the booster contacting the core stage. Rockets in the assembly flow were inspected afterwards.
+
+LESSONS LEARNED
+- At staging events, compare separation indications across symmetric elements; a single outlier is a strong discriminator
+- A rate or attitude transient immediately after separation points to contact or recontact rather than an engine fault
+- Assembly-induced damage to separation hardware may produce no signature until the separation event itself
+- Abort system triggering logic based on attitude loss worked; telemetry should capture the exact sequence to support review

@@ -1,0 +1,29 @@
+Title: Star tracker blinded by sun, moon, Earth or plume light
+Category: avionics
+Failure mode: Star tracker blinded
+Source type: synthetic
+Case ID: avio-07-star-tracker-blinded
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A star tracker identifies star patterns to determine absolute attitude for upper stages and spacecraft. It becomes blinded when the sun, moon, sunlit Earth limb, reflections, or illuminated exhaust plume or debris enter or approach its field of view, saturating the detector or creating false stars. Attitude then relies on gyro propagation, which drifts until tracking resumes.
+
+CAUSAL CHAIN
+The vehicle attitude or trajectory brings a bright body inside the tracker's exclusion angle, or particles scatter light. The FIRST observable is the tracker status: number of tracked stars falls, validity flag drops, background level rises, or attitude quaternion becomes invalid. Navigation switches to inertial propagation, so attitude uncertainty grows slowly at the gyro drift rate. If blinding is prolonged, attitude error can exceed tolerance for pointing-critical operations such as burns or payload pointing.
+
+TELEMETRY SIGNATURES
+- Tracker valid flag dropping and tracked-star count falling, coinciding with predicted sun or moon angle inside the exclusion cone
+- Detector background or dark level increasing before loss of lock
+- Attitude covariance growing during the outage, followed by a small attitude correction step when tracking resumes
+- Distinguishing check: blinding is predictable from geometry; loss of lock with no bright body nearby suggests tracker failure or software issue
+
+ROOT CAUSE
+Root causes include mission planning that does not constrain attitude relative to bright bodies, insufficient baffle design, single tracker placement without diversity, contamination of optics and stray light from vehicle structure, plumes or venting particles.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Check bright-body exclusion angles throughout the planned attitude timeline
+- Use multiple trackers with different boresights
+- Size gyro performance to bridge expected tracker outages

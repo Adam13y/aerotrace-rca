@@ -1,0 +1,30 @@
+Title: Helium pressurant system leak
+Category: pressurization
+Failure mode: Helium system leak
+Source type: synthetic
+Case ID: press-05-helium-system-leak
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A helium system leak is an external or internal loss of helium from pressurant bottles, lines, regulators, valves or manifolds. Helium's small molecular size makes it hard to seal, and leaks are common at fittings, seals and valve seats, especially after thermal cycling. A leak depletes the finite pressurant supply and can eventually starve tank pressurisation, pneumatic valve actuation or reaction-control propellant feed.
+
+CAUSAL CHAIN
+The first observable is a decline in helium bottle mass, computed from pressure and temperature with the gas law, that exceeds expected consumption, or a decay during periods when no gas is being used. Downstream manifold pressure may remain nominal because the regulator compensates, so the leak can go unnoticed if only regulated pressures are watched. As supply pressure approaches the regulator's minimum inlet pressure, outlet pressure begins to droop, followed by falling ullage pressure or sluggish pneumatic valves. Leaks into enclosed compartments may also show as rising compartment pressure or helium detected by gas sensors.
+
+TELEMETRY SIGNATURES
+- Temperature-corrected helium bottle mass decreases during periods of no commanded use; this deviates first
+- Bottle pressure trend inconsistent with a closed-volume model given measured bottle temperature
+- Compartment pressure or helium concentration rises in enclosed bays
+- Regulator outlet pressure droops once supply pressure nears its minimum
+- Ullage or pneumatic manifold pressures fall later, possibly late in the mission
+
+ROOT CAUSE
+Root causes include seal degradation, improperly torqued fittings, valve seat damage, seal shrinkage at cryogenic temperatures, and seal material incompatibility with propellant vapours. Leak rates measured on the ground can increase significantly under flight thermal and vibration conditions.
+
+HISTORICAL REFERENCE
+Comparable to the helium leaks reported in the service module reaction control system manifolds of Boeing's Starliner during its 2024 crewed flight test; NASA and Boeing public statements described multiple leaks that were assessed alongside thruster performance issues.
+
+LESSONS LEARNED
+- Compute helium mass from pressure and temperature, not pressure alone, to detect leaks
+- Perform leak checks at flight-representative temperatures and after vibration exposure
+- Budget helium reserves for credible leak rates and allow isolation of leaking manifolds

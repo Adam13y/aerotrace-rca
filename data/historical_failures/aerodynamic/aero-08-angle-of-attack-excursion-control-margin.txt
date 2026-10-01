@@ -1,0 +1,29 @@
+Title: Angle-of-attack excursion and loss of aerodynamic control margin
+Category: aerodynamic
+Failure mode: Angle-of-attack excursion / loss of aerodynamic control margin
+Source type: synthetic
+Case ID: aero-08-angle-of-attack-excursion-control-margin
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A vehicle maintains control only if its control effectors can generate more moment than the disturbing aerodynamic moments. Where the center of pressure is ahead of the center of gravity, the vehicle is aerodynamically unstable and depends on active control. An angle-of-attack excursion occurs when control authority or stability margin is less than predicted, so angle of attack grows beyond limits.
+
+CAUSAL CHAIN
+The first deviation is typically a growing angle of attack or sideslip, sometimes as an oscillation, while control effectors move toward saturation. Thrust vector or fin position approaches limits within seconds. Once saturated, the attitude error grows rapidly. Increasing angle of attack raises aerodynamic loads, so strain increases and control surfaces or structure may fail, leading to breakup or a commanded termination.
+
+TELEMETRY SIGNATURES
+- Angle-of-attack or sideslip estimate growing or oscillating with increasing amplitude
+- Control effector positions approaching saturation before attitude errors grow large
+- Attitude rates diverging after effector saturation
+- Structural strain rising with angle of attack, followed by loss of a surface or sensor
+
+ROOT CAUSE
+Typical causes are inaccurate aerodynamic coefficients, actuator dynamics modelled incorrectly, center-of-gravity errors, and control gains tuned for nominal models without enough margin for uncertainties.
+
+HISTORICAL REFERENCE
+The first X-43A flight attempt (2001) was lost when the Pegasus-based booster lost control during transonic flight; the mishap investigation attributed the instability mainly to modelling inaccuracies, including the fin actuation system and aerodynamics, that left too little control margin.
+
+LESSONS LEARNED
+- Validate aerodynamic and actuator models across the flight envelope, especially transonic
+- Design control margins that cover combined model uncertainties
+- Angle-of-attack oscillations and effector saturation appearing before attitude divergence indicate loss of margin

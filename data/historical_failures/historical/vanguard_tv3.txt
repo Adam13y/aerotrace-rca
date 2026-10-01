@@ -1,0 +1,30 @@
+Title: Vanguard TV3 - first-stage thrust loss and pad explosion
+Category: propulsion
+Failure mode: First-stage thrust loss seconds after lift-off with fall-back explosion
+Source type: historical
+Case ID: vanguard_tv3
+Date: 6 December 1957
+Vehicle: Vanguard TV3 (Test Vehicle 3), Cape Canaveral
+Sources: U.S. Naval Research Laboratory / Project Vanguard reports and later NASA historical accounts
+
+FAILURE MODE
+Vanguard TV3 was the first U.S. attempt to place a satellite in orbit, made two months after Sputnik 1. About two seconds after ignition and lift-off, when the vehicle had risen only around a metre or so, the first stage lost thrust. The rocket settled back onto the pad, its tanks ruptured, and it was destroyed in a large fire and explosion. The small test satellite was thrown clear and was found still transmitting. The highly publicised failure drew heavy press criticism.
+
+CAUSAL CHAIN
+The launch was made from Launch Complex 18A at Cape Canaveral after several days of delays. The first stage, a liquid-propellant engine burning kerosene and liquid oxygen, ignited and the vehicle began to rise. Within roughly two seconds, thrust decayed. Without sufficient thrust the vehicle fell back, collapsing onto the launch stand; the ruptured tanks fed a fireball that consumed most of the vehicle. The upper stages and the nose section were destroyed or damaged, while the satellite package was ejected and survived largely intact.
+
+TELEMETRY SIGNATURES
+- Normal ignition sequence and initial rise in first-stage chamber pressure
+- Lift-off indication followed within about two seconds by a drop in chamber pressure or thrust
+- Very low altitude and vertical velocity reversing sign shortly after lift-off
+- Abrupt loss of vehicle telemetry with the fire and explosion at the pad
+- Satellite beacon signal continuing after vehicle loss, indicating payload ejection
+
+ROOT CAUSE
+The cause has not been documented with full certainty. The explanation most commonly given in historical accounts is that fuel tank pressure was too low during start, allowing hot combustion gases to enter the fuel system through the injector (or a leak at a fuel line connection), leading to a fire within the engine and loss of thrust. Other accounts mention a loose fuel line connection. Because instrumentation in 1957 was limited and the vehicle was destroyed, these should be treated as the most likely causes identified by investigators rather than a definitively proven mechanism.
+
+LESSONS LEARNED
+- Thrust decay in the first seconds after lift-off should be cross-checked against tank pressures and injector-side pressures to distinguish feed problems from combustion faults
+- Low ullage or tank pressure during start-up is a known precursor to backflow and engine fires
+- Instrumenting start transients at high rate is essential because failures there are brief and destroy the evidence
+- When telemetry is sparse, record the confidence level of the root cause alongside it

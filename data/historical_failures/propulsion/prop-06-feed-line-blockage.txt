@@ -1,0 +1,29 @@
+Title: Propellant feed line blockage upstream of the pump
+Category: propulsion
+Failure mode: Feed line blockage
+Source type: synthetic
+Case ID: prop-06-feed-line-blockage
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Feed line blockage is a partial or complete flow restriction between the tank outlet and the engine pump inlet or main valve. Causes include foreign object debris, a collapsed liner or bellows, ice or solidified propellant, or a dislodged filter screen. Unlike injector clogging, the restriction lies upstream of the pump, so its first effect appears on the suction side.
+
+CAUSAL CHAIN
+A restriction adds feed-line pressure loss. The first observable is a drop in pump inlet pressure relative to ullage pressure plus hydrostatic head, while ullage pressure itself remains normal; this distinguishes blockage from a pressurisation fault. Flow then falls, so pump discharge and chamber pressure decrease within seconds. Reduced inlet pressure erodes NPSH margin and can induce cavitation, with turbopump speed rise and vibration. If only one propellant is affected, mixture ratio shifts and turbine temperatures may rise. Complete blockage causes rapid thrust loss and shutdown on low-inlet-pressure or overspeed limits.
+
+TELEMETRY SIGNATURES
+- Ullage pressure nominal while pump inlet pressure drops; the tank-to-inlet differential grows first
+- Flow or tank depletion rate decreases for the affected propellant
+- Chamber pressure falls within seconds and mixture ratio deviates
+- Turbopump speed and vibration rise if cavitation develops
+
+ROOT CAUSE
+Typical causes include debris left during assembly or maintenance, liner or flex-hose collapse from pressure reversal, moisture freezing in cryogenic lines after inadequate purging, and filter screen failure. Limited inspection access and sparse feed-line instrumentation hinder detection.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Debris and ice restrictions are mainly controlled through foreign-object-debris programmes and purge procedures during ground processing.
+
+LESSONS LEARNED
+- Instrument both tank outlet and pump inlet so feed-line pressure drop can be computed
+- Apply strict debris controls and borescope inspection before closeout
+- Validate purge and dryness procedures for cryogenic lines before loading

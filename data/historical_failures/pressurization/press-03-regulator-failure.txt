@@ -1,0 +1,30 @@
+Title: Pressurant regulator failure
+Category: pressurization
+Failure mode: Regulator failure
+Source type: synthetic
+Case ID: press-03-regulator-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Regulator failure is a pressure regulator that fails to hold its set point: failing open and delivering high outlet pressure, failing closed and stopping flow, drifting, or oscillating (chatter). Regulators reduce stored helium or nitrogen, often at several hundred bar, to tank pressurisation or pneumatic control pressures, typically a few to tens of bar.
+
+CAUSAL CHAIN
+The first observable is regulator outlet pressure leaving its set band, either high (fail-open), low (fail-closed), or oscillating rapidly. In fail-open cases, downstream pressure rises toward relief settings and supply bottle pressure falls faster than predicted. In fail-closed cases, outlet pressure decays as downstream consumers draw gas, followed by falling ullage pressure or loss of pneumatic actuation. Chatter produces pressure ripple that can fatigue internal parts and later lead to a hard failure. Consequences reach ullage pressure, engine inlet pressure or valve actuation within seconds.
+
+TELEMETRY SIGNATURES
+- Regulator outlet pressure outside its set band first, whether high, low or oscillating
+- Supply bottle pressure decay rate changes: faster for fail-open, slower for fail-closed
+- Downstream relief valve opens in fail-open cases
+- Ullage or pneumatic manifold pressure follows outlet pressure within seconds
+- Pressure ripple at tens to hundreds of Hz during chatter
+
+ROOT CAUSE
+Root causes include particulate contamination on the poppet or seat, spring relaxation, diaphragm or seal damage, incorrect set-point adjustment, dynamic instability with the downstream volume, and seal hardening from cold gas during high-flow helium expansion. Redundant regulators in series or parallel mitigate single failures only if each is monitored independently.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Regulator anomalies are commonly found during stage acceptance testing and countdown pressurisation checks.
+
+LESSONS LEARNED
+- Use redundant regulation with independent outlet pressure monitoring
+- Test regulator stability with flight-representative downstream volumes and flow demands
+- Enforce particulate cleanliness on high-pressure gas systems

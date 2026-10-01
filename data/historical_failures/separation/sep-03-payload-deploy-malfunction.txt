@@ -1,0 +1,29 @@
+Title: Payload deployment malfunction at spacecraft separation
+Category: separation
+Failure mode: Payload deploy malfunction
+Source type: synthetic
+Case ID: sep-03-payload-deploy-malfunction
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Payload deployment releases the spacecraft from the payload adapter, usually by a clamp band, separation nuts or a dispenser with springs, after the upper stage has reached the target orbit and orientation. A malfunction is a failure to release, a delayed release, or a release with excessive tip-off rates or recontact that leaves the spacecraft tumbling or damaged.
+
+CAUSAL CHAIN
+The upper stage reaches its deployment attitude and issues the separation command. The first deviation is at the interface: the clamp band does not open fully, one of several release points holds, or the springs push unequally. Separation switches then show partial or late indication. If the payload stays attached, upper-stage attitude control sees unexpected mass properties. If it separates with a moment, the spacecraft's first telemetry after power-on shows body rates well above specification, typically several degrees per second rather than below one, and its attitude control must work to null the tumble before solar arrays can deploy.
+
+TELEMETRY SIGNATURES
+- Separation command issued with nominal firing current, but adapter separation switches show partial or delayed indication
+- Upper-stage attitude rates and thruster duty cycle change unexpectedly at the deployment time
+- Spacecraft first-contact telemetry shows tip-off rates above specification
+- Spacecraft bus voltage falling on battery because arrays cannot deploy or sun-point while tumbling
+
+ROOT CAUSE
+Typical causes are clamp band preload outside tolerance, spring energy mismatch, interference from harnesses or blankets, incorrect mass properties in separation analysis, and gaps in interface verification when adapter and launcher come from different organisations.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Treat the payload adapter as part of the separation system and verify it end to end with flight-like hardware
+- Check clearances against harnesses and blankets in the final flight configuration
+- Correlate upper-stage and spacecraft telemetry on a common time base to see which side deviated first

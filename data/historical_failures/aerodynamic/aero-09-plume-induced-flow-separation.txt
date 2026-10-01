@@ -1,0 +1,29 @@
+Title: Base-pressure anomaly and plume-induced flow separation
+Category: aerodynamic
+Failure mode: Base-pressure / plume-induced flow separation
+Source type: synthetic
+Case ID: aero-09-plume-induced-flow-separation
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+As a vehicle climbs, ambient pressure falls and the exhaust plumes expand. At high altitude the plume can grow larger than the vehicle diameter, forcing the oncoming boundary layer to separate ahead of the base. This plume-induced flow separation shifts aerodynamic loads and moments, changes base pressure, and can draw hot exhaust into recirculation regions, increasing base heating.
+
+CAUSAL CHAIN
+The effect normally develops gradually after Max-Q, typically above roughly 20-30 km, as ambient pressure falls. The first observable is a departure of base pressure or aft-skin pressure readings from prediction as plume expansion increases. Recirculation of hot gas then raises base heat shield and engine compartment temperatures over seconds to tens of seconds. Because the separated region changes the aerodynamic moment on the aft body, the autopilot holds attitude with additional, slowly growing gimbal deflection. If heating exceeds design, insulation, actuator seals and harnesses in the engine bay degrade, and sensor dropouts or engine control anomalies follow later, which can be misread as a propulsion fault unless the earlier thermal trend is noticed.
+
+TELEMETRY SIGNATURES
+- Base or aft-skin pressure deviating from prediction as altitude increases
+- Rising base heat shield and engine compartment temperatures
+- Additional gimbal deflection without a corresponding wind or attitude disturbance
+- Engine compartment sensor dropouts or actuator anomalies after heating
+
+ROOT CAUSE
+Typical causes are plume models that underpredict expansion or plume-plume interaction in multi-engine clusters, added engines or changed nozzle expansion ratios, insufficient base heat shield or flexible boot design, and lofted trajectories that reach low ambient pressure earlier than analysed.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Instrument base region pressure and temperature on early flights
+- Reassess plume effects after engine changes
+- Base heating sensors rising before engine bay anomalies point to plume recirculation

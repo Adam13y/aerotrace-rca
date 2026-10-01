@@ -1,0 +1,30 @@
+Title: Turbopump cavitation from low inlet pressure
+Category: propulsion
+Failure mode: Turbopump cavitation
+Source type: synthetic
+Case ID: prop-01-turbopump-cavitation
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Turbopump cavitation occurs when static pressure at the pump inducer or impeller inlet falls below the propellant vapour pressure, forming vapour cavities that collapse downstream. It is most likely at cryogenic pump inlets during start transients or late in a burn when tank head and ullage pressure are low. Severe cavitation causes head breakdown, loss of flow and inducer or bearing damage.
+
+CAUSAL CHAIN
+The initiating condition is insufficient net positive suction head (NPSH): ullage pressure drops, propellant warms toward saturation, or a feed restriction increases inlet losses. Pump inlet pressure is therefore the first observable to deviate, typically hundreds of milliseconds to seconds before other effects. Vapour cavities then reduce pump discharge pressure and flow. With less hydraulic load the turbine accelerates, so shaft speed rises unless the controller intervenes. Cavity collapse produces broadband vibration, and unsteady flow drives chamber pressure fluctuations. Sustained head breakdown leads to thrust loss or an automatic shutdown on speed or pressure redlines.
+
+TELEMETRY SIGNATURES
+- Pump inlet pressure decreases toward vapour pressure first; computed NPSH margin trends to zero
+- Pump discharge pressure drops or becomes noisy within roughly 0.1-1 s
+- Turbopump speed rises by a few percent as pump load decreases
+- Pump-housing accelerometers show elevated broadband vibration
+- Chamber pressure decreases and fluctuates; turbine temperature may rise as mixture ratio shifts
+
+ROOT CAUSE
+Typical root causes include ullage pressurisation shortfalls, propellant loaded warmer than specification, inadequate inducer suction margin, excessive feed-line pressure drop, and acceleration or slosh transients that reduce hydrostatic head. Margins set from steady-state analysis without dynamic transients are a recurring contributor.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Cavitation margins are routinely mapped in ground testing by lowering inlet pressure until head breakdown occurs.
+
+LESSONS LEARNED
+- Monitor NPSH margin from inlet pressure and propellant temperature, not inlet pressure alone
+- Verify suction margin across start, throttle and low-tank-level conditions
+- Treat a pump-speed rise with a discharge-pressure drop as a cavitation signature and check ullage pressure

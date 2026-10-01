@@ -1,0 +1,30 @@
+Title: Atlas V OA-6 - RD-180 early shutdown compensated by Centaur
+Category: propulsion
+Failure mode: First-stage premature cutoff from mixture ratio control valve anomaly
+Source type: historical
+Case ID: atlas5_centaur
+Date: 22 March 2016
+Vehicle: Atlas V 401 with Centaur upper stage (Cygnus OA-6 mission)
+Sources: United Launch Alliance post-flight statements and anomaly investigation summary (2016); NASA and Orbital ATK mission statements
+
+FAILURE MODE
+This case covers the March 2016 OA-6 mission only, not the 2007 NROL-30 Centaur event. During ascent the Atlas V first stage, powered by a single RD-180 engine, shut down several seconds earlier than planned (ULA described it as roughly five to six seconds early). The shortfall in first-stage velocity was made up by the Centaur upper stage, whose guidance extended its burn by on the order of a minute and delivered the Cygnus cargo spacecraft to an acceptable orbit. The mission was therefore a success, but the event was treated as a significant anomaly because the performance margin consumed by Centaur was large and the cause lay in the booster engine.
+
+CAUSAL CHAIN
+Lift-off and early ascent appeared nominal. Over the first-stage burn, an anomaly in the RD-180 mixture ratio control valve assembly caused the engine to consume propellant at a different ratio than planned, so one propellant was depleted ahead of schedule. Booster engine cutoff then occurred early on a depletion condition rather than at the planned point, leaving the stack short of the planned velocity at staging. Separation and Centaur ignition proceeded normally. Centaur's closed-loop guidance recognised the velocity deficit and lengthened its burn, using reserve propellant to reach the target orbit; Cygnus separated and later berthed with the ISS. Subsequent Atlas V launches were delayed while ULA investigated, and the affected valve hardware was addressed before return to flight.
+
+TELEMETRY SIGNATURES
+- Booster engine chamber pressure and thrust near nominal for most of the burn, then terminating several seconds before the predicted cutoff time
+- First-stage propellant level or consumption trend diverging from prediction, with one propellant approaching depletion early (indicating an off-nominal mixture ratio)
+- Staging event and Centaur ignition occurring at nominal sequence but from a lower-than-planned velocity and altitude state
+- Centaur burn duration substantially longer than planned, with Centaur propellant reserves correspondingly reduced at cutoff
+- Final orbit parameters within acceptable limits despite the booster underperformance
+
+ROOT CAUSE
+ULA's investigation attributed the early shutdown to a malfunction in the RD-180's mixture ratio control valve assembly, which produced an off-nominal propellant mixture ratio and early depletion of propellant. Publicly released detail on the exact internal failure mechanism of the valve was limited, so finer specifics should not be assumed. The key contributing factor to mission success, rather than failure, was the upper stage's guidance design and propellant reserve, which absorbed the booster shortfall.
+
+LESSONS LEARNED
+- Track propellant consumption rate and implied mixture ratio against prediction throughout the burn; drift gives early warning before a depletion cutoff
+- An early cutoff with otherwise healthy chamber pressure points toward propellant management or valve control rather than combustion failure
+- Upper-stage burn extension and reserve depletion are themselves telemetry evidence of an upstream performance shortfall
+- Successful missions with large margin consumption still warrant full anomaly investigation before the next flight

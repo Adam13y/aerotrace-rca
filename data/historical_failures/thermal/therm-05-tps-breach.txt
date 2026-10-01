@@ -1,0 +1,29 @@
+Title: Thermal protection breach allowing hot gas ingress during entry
+Category: thermal
+Failure mode: TPS breach
+Source type: synthetic
+Case ID: therm-05-tps-breach
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A TPS breach is a hole or crack through a heat shield, leading edge or thermal blanket that lets hot boundary-layer gas or plasma flow into the internal structure. Unlike tile loss, which exposes a surface, a breach admits gas into internal cavities, where it heats structure, wiring and hydraulic lines from inside.
+
+CAUSAL CHAIN
+The initiating damage commonly occurs before the heating phase, for example a debris impact during ascent or a micrometeoroid strike. During entry, high-enthalpy gas enters through the breach. The first observables are temperature rises on sensors inside the affected cavity, behind the TPS, often well before external or vehicle-level effects. As gas spreads, sensors and wiring are damaged, producing off-scale readings and loss of signal in a geographic pattern. Structural weakening then changes aerodynamics, increasing drag or rolling moments that the control system must counter until control authority is exceeded.
+
+TELEMETRY SIGNATURES
+- Internal structure or cavity temperatures rising unusually fast in one area during entry heating (first deviation)
+- Progressive off-scale-low or loss-of-signal readings on sensors whose wiring passes through the affected region
+- Increasing roll or yaw trim and control surface deflection to counter asymmetric drag
+- Tyre pressure, hydraulic or other unrelated sensors in the same area failing in sequence
+
+ROOT CAUSE
+Root causes include ascent debris impacts, limited ability to inspect or repair TPS in flight, impact damage tolerance not characterized for real debris types, and normalization of previously observed debris events.
+
+HISTORICAL REFERENCE
+The loss of Space Shuttle Columbia (STS-107, February 2003) was attributed by the Columbia Accident Investigation Board to a foam strike during ascent that breached the left wing leading edge, allowing hot gas into the wing during entry.
+
+LESSONS LEARNED
+- Treat recurring debris events as safety issues, not maintenance items
+- Provide in-flight inspection and damage assessment capability for TPS
+- Map sensor wiring routes so loss-of-signal patterns can locate a breach

@@ -1,0 +1,29 @@
+Title: High-frequency combustion instability in the main chamber
+Category: propulsion
+Failure mode: Combustion instability
+Source type: synthetic
+Case ID: prop-02-combustion-instability
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Combustion instability is a coupling between unsteady heat release and acoustic modes of the combustion chamber or feed system. High-frequency instability, typically above about 1 kHz, couples to chamber acoustic modes; low-frequency chugging, from tens to a few hundred Hz, couples to feed-system dynamics. High-frequency modes can grow within milliseconds and destroy an injector face or chamber wall.
+
+CAUSAL CHAIN
+A disturbance such as an ignition pressure spike, a propellant slug or a local mixture non-uniformity perturbs the flame. If heat-release fluctuations are in phase with pressure oscillations (the Rayleigh criterion) and damping is insufficient, amplitude grows. The first observable is a narrowband chamber pressure oscillation, often visible only on high-bandwidth transducers, accompanied within milliseconds by a step rise in engine vibration. Oscillating flow sharply increases wall heat transfer, so wall and coolant outlet temperatures climb over tens to hundreds of milliseconds. Without cutoff, injector or wall burn-through, loss of chamber pressure and shutdown follow.
+
+TELEMETRY SIGNATURES
+- High-bandwidth chamber pressure shows a growing narrowband oscillation at a chamber acoustic mode, reaching tens of percent of mean pressure
+- Engine accelerometers jump to many times nominal levels essentially simultaneously
+- Coolant outlet and wall temperatures rise within tens to hundreds of milliseconds
+- Mean chamber pressure may stay near nominal at first, so low-rate telemetry can miss onset
+
+ROOT CAUSE
+Root causes are usually design-related: injector patterns sensitive to acoustic coupling, insufficient injector pressure drop to isolate the feed system, missing or inadequate baffles and acoustic cavities, or off-design operating points. Injector manufacturing variation or damaged elements can push a marginally stable engine into instability.
+
+HISTORICAL REFERENCE
+Comparable to the combustion instability encountered during development of the F-1 engine for the Saturn V; public histories describe extensive injector redesign, baffles and deliberate bomb-test stability rating to resolve it.
+
+LESSONS LEARNED
+- Sample chamber pressure and vibration at high rate; averaged telemetry can hide onset
+- Demonstrate dynamic stability with deliberate perturbation testing
+- Maintain injector pressure-drop margin across the throttle range

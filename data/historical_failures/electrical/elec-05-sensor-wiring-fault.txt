@@ -1,0 +1,29 @@
+Title: Open, shorted or miswired sensor circuit producing false telemetry
+Category: electrical
+Failure mode: Sensor wiring fault
+Source type: synthetic
+Case ID: elec-05-sensor-wiring-fault
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A sensor wiring fault is an open circuit, short, high-resistance joint, reversed polarity or swapped channel in the wiring between a transducer and its signal conditioner. It is an instrumentation failure rather than a vehicle failure, but if the reading feeds closed-loop control or abort logic it can cause real consequences such as unnecessary aborts or incorrect control action.
+
+CAUSAL CHAIN
+A conductor breaks or a crimp loosens under vibration, or a wiring error exists from integration. The FIRST observable is the sensor reading itself: a jump to a rail value (zero, full scale or the conditioner's open-circuit value), an implausible step, or a reversed sign. Critically, physically coupled parameters do NOT follow. If the faulty channel is used by software, a control or redline response follows within the software cycle time, and that response then produces genuine secondary changes elsewhere.
+
+TELEMETRY SIGNATURES
+- Instantaneous step to a rail or fixed value with no transition consistent with the physical time constant
+- Intermittent dropouts correlated with vibration levels or staging shocks
+- Reading of correct magnitude but opposite sign, or two channels exchanged, from first power-up
+- Distinguishing check: compare with redundant sensors and physically linked quantities (pressure vs flow, temperature vs heater current); if they remain steady, the anomaly is instrumentation
+
+ROOT CAUSE
+Typical root causes are crimp or solder defects, connector pin back-out, harness strain at clamps, drawing or pin-out errors, mislabelled harness branches, and incomplete end-to-end polarity and stimulus testing after integration.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. The Proton-M 2013 loss, covered separately, illustrates a related polarity error caused by inverted sensor installation rather than wiring.
+
+LESSONS LEARNED
+- Perform end-to-end stimulus and polarity tests on every channel after final integration
+- Use sensor voting or plausibility checks before acting on a single channel
+- Treat non-physical step changes as instrumentation until corroborated

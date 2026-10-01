@@ -1,0 +1,29 @@
+Title: Propellant tank overpressure
+Category: pressurization
+Failure mode: Tank overpressure
+Source type: synthetic
+Case ID: press-01-tank-overpressure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Tank overpressure is a rise of ullage pressure above the tank's maximum expected operating pressure. Causes include pressurant control failures, excessive boil-off, failed relief or vent valves, or an uncontrolled pressurant release inside the tank. Flight tanks carry modest burst margins, often a safety factor of roughly 1.25 to 1.5, so overpressure can quickly cause structural failure.
+
+CAUSAL CHAIN
+The first observable is ullage pressure rising faster than the pressurisation schedule predicts, often while the pressurant supply valve is commanded closed. If pressurant is leaking into the tank, pressurant bottle pressure falls at the same time. The relief valve should crack and produce a plateau; if it fails or its capacity is exceeded, pressure keeps rising and wall strain rises with it. Within seconds a dome or wall can fail, causing abrupt loss of ullage pressure, acceleration and attitude disturbances, and loss of telemetry.
+
+TELEMETRY SIGNATURES
+- Ullage pressure rises above the control band while pressurisation valves are closed; the rate of rise is the first anomaly
+- Pressurant bottle pressure drops simultaneously if pressurant is leaking into the tank
+- Relief valve indicates open, or no pressure plateau appears if relief fails
+- Abrupt ullage pressure loss, acceleration transient and telemetry dropout if the tank fails
+
+ROOT CAUSE
+Root causes include regulators or solenoid valves failing open, control software errors, undersized relief capacity, failure of pressurant lines or bottle mounts inside the tank, and boil-off above prediction due to insulation damage.
+
+HISTORICAL REFERENCE
+Comparable to the 2015 loss of Falcon 9 on the CRS-7 mission; SpaceX's public summary attributed it to failure of a strut retaining a helium pressure vessel inside the second-stage liquid oxygen tank, leading to helium release and overpressurisation of that tank.
+
+LESSONS LEARNED
+- Size relief capacity for the worst credible pressurant inflow, including an internal line or bottle failure
+- Qualify internal mounts and struts with lot-level testing rather than relying only on supplier certification
+- Use high-rate ullage pressure telemetry so the rate of rise is visible before failure

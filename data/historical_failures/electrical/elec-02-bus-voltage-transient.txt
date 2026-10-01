@@ -1,0 +1,29 @@
+Title: Main power bus voltage transient during load switching or external disturbance
+Category: electrical
+Failure mode: Bus voltage transient
+Source type: synthetic
+Case ID: elec-02-bus-voltage-transient
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A bus voltage transient is a short-duration excursion (microseconds to hundreds of milliseconds) of the DC power bus above or below its regulated band. It arises when large inductive or capacitive loads switch, when sources transfer (ground to internal power), when pyrotechnic or actuator loads draw inrush current, or from external events such as lightning. Avionics with insufficient hold-up can brown out or reset.
+
+CAUSAL CHAIN
+A load step or source disturbance occurs first; the bus voltage dips (or spikes) because of source impedance and wiring inductance. The bus voltage excursion is the FIRST observable, usually coincident with a current step on the offending load channel. Within milliseconds, sensitive units may drop below their undervoltage threshold and reset, producing secondary signatures such as frame gaps and restart counters. The bus usually recovers within a fraction of a second unless a protection trip latches.
+
+TELEMETRY SIGNATURES
+- Bus voltage dip or spike that recovers within one or a few samples, time-aligned with a load-current step or commanded event
+- Reset counters, power-on flags or watchdog events in avionics units a few milliseconds to seconds after the dip
+- Short frame-sync loss or checksum errors coinciding with the transient
+- Artefact check: low telemetry sample rates can alias or miss fast transients; a dip seen on one voltage monitor only, with no current step and no unit resets, is more likely a measurement artefact
+
+ROOT CAUSE
+Underlying causes include insufficient bus capacitance or hold-up time, high source or harness impedance, simultaneous switching of large loads, poor inrush limiting, and lightning or electrostatic discharge exposure.
+
+HISTORICAL REFERENCE
+Apollo 12 (1969) is a widely cited example: the vehicle was struck by lightning shortly after liftoff, the fuel cells dropped off the spacecraft buses and telemetry became garbled until the crew switched the signal-conditioning equipment to its auxiliary supply and restored the fuel cells.
+
+LESSONS LEARNED
+- Specify and test bus transient envelopes and unit hold-up times together
+- Sample bus voltage fast enough, or capture min/max, to see transients
+- Sequence large loads rather than switching them simultaneously

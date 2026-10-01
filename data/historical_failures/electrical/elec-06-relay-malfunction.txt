@@ -1,0 +1,29 @@
+Title: Electromechanical relay fails to change state or chatters
+Category: electrical
+Failure mode: Relay malfunction
+Source type: synthetic
+Case ID: elec-06-relay-malfunction
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Electromechanical relays and latching relays switch power to loads such as heaters, valves, pyro buses and avionics. Malfunctions include failure to close or open, contact welding, high contact resistance and chatter (rapid bouncing). Failures are most likely during high-vibration phases or when switching inductive or high inrush loads.
+
+CAUSAL CHAIN
+A relay is commanded; the coil energises but contacts do not transfer, transfer partially, or bounce. The FIRST observable is a mismatch between the command discrete and the relay status (position) word, or between relay status and the downstream load voltage or current. Shortly after, the load fails to act: a valve does not move, a heater stays cold, or a bus segment remains dead. With chatter, the load current oscillates, generating bus noise and possible resets in nearby units.
+
+TELEMETRY SIGNATURES
+- Command issued but relay status word unchanged, or status changed but load current stays at zero
+- Load current or downstream voltage toggling rapidly during vibration peaks (chatter)
+- Elevated voltage drop across closed contacts indicating high contact resistance and possible heating
+- Distinguishing check: if load current is correct but the status bit is wrong, the fault is in the auxiliary status contact or its wiring, not the power path
+
+ROOT CAUSE
+Root causes include contamination or particles inside the relay, contact erosion or welding from switching inrush or inductive loads without suppression, insufficient coil drive voltage under low bus conditions, mounting orientation that is sensitive to vibration, and relays used beyond their rated life or derating.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Telemeter both relay status and downstream load current to confirm state
+- Apply arc suppression and derate contacts for inductive and inrush loads
+- Perform particle impact noise detection and vibration screening on relays

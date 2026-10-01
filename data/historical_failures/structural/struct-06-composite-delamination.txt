@@ -1,0 +1,29 @@
+Title: Delamination of composite skins, tanks or sandwich structure
+Category: structural
+Failure mode: Composite delamination
+Source type: synthetic
+Case ID: struct-06-composite-delamination
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Delamination is separation between plies of a laminated composite or between a face sheet and its honeycomb or foam core. It occurs in composite interstages, fairings, payload adapters, overwrapped pressure vessels and composite cryogenic tanks. Delaminated regions lose compressive and shear stiffness and can grow rapidly under load.
+
+CAUSAL CHAIN
+A disbond originates from a manufacturing void, impact damage or cryogenic microcracking. In cryogenic sandwich structure, microcracks can let gas permeate into the core; on warming or depressurization the trapped gas expands and pressurizes the core, pushing the face sheet off. In flight, compressive or bending load causes the delaminated area to buckle locally and grow. The first observable is commonly a local strain or temperature anomaly at the disbond, followed by a change in local vibration response. If the disbond reaches critical size, the panel loses stability and fails, transferring load abruptly.
+
+TELEMETRY SIGNATURES
+- Local strain gauge reading diverging from neighbouring gauges under the same load (earliest sign)
+- Unexpected temperature change on a sandwich panel indicating gas ingress or loss of insulation
+- Increase in local vibration amplitude or new low-frequency panel mode
+- Sudden load redistribution and accelerometer shock at final panel failure
+
+ROOT CAUSE
+Root causes include inadequate cure or bonding processes, porosity, undetected impact damage, resin systems that microcrack at cryogenic temperatures, and non-destructive inspection that cannot reliably detect disbonds in thick or curved parts.
+
+HISTORICAL REFERENCE
+During NASA's X-33 programme in 1999, a composite honeycomb liquid-hydrogen tank failed in ground testing when its outer face sheet separated from the core; public accounts attribute this to microcracking and gas infiltration into the core.
+
+LESSONS LEARNED
+- Characterize permeability and microcracking of composites under cryogenic cycling before flight design
+- Use impact damage control and thorough non-destructive inspection of bonded structure
+- Instrument composite structure with distributed strain sensing to detect local stiffness loss

@@ -322,10 +322,17 @@ class ReportWriter:
             lines += [
                 "### Historical context consulted (RAG)",
                 "",
-                "Similar past failures retrieved from `data/historical_failures/` and given to the model as prior art:",
+                "Knowledge-base cases retrieved from `data/historical_failures/` and given to the model as prior art "
+                "(synthetic cases are generic engineering summaries, not real events):",
                 "",
+                "| # | Case | Type | Category | Similarity |",
+                "|---|---|---|---|---|",
             ]
-            lines += [f"- {c['title']} - similarity {c['similarity']:.2f} (`{c['source_file']}`)" for c in cases]
+            lines += [
+                f"| {i} | {_cell(c['title'])} | {c.get('source_type', '-')} | {c.get('category', '-')}"
+                f"{' (same as anomaly)' if c.get('category_match') else ''} | {c['similarity']:.2f} |"
+                for i, c in enumerate(cases, 1)
+            ]
             lines.append("")
 
         lines += ["## 7. Recommendations", ""]

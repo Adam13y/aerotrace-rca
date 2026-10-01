@@ -1,0 +1,29 @@
+Title: Payload fairing fails to separate during ascent
+Category: separation
+Failure mode: Fairing separation failure
+Source type: synthetic
+Case ID: sep-02-fairing-separation-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+The payload fairing protects the spacecraft through the atmosphere and is jettisoned once aerodynamic heating is low, typically a few minutes after liftoff. A separation failure occurs when the base or longitudinal joints do not fully release, or the halves do not move clear. The retained mass, hundreds of kilograms to a few tonnes, reduces achievable velocity.
+
+CAUSAL CHAIN
+The separation command is issued, but one joint fails to release or a half stays attached. The first observable is the fairing separation status: some breakwires or switches never change state, and the expected pyroshock is missing or abnormal. Because the vehicle carries unplanned mass, acceleration falls below prediction from that moment onward. Velocity then falls short and the vehicle ends on a suborbital trajectory, even though propulsion parameters stay nominal.
+
+TELEMETRY SIGNATURES
+- Fairing separation command issued, but some fairing breakwires or separation switches never change state
+- Missing or reduced pyroshock/pneumatic signature on fairing-base accelerometers
+- Axial acceleration a few percent below prediction immediately after the jettison time while chamber pressure and thrust are nominal
+- Increasing velocity and altitude shortfall versus the reference trajectory until engine cutoff
+
+ROOT CAUSE
+Root causes include a frangible joint that does not fully fracture, binding of hinges, a firing-circuit fault, out-of-specification separation hardware, and inadequate verification of joint material properties across production lots. Ground tests that do not reproduce flight conditions can hide marginal designs.
+
+HISTORICAL REFERENCE
+NASA's Orbiting Carbon Observatory (2009) and Glory (2011) missions were both lost when the Taurus XL payload fairing reportedly failed to separate, leaving the vehicle too heavy to reach orbit. Investigations pointed to the fairing separation system, with the Glory investigation later linked to material quality problems in the joint hardware.
+
+LESSONS LEARNED
+- Give each fairing half and joint its own separation indication so a partial release is unambiguous
+- Verify separation-system material properties per production lot rather than relying on supplier certification alone
+- When acceleration drops at the moment of jettison with nominal thrust, suspect retained mass before propulsion

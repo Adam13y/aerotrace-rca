@@ -1,0 +1,29 @@
+Title: Check valve leakage and propellant vapour backflow into pressurant system
+Category: pressurization
+Failure mode: Check valve backflow
+Source type: synthetic
+Case ID: press-10-check-valve-backflow
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Check valve leakage or backflow is a failure of pressurant-system check valves to prevent propellant liquid or vapour from migrating upstream into pressurant lines and regulators. It is a particular concern in hypergolic bipropellant systems, where oxidiser and fuel vapours can meet in a shared pressurant manifold, and on long-duration missions where slow vapour migration accumulates over weeks or months.
+
+CAUSAL CHAIN
+Initiators include seat contamination, soft-seat degradation from propellant vapour attack, and low or reversed differential pressure across the valve during long quiescent periods. The first observable is often subtle: pressure drift in a pressurant line section that should be static, or temperature changes on pressurant lines near the check valve as vapour or liquid migrates. Accumulated propellant can corrode regulators and seals, leading later to regulator instability. In hypergolic systems, fuel and oxidiser residues meeting in the pressurant manifold can react when pressurisation begins, producing a pressure spike, line rupture and propellant leakage within seconds.
+
+TELEMETRY SIGNATURES
+- Unexpected pressure drift in isolated pressurant line sections first
+- Temperature anomalies on pressurant lines near check valves
+- Pressure spike in the pressurant manifold at pressurisation if reactive residues are present
+- Subsequent regulator outlet instability or loss of line pressure
+
+ROOT CAUSE
+Root causes include check valves with insufficient tightness for long missions, seal materials incompatible with propellant vapours, absence of pyrotechnic or latch isolation valves between propellant and pressurant, and system designs in which fuel and oxidiser tanks share pressurant paths.
+
+HISTORICAL REFERENCE
+Comparable to the 1993 loss of contact with the Mars Observer spacecraft; the failure review board could not determine the cause conclusively, but its most probable scenario involved oxidiser that had migrated past check valves reacting with fuel in the pressurisation lines when the system was pressurised.
+
+LESSONS LEARNED
+- Use pyrotechnic or latch isolation valves between propellants and pressurant on long missions
+- Select seal materials compatible with propellant vapours over the full mission duration
+- Separate fuel and oxidiser pressurant paths where practical

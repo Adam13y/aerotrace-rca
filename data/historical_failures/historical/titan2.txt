@@ -1,0 +1,30 @@
+Title: Titan II Damascus 1980 - dropped socket punctures first-stage fuel tank
+Category: structural
+Failure mode: Mechanical puncture of propellant tank leading to vapour accumulation and explosion
+Source type: historical
+Case ID: titan2
+Date: 18-19 September 1980
+Vehicle: Titan II ICBM, Launch Complex 374-7 near Damascus, Arkansas
+Sources: U.S. Air Force accident investigation findings (1980-1981); U.S. congressional and later historical accounts
+
+FAILURE MODE
+This case is the 1980 Damascus, Arkansas silo accident. During routine maintenance in a Titan II missile silo, a heavy socket fell from a technician's socket wrench, dropped a long distance down the silo, and punctured the skin of the missile's first-stage fuel tank. Fuel (Aerozine 50, a hydrazine-based propellant) leaked into the silo over several hours, creating a toxic and explosive environment. Early the next morning the silo exploded, blowing off the massive silo closure door and ejecting the nuclear warhead, which did not detonate or release radioactive material. One Air Force airman died and around twenty others were injured.
+
+CAUSAL CHAIN
+On the evening of 18 September, a maintenance crew working on a platform in the silo was carrying out a procedure related to the oxidizer tank pressure on the second stage. A socket, roughly several kilograms in mass, slipped off a wrench, fell, bounced, and pierced the first-stage fuel tank. Fuel began spraying and vapour filled the silo. Personnel evacuated the launch control centre as conditions worsened. Over the following hours, the fuel tank pressure fell as fuel escaped, while monitoring showed abnormal pressure behaviour in the oxidizer tanks. Response teams attempted to assess and ventilate the site. At around 3 a.m. on 19 September the fuel vapour ignited and the silo exploded.
+
+TELEMETRY SIGNATURES
+- Sudden indication of fuel vapour by silo hazard sensors immediately after the puncture
+- Steady decline in first-stage fuel tank pressure over hours as propellant leaked
+- Abnormal pressure trends in the oxidizer tanks as tank structural support and conditions changed
+- Rising silo temperature and vapour concentration readings until sensor data were lost
+- Explosion with complete loss of all site instrumentation
+
+ROOT CAUSE
+The initiating cause was a dropped tool during maintenance, a procedural and human-factors failure: the tool was not tethered and work was performed above an unprotected pressurised tank. Investigations also pointed to contributing factors including limited ability to respond to a leak of this type, communication problems in the emergency response, and the inherent hazard of storable hypergolic propellants in an enclosed silo. Detailed sequencing of the final ignition source is not definitively established in public accounts.
+
+LESSONS LEARNED
+- Pressurised tanks with thin walls are vulnerable to small mechanical impacts; leak and pressure monitoring must cover maintenance periods, not just flight
+- A slow, monotonic pressure decay in one tank with a vapour alarm is a clear leak signature that should trigger escalation
+- Correlated changes between tanks sharing structure can foreshadow structural failure
+- Tool control and procedure design are part of the safety system and should be reflected in hazard analysis

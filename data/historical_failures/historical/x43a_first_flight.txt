@@ -1,0 +1,30 @@
+Title: X-43A first flight - Hyper-X launch vehicle loss of control
+Category: aerodynamic
+Failure mode: Flight control instability from inaccurate aerodynamic and actuator modelling
+Source type: historical
+Case ID: x43a_first_flight
+Date: 2 June 2001
+Vehicle: Hyper-X Launch Vehicle (modified Pegasus first stage) carrying X-43A, air-launched from B-52B
+Sources: NASA X-43A Mishap Investigation Board report (2001, publicly summarised by NASA)
+
+FAILURE MODE
+On the first attempted flight of the X-43A scramjet research vehicle, the booster that was to accelerate it to hypersonic speed lost control shortly after ignition. The Hyper-X Launch Vehicle, a modified Pegasus first stage, developed a growing control oscillation during transonic flight, a control surface failed structurally, and the vehicle departed its trajectory. It was destroyed by range safety over the Pacific, and the X-43A never separated or tested its engine.
+
+CAUSAL CHAIN
+The stack was dropped from the B-52B carrier aircraft, the solid rocket motor ignited, and the vehicle began its pull-up. Within several seconds of ignition, as the vehicle approached transonic speed, a control-system oscillation developed, mainly visible in roll and yaw. The fin actuators reached their limits and the oscillation grew. A control surface (one of the elevons) then failed structurally, the vehicle lost control and deviated significantly from its planned path, and the flight termination system was commanded. Total flight time after drop was well under a minute.
+
+TELEMETRY SIGNATURES
+- Normal drop and motor ignition, with nominal chamber pressure
+- Onset of a growing oscillation in roll and yaw rates shortly after ignition, approaching transonic conditions
+- Fin actuator position commands and rates reaching saturation limits, with actuator response lagging commands
+- Abrupt asymmetric change in fin response consistent with loss of a control surface
+- Large attitude departure from planned trajectory followed by flight termination and loss of signal
+
+ROOT CAUSE
+The Mishap Investigation Board found no single cause. It concluded that the vehicle's control system design did not have adequate margin because the models used in its design and verification were inaccurate. Errors identified included modelling of the fin actuation system, vehicle aerodynamics (notably in the transonic regime) and mass properties. Together these led to an unstable control loop that the pre-flight analysis had not predicted. After model corrections and changes to the flight profile, the second and third X-43A flights in 2004 succeeded.
+
+LESSONS LEARNED
+- A growing oscillation in angular rates with actuators saturating is a classic signature of a control-loop instability rather than a propulsion fault
+- Actuator command-versus-position tracking error is a sensitive early indicator of insufficient control authority or actuator modelling error
+- Pre-flight simulations are only as good as their aerodynamic and actuator models; flight data should be compared against model predictions in real time
+- Transonic regimes deserve dedicated margin analysis because aerodynamic coefficients change rapidly there

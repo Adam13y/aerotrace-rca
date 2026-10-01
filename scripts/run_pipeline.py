@@ -9,6 +9,7 @@
 Usage::
 
     python scripts/run_pipeline.py [input_file] [--format markdown|json|both] [--offline]
+    python scripts/run_pipeline.py --kb-stats      # knowledge-base statistics only
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from rich.table import Table  # noqa: E402
 from config.settings import configure_logging, get_settings  # noqa: E402
 from src.agents.supervisor import PipelineError, Supervisor  # noqa: E402
 from src.ingestion import SUPPORTED_SUFFIXES, write_sample_files  # noqa: E402
+from src.memory.historical_rag import HistoricalRAG, OllamaEmbedder, load_documents  # noqa: E402
 from src.main import display_result  # noqa: E402
 from src.utils.helpers import LLMUnavailableError, list_ollama_models, ollama_model_installed  # noqa: E402
 
@@ -92,6 +94,61 @@ def ensure_input(path: Path | None) -> Path:
     return write_sample_files(raw_dir)["nasa_long"]
 
 
+def kb_stats() -> int:
+    """Print knowledge-base statistics: cases on disk and in the vector store, by category and source type."""
+    settings = get_settings()
+    try:
+        documents = load_documents(settings.historical_docs_dir)
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        return 1
+    rag = HistoricalRAG(settings.historical_store_dir, OllamaEmbedder(settings.ollama_base_url, settings.embedding_model))
+    indexed = rag.stats()
+    by_category: dict[str, dict[str, int]] = {}
+    for doc in documents:
+        by_category.setdefault(doc.category, {}).setdefault(doc.source_type, 0)
+        by_category[doc.category][doc.source_type] += 1
+    source_types = sorted({doc.source_type for doc in documents})
+
+    console.rule("[bold]Knowledge base statistics")
+    console.print(f"Documents folder: {settings.historical_docs_dir}")
+    console.print(f"Total cases on disk: [bold]{len(documents)}[/bold]   "
+                  f"words: {sum(len(d.text.split()) for d in documents):,}")
+    table = Table(title="Cases by category", header_style="bold")
+    table.add_column("Category")
+    for source_type in source_types:
+        table.add_column(source_type, justify="right")
+    table.add_column("Total", justify="right")
+    table.add_column("Indexed", justify="right")
+    for category in sorted(by_category):
+        counts = by_category[category]
+        table.add_row(category, *(str(counts.get(t, 0)) for t in source_types), str(sum(counts.values())),
+                      str(indexed["by_category"].get(category, 0)))
+    table.add_row("[bold]total[/bold]", *(f"[bold]{sum(c.get(t, 0) for c in by_category.values())}[/bold]"
+                                          for t in source_types),
+                  f"[bold]{len(documents)}[/bold]", f"[bold]{indexed['cases']}[/bold]")
+    console.print(table)
+
+    type_table = Table(title="Cases by source type", header_style="bold")
+    for column in ("Source type", "Cases", "Avg words", "Indexed"):
+        type_table.add_column(column, justify="left" if column == "Source type" else "right")
+    for source_type in source_types:
+        docs = [d for d in documents if d.source_type == source_type]
+        type_table.add_row(source_type, str(len(docs)), f"{sum(len(d.text.split()) for d in docs) / len(docs):.0f}",
+                           str(indexed["by_source_type"].get(source_type, 0)))
+    console.print(type_table)
+
+    if indexed["cases"] == 0:
+        console.print("[yellow]Vector store not built - run: python scripts/build_knowledge_base.py[/yellow]")
+    else:
+        console.print(f"Vector store: {indexed['cases']} cases / {indexed['chunks']} chunks "
+                      f"({indexed['embedding_model']}) at {settings.historical_store_dir}")
+        if indexed["cases"] != len(documents):
+            console.print("[yellow]Vector store is out of date with the documents folder - "
+                          "re-run scripts/build_knowledge_base.py[/yellow]")
+    return 0
+
+
 def main() -> int:
     """Run the convenience pipeline. Returns a process exit code."""
     parser = argparse.ArgumentParser(description="Check prerequisites and run the AeroTrace-RCA pipeline.")
@@ -99,7 +156,11 @@ def main() -> int:
     parser.add_argument("--format", choices=("markdown", "json", "both"), default="both")
     parser.add_argument("--offline", action="store_true", help="Skip all LLM calls.")
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("--kb-stats", action="store_true", help="Show knowledge-base statistics and exit.")
     args = parser.parse_args()
+    if args.kb_stats:
+        configure_logging("WARNING")
+        return kb_stats()
 
     configure_logging("DEBUG" if args.verbose else "WARNING")
     console.rule("[bold]AeroTrace-RCA pipeline")

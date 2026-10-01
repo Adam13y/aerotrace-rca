@@ -1,0 +1,216 @@
+{
+  "category": "avionics",
+  "source_type": "synthetic",
+  "cases": [
+    {
+      "id": "avio-01-guidance-system-drift",
+      "title": "Gradual drift of the navigation solution in an inertial guidance system",
+      "category": "avionics",
+      "failure_mode": "Guidance system drift",
+      "failure_mode_description": "Guidance drift is a slowly growing error between the navigation solution (position, velocity, attitude) computed onboard and the true vehicle state. Inertial navigation integrates sensor outputs, so small gyro bias or accelerometer bias errors accumulate over time. The vehicle follows the computed solution faithfully, so drift appears as trajectory dispersion rather than as an obvious control anomaly.",
+      "causal_chain": "An uncompensated sensor bias, scale-factor error or poor initial alignment introduces a small error. The FIRST observable is a slowly diverging difference between the onboard navigation state and an independent reference (ground radar, GPS, or a second inertial unit), while the control loop reports small tracking errors because it tracks the wrong reference. Attitude errors grow roughly linearly with time from gyro bias; position errors grow faster. The consequences appear later: off-nominal steering, cutoff at the wrong velocity, or orbit insertion errors.",
+      "telemetry_signatures": [
+        "Navigation velocity or position diverging steadily from GPS or tracking data, growing over tens of seconds to minutes",
+        "Disagreement between redundant inertial units increasing with time",
+        "Normal attitude control errors despite trajectory deviation, because the loop tracks its own (wrong) estimate",
+        "Distinguishing check: a step change in the difference suggests a reference sensor problem (e.g. GPS jump), whereas true inertial drift grows smoothly"
+      ],
+      "root_cause": "Typical root causes are gyro and accelerometer bias instability beyond specification, thermal sensitivity not compensated, incorrect calibration coefficients, poor pre-launch alignment (for example vehicle motion from wind sway during gyrocompassing), and navigation filters lacking external aiding.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Compare onboard navigation with an independent reference in real time",
+        "Characterise sensor biases over the full flight temperature range",
+        "Monitor redundant-unit disagreement as an early indicator of drift"
+      ]
+    },
+    {
+      "id": "avio-02-imu-malfunction",
+      "title": "Inertial measurement unit hardware or output failure",
+      "category": "avionics",
+      "failure_mode": "IMU malfunction",
+      "failure_mode_description": "An IMU malfunction is a failure of the gyroscopes, accelerometers, electronics or interface of the inertial measurement unit, producing invalid, frozen, saturated or biased rate and acceleration data. Unlike slow drift, it is usually abrupt. Because the IMU is the primary sensor for attitude control, an undetected malfunction leads directly to wrong control commands.",
+      "causal_chain": "A sensor element, power supply, or processing channel fails, or a mounting or orientation error exists from integration. The FIRST observable is the IMU itself: status or built-in-test flags set, a measured rate or acceleration step that is not physically plausible, or a frozen value. If redundancy management rejects the unit, control continues with a short transient. If not, the flight computer acts on bad data and commands actuators within one control cycle, so engine gimbal or thruster commands deviate, and real attitude rates and errors grow within a second or two.",
+      "telemetry_signatures": [
+        "IMU health or BIT flag change, or output frozen at a constant value, preceding control anomalies",
+        "Step in measured rate or acceleration without a corresponding actuator or thrust event",
+        "Divergence between redundant IMUs or between IMU and rate-gyro assemblies before actuator commands change",
+        "Distinguishing check: a real vehicle motion appears consistently in all IMUs and in structural accelerometers; a single-unit excursion indicates sensor failure"
+      ],
+      "root_cause": "Root causes include gyro or accelerometer component failures, vibration-induced damage, power-supply faults, software exceptions in IMU processing, incorrect mounting orientation or axis mapping, and redundancy management that cannot isolate a failed unit.",
+      "historical_reference": "Ariane 5 Flight 501 (1996) involved both inertial reference units shutting down after an unhandled software exception, after which the flight computer acted on diagnostic data; a separate summary exists. The Proton-M 2013 loss, also summarised separately, is attributed to angular-rate sensors installed upside down.",
+      "lessons_learned": [
+        "Use dissimilar or cross-checked inertial sensing to detect single-unit failures",
+        "Verify sensor orientation and polarity end-to-end with physical stimulus",
+        "Never route diagnostic data into a control path"
+      ]
+    },
+    {
+      "id": "avio-03-flight-computer-reset",
+      "title": "Unplanned reset or reboot of the flight computer",
+      "category": "avionics",
+      "failure_mode": "Flight computer reset",
+      "failure_mode_description": "A flight computer reset is an unplanned restart of a processor executing guidance, navigation and control or sequencing software. Triggers include watchdog timeouts, power brown-outs, radiation-induced single-event upsets and software faults. During the restart, outputs freeze or default, and state may be lost unless saved in protected memory.",
+      "causal_chain": "The trigger occurs first: a bus voltage dip, a software overrun or deadlock, or a memory upset. The FIRST observable depends on the trigger; for brown-outs a bus voltage dip precedes the reset, while for software causes processor load, task overrun or watchdog counters change first. The reset itself appears as a gap in computer-generated telemetry, a reset counter increment, and a boot status word. Actuator commands hold or go to safe defaults during the gap, causing attitude errors to grow until control resumes, typically from hundreds of milliseconds to seconds later.",
+      "telemetry_signatures": [
+        "Reset counter increment, boot or power-on flag, and mission elapsed time discontinuity in computer telemetry",
+        "Gap in GNC telemetry with actuator commands frozen or at default, followed by growing attitude error",
+        "Preceding bus voltage dip (power-related) or rising CPU load and task-overrun counters (software-related)",
+        "Distinguishing check: a telemetry-only gap with no reset counter change and continued normal vehicle response indicates a downlink problem, not a reset"
+      ],
+      "root_cause": "Root causes include insufficient processing margin, priority inversion or deadlock in real-time software, watchdog thresholds set too tightly, inadequate power hold-up, unmitigated single-event effects, and missing warm-restart logic to preserve navigation state.",
+      "historical_reference": "Mars Pathfinder (1997) experienced repeated system resets on the surface; the cause was identified as a priority inversion in its real-time operating system and was corrected by a parameter change uploaded from the ground.",
+      "lessons_learned": [
+        "Telemeter reset cause and counters so triggers can be identified",
+        "Design warm-restart that preserves navigation and sequence state",
+        "Maintain timing margin and analyse task priorities for inversion"
+      ]
+    },
+    {
+      "id": "avio-04-telemetry-dropout",
+      "title": "Loss of downlink telemetry frames or link",
+      "category": "avionics",
+      "failure_mode": "Telemetry dropout",
+      "failure_mode_description": "A telemetry dropout is a loss of received data from the vehicle, from a few frames to a complete loss of signal. It may be caused by the ground segment, the RF link (antenna pattern nulls, plume attenuation, ionisation, range) or the onboard encoder and transmitter. A dropout is not necessarily a vehicle failure, and distinguishing link problems from vehicle loss is a central RCA task.",
+      "causal_chain": "For link-related causes, received signal strength (AGC) falls FIRST, then bit error rate and frame-sync errors rise, then frames are lost. For onboard encoder or transmitter failures, frames stop abruptly with no prior AGC fade, or frames arrive with valid sync but corrupted content. For a genuine vehicle event, the last valid frames usually show physical anomalies (rates, pressures, voltages) immediately before loss of signal.",
+      "telemetry_signatures": [
+        "Ground AGC or signal-to-noise falling, followed by rising frame-sync loss and checksum or CRC error counters",
+        "Dropouts repeating at predictable events: staging, antenna switching, plume shadowing or vehicle roll positions",
+        "Abrupt loss of all frames with strong signal persisting, pointing to onboard encoder or data source",
+        "Distinguishing check: if data resumes with continuous onboard time and nominal state, the dropout was link-related; recorded onboard data can confirm"
+      ],
+      "root_cause": "Typical root causes include antenna placement producing pattern nulls at certain attitudes, insufficient link margin, plume or plasma attenuation, ground station handover errors, transmitter power or thermal failures, and encoder software faults.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Always check ground AGC and frame-sync counters before interpreting a dropout as vehicle loss",
+        "Record critical data onboard or retransmit buffered data after dropouts",
+        "Model antenna coverage against the planned trajectory and attitude"
+      ]
+    },
+    {
+      "id": "avio-05-sensor-calibration-drift",
+      "title": "Slow calibration drift in a flight sensor",
+      "category": "avionics",
+      "failure_mode": "Sensor calibration drift",
+      "failure_mode_description": "Calibration drift is a slow change in a sensor's offset or gain relative to its ground calibration, caused by temperature, ageing, radiation, mounting stress or electronics drift. Pressure, temperature, position and rate sensors are all susceptible. Drift is dangerous because it looks like a genuine slow physical trend and can trigger false redlines or mask real anomalies.",
+      "causal_chain": "The sensor or its signal conditioning experiences a change (usually thermal) that alters offset or gain. The FIRST observable is a slow trend in the sensor reading, often correlated with local temperature telemetry rather than process variables. Redundant sensors measuring the same quantity begin to disagree. If the sensor feeds control or limits, closed-loop behaviour shifts gradually (e.g. a regulator settling at a different pressure) or a limit is reached and triggers an action.",
+      "telemetry_signatures": [
+        "Gradual divergence between redundant sensors, typically tens of seconds to minutes",
+        "Sensor trend correlated with its housing or electronics temperature rather than with the physical process",
+        "Non-zero reading during periods when the true value is known (e.g. zero flow, ambient pressure before pressurisation)",
+        "Distinguishing check: a real physical trend is mirrored by related quantities; drift appears on one sensor only and tracks temperature"
+      ],
+      "root_cause": "Root causes include inadequate temperature compensation, calibration performed at conditions unlike flight, component ageing, mounting stress, radiation effects on electronics, and lack of in-flight reference points or redundant sensors.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Calibrate across the expected temperature range and record sensor temperature",
+        "Use known reference conditions to check offsets during flight",
+        "Require corroboration before acting on a single slowly trending channel"
+      ]
+    },
+    {
+      "id": "avio-06-actuator-response-lag",
+      "title": "Thrust vector control actuator lags its command",
+      "category": "avionics",
+      "failure_mode": "Actuator response lag",
+      "failure_mode_description": "Actuator response lag is a degradation of the dynamic response of a thrust vector control (TVC) or aerodynamic surface actuator: increased delay, reduced rate capability or reduced bandwidth. The actuator may still reach the commanded position statically, but the extra phase lag reduces control-loop stability margin and can lead to oscillation or loss of control under high disturbance.",
+      "causal_chain": "Hydraulic pressure loss, electromechanical motor current limiting, increased friction or a servo-loop fault reduces actuator capability. The FIRST observable is a growing difference between commanded and measured actuator position during dynamic manoeuvres, with position lagging command, or rate saturation. Because control phase margin decreases, attitude error and rate begin to oscillate at the control loop frequency, with amplitude growing over a few cycles. Hydraulic pressure or actuator motor current telemetry often deviates before or concurrently with the lag.",
+      "telemetry_signatures": [
+        "Actuator command vs position error increasing, with position lagging by tens to hundreds of milliseconds",
+        "Actuator rate clipped at a constant value during large commands",
+        "Hydraulic supply pressure drop or motor current at its limit preceding the lag",
+        "Growing attitude-rate oscillation at the control-loop frequency; distinguishing check: if position tracks command well, oscillations stem from control or structural coupling, not the actuator"
+      ],
+      "root_cause": "Root causes include hydraulic pump degradation, leaks or air entrainment, contamination increasing friction, electromechanical actuator thermal limiting, undersized actuators for flight loads, and control laws designed with insufficient phase margin for realistic actuator dynamics.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Telemeter both command and measured position at the control loop rate",
+        "Verify actuator bandwidth under flight loads and temperatures",
+        "Retain stability margin for degraded actuator dynamics"
+      ]
+    },
+    {
+      "id": "avio-07-star-tracker-blinded",
+      "title": "Star tracker blinded by sun, moon, Earth or plume light",
+      "category": "avionics",
+      "failure_mode": "Star tracker blinded",
+      "failure_mode_description": "A star tracker identifies star patterns to determine absolute attitude for upper stages and spacecraft. It becomes blinded when the sun, moon, sunlit Earth limb, reflections, or illuminated exhaust plume or debris enter or approach its field of view, saturating the detector or creating false stars. Attitude then relies on gyro propagation, which drifts until tracking resumes.",
+      "causal_chain": "The vehicle attitude or trajectory brings a bright body inside the tracker's exclusion angle, or particles scatter light. The FIRST observable is the tracker status: number of tracked stars falls, validity flag drops, background level rises, or attitude quaternion becomes invalid. Navigation switches to inertial propagation, so attitude uncertainty grows slowly at the gyro drift rate. If blinding is prolonged, attitude error can exceed tolerance for pointing-critical operations such as burns or payload pointing.",
+      "telemetry_signatures": [
+        "Tracker valid flag dropping and tracked-star count falling, coinciding with predicted sun or moon angle inside the exclusion cone",
+        "Detector background or dark level increasing before loss of lock",
+        "Attitude covariance growing during the outage, followed by a small attitude correction step when tracking resumes",
+        "Distinguishing check: blinding is predictable from geometry; loss of lock with no bright body nearby suggests tracker failure or software issue"
+      ],
+      "root_cause": "Root causes include mission planning that does not constrain attitude relative to bright bodies, insufficient baffle design, single tracker placement without diversity, contamination of optics and stray light from vehicle structure, plumes or venting particles.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Check bright-body exclusion angles throughout the planned attitude timeline",
+        "Use multiple trackers with different boresights",
+        "Size gyro performance to bridge expected tracker outages"
+      ]
+    },
+    {
+      "id": "avio-08-gps-loss",
+      "title": "Loss of GPS navigation fix during ascent or flight",
+      "category": "avionics",
+      "failure_mode": "GPS loss",
+      "failure_mode_description": "Launch vehicles increasingly use GPS receivers for navigation aiding and range safety tracking. GPS loss is the inability to maintain a valid fix due to antenna blockage, high dynamics exceeding receiver tracking loops, interference or jamming, ionospheric effects or receiver faults. It degrades navigation to inertial-only mode and, for range safety, may trigger contingency procedures.",
+      "causal_chain": "Signal conditions degrade, for example antenna masking during attitude manoeuvres, receiver tracking loss under high acceleration or jerk at staging, or interference. The FIRST observable is falling carrier-to-noise (C/N0) on tracked satellites and a decreasing number of satellites tracked, followed by fix validity flags dropping, rising position dilution of precision or covariance, and finally loss of fix. The navigation filter then propagates on inertial data, so the GPS-INS residual is no longer available and inertial drift begins to accumulate.",
+      "telemetry_signatures": [
+        "C/N0 decreasing and satellites-tracked count falling before the fix valid flag drops",
+        "Loss of fix coinciding with staging, high acceleration or attitude manoeuvres masking antennas",
+        "Navigation filter switching to inertial-only mode, with growing covariance",
+        "Distinguishing check: a sudden position jump with valid flags may indicate interference or spoofing rather than signal loss; compare with inertial data"
+      ],
+      "root_cause": "Root causes include antenna placement with poor sky view at certain attitudes, receivers not rated for launch dynamics, insufficient tracking loop bandwidth, RF interference from onboard transmitters, and inadequate reacquisition time after outages.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Specify receivers for launch-vehicle dynamics and verify with simulator testing",
+        "Use multiple antennas to maintain sky view across attitudes",
+        "Ensure inertial navigation can carry the mission through GPS outages"
+      ]
+    },
+    {
+      "id": "avio-09-software-unit-range-conversion-error",
+      "title": "Flight software unit mismatch or numeric range conversion error",
+      "category": "avionics",
+      "failure_mode": "Flight software unit/range conversion error",
+      "failure_mode_description": "This failure mode covers software that uses data with the wrong physical units, scale factors or sign conventions, or converts values into a data type that cannot represent them (overflow, saturation or exceptions). It often appears when software or parameters are reused from another vehicle or trajectory, or when interfaces between teams are incompletely specified.",
+      "causal_chain": "A latent defect exists in code, a constant or an interface definition. It activates only when flight conditions reach a value range not seen in testing, such as higher horizontal velocity than a previous vehicle. The FIRST observable is often inside the avionics: an error or exception flag, a variable at its saturation limit, or a computed value off by a constant ratio (e.g. 4.45 for pound-force vs newtons). Downstream, navigation or control computes wrong outputs, so actuator commands and attitude errors deviate within milliseconds to seconds.",
+      "telemetry_signatures": [
+        "Software exception, overflow or saturation flags in computer status words before physical deviation",
+        "Internal variable pinned at a type limit (e.g. 32767) or differing from expectation by a constant factor",
+        "Sudden step in actuator command without a corresponding sensor change",
+        "Distinguishing check: hardware failures show sensor health flags; conversion errors show healthy sensors with implausible computed outputs"
+      ],
+      "root_cause": "Root causes include reuse of software without revalidation for new flight envelopes, unprotected numeric conversions, missing unit specifications in interface documents, incomplete end-to-end simulation with realistic trajectories, and inadequate independent review of parameter files.",
+      "historical_reference": "Ariane 5 Flight 501 (1996, summarised separately) failed when a 64-bit floating-point value converted to a 16-bit integer overflowed in reused inertial reference software. Mars Climate Orbiter (1999) was lost after ground software supplied impulse data in pound-force seconds where newton-seconds were expected.",
+      "lessons_learned": [
+        "Revalidate reused software against the new vehicle's full flight envelope",
+        "Specify units and ranges explicitly in every interface document",
+        "Protect numeric conversions and test with flight-representative data"
+      ]
+    },
+    {
+      "id": "avio-10-data-bus-communication-fault",
+      "title": "MIL-STD-1553 or similar avionics data bus communication fault",
+      "category": "avionics",
+      "failure_mode": "Data bus communication fault",
+      "failure_mode_description": "Avionics units commonly communicate over a command/response data bus such as MIL-STD-1553, or over serial or network links. A communication fault occurs when messages are lost, corrupted or delayed due to a failed remote terminal, bus controller fault, damaged stub or coupler, missing termination, or babbling transmitter. Units that depend on the data may stale or default.",
+      "causal_chain": "A physical-layer degradation or terminal fault arises. The FIRST observable is in bus diagnostics: rising message retry counts, no-response errors, parity or Manchester errors, or status word error bits from one terminal or one bus. If redundancy (dual A/B buses) works, the bus controller switches buses and data continues. If not, data from the affected terminal becomes stale; consumers detect stale data and use defaults or last values, causing actuator commands or sensor-dependent logic to behave abnormally within one or a few cycles.",
+      "telemetry_signatures": [
+        "Retry, no-response or error counters increasing for a specific remote terminal or bus channel",
+        "Bus A to B switchover events logged by the bus controller",
+        "Data from one terminal frozen (stale) while others update normally",
+        "Distinguishing check: errors confined to one terminal point to that unit or its stub; errors on all terminals point to the bus controller, trunk or termination"
+      ],
+      "root_cause": "Root causes include connector and cable damage, incorrect or missing termination, shield or stub length violations, terminal hardware faults, babbling transmitters lacking timeout protection, and redundancy management that does not handle partial failures.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Telemeter per-terminal bus error and retry counters",
+        "Verify bus termination and stub lengths during integration",
+        "Test redundancy management with injected partial bus faults"
+      ]
+    }
+  ]
+}

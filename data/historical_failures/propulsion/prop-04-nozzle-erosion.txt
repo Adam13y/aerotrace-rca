@@ -1,0 +1,29 @@
+Title: Excessive nozzle throat erosion
+Category: propulsion
+Failure mode: Nozzle erosion
+Source type: synthetic
+Case ID: prop-04-nozzle-erosion
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Nozzle erosion is the progressive loss of throat or divergent-section material through thermochemical attack, particle abrasion, or ablation beyond the design allowance. It is most associated with ablative and carbon-based solid rocket motor nozzles and ablatively cooled liquid engines, though cooled throats can erode after loss of cooling. Erosion enlarges the throat and reduces performance and structural margin.
+
+CAUSAL CHAIN
+Excessive erosion starts with higher-than-predicted heat flux, oxidising species, particle impingement, or material defects such as voids and delaminations. Because throat area grows, the first observable is typically a gradual, monotonic decline in chamber pressure relative to the prediction for the actual flow rate, or for a solid motor, relative to the predicted pressure-time curve. Thrust falls correspondingly. Asymmetric erosion creates a side force, visible as increasing thrust-vector-control deflection to hold attitude. If erosion reaches the structure, burn-through follows with external temperature rise and possible hot-gas leakage.
+
+TELEMETRY SIGNATURES
+- Chamber pressure drifts below prediction with a slow, monotonic trend over seconds to tens of seconds
+- Thrust and vehicle acceleration fall below prediction in proportion
+- Thrust-vector-control actuator positions bias away from null
+- Nozzle or nearby structural thermocouples rise late in the burn as burn-through approaches
+
+ROOT CAUSE
+Root causes include material variability in density, fibre orientation and porosity, ply or bond-line defects, erosion rates underpredicted by models, propellant changes that increase oxidising species or particle loading, and burns longer than the qualified envelope. Limited sectioning of test articles hides the true margin.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Erosion margins are usually quantified by measuring and sectioning nozzles after solid rocket motor static firings.
+
+LESSONS LEARNED
+- Compare chamber pressure against a flow-normalised prediction to isolate throat growth
+- Track thrust-vector-control bias as an indicator of asymmetric erosion
+- Verify nozzle material lots with non-destructive inspection and witness samples

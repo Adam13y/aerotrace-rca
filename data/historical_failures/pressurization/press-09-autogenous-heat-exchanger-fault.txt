@@ -1,0 +1,30 @@
+Title: Autogenous pressurisation heat-exchanger fault
+Category: pressurization
+Failure mode: Autogenous pressurization heat-exchanger fault
+Source type: synthetic
+Case ID: press-09-autogenous-heat-exchanger-fault
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Autogenous pressurisation vaporises a small flow of propellant in an engine-mounted heat exchanger, or taps it from the regenerative cooling circuit, and returns the gas to pressurise its own tank, for example gaseous oxygen for a liquid-oxygen tank or gaseous methane or hydrogen for a fuel tank. A heat-exchanger fault, such as fouling, cracking, internal leakage or insufficient heating, changes the temperature, phase or flow of the returning pressurant.
+
+CAUSAL CHAIN
+The first observable is typically the heat-exchanger outlet temperature deviating from prediction. A low temperature indicates insufficient heat transfer or liquid carryover; a high temperature can indicate reduced flow. Cold pressurant delivers less pressurising effect per unit mass and can condense in the ullage, so within seconds ullage pressure droops or the autogenous flow control valve opens wider to hold it. If a crack lets oxidiser leak into hot turbine exhaust or the engine bay, a fire or explosion can follow, shown by rising local temperatures and shutdown. Falling ullage pressure then reduces pump inlet pressure and suction margin.
+
+TELEMETRY SIGNATURES
+- Heat-exchanger outlet temperature deviates from prediction first
+- Autogenous flow control valve position opens further to maintain ullage pressure
+- Ullage pressure droops or oscillates, with ullage gas temperature below nominal
+- Turbine exhaust or engine-bay temperature rise if the exchanger leaks into hot gas
+- Pump inlet pressure decreases following ullage pressure
+
+ROOT CAUSE
+Root causes include thermal fatigue cracking of heat-exchanger tubes, fouling from contaminants, operation at low throttle settings where less heat is available, flow control valve faults, and inadequate modelling of ullage condensation when pressurant temperature is close to saturation.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It applies mainly to stages that use autogenous or heat-exchanger-based pressurisation instead of stored helium.
+
+LESSONS LEARNED
+- Instrument heat-exchanger outlet temperature and pressure to detect degradation early
+- Qualify heat exchangers for thermal fatigue across throttle and restart cycles
+- Model ullage condensation effects when pressurant temperature approaches saturation

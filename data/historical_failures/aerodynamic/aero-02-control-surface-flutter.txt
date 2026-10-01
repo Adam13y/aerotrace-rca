@@ -1,0 +1,29 @@
+Title: Flutter of fins or control surfaces
+Category: aerodynamic
+Failure mode: Control surface flutter
+Source type: synthetic
+Case ID: aero-02-control-surface-flutter
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Flutter is a self-excited oscillation in which aerodynamic forces couple with the elastic modes of a fin or control surface, typically bending and torsion, extracting energy from the airflow. Above the flutter speed, oscillations grow rather than damp. It affects fins, canards, grid fins, elevons and the actuators driving them, and is most likely at high dynamic pressure, often transonic or near Max-Q.
+
+CAUSAL CHAIN
+As dynamic pressure rises, damping in a fin mode falls toward zero. The first observable is a narrowband vibration on fin-root strain or nearby accelerometers at the surface's natural frequency, commonly several to tens of hertz, growing over a few cycles to seconds. Actuator position begins to oscillate about the commanded value and actuator current rises. If amplitude keeps growing, the surface, its hinge or the actuator fails; control authority is lost on that axis and attitude errors grow within seconds.
+
+TELEMETRY SIGNATURES
+- Narrowband oscillation on fin strain gauges or accelerometers with growing amplitude as dynamic pressure rises
+- Actuator position oscillating around command with rising actuator current or hydraulic pressure ripple
+- Oscillation frequency close to a known fin bending or torsion mode
+- Loss of actuator feedback or step change in surface position, followed by attitude errors on that axis
+
+ROOT CAUSE
+Typical causes are insufficient actuator stiffness or backlash in the linkage, mass balance not meeting design, structural stiffness lower than modelled because of manufacturing variation or heating, and flutter analyses that did not cover the flight envelope or transonic effects.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in aerospace engineering practice.
+
+LESSONS LEARNED
+- Ground vibration test flight hardware and update flutter analysis with measured modes
+- Control actuator backlash and stiffness as flutter-critical parameters
+- A growing narrowband vibration at a fin mode, before any attitude error, is the leading indicator

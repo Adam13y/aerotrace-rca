@@ -1,0 +1,29 @@
+Title: Structural overload near maximum dynamic pressure (Max-Q)
+Category: aerodynamic
+Failure mode: Max-Q structural loading
+Source type: synthetic
+Case ID: aero-01-max-q-structural-loading
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Maximum dynamic pressure (Max-Q) is the point of ascent where the product of air density and velocity squared peaks, typically about one minute after liftoff near Mach 1 to 1.5, at values of a few tens of kilopascals. Bending loads scale with dynamic pressure times angle of attack (q-alpha), so a small angle of attack near Max-Q produces large lateral loads on the vehicle, interstages and payload fairing.
+
+CAUSAL CHAIN
+The initiating deviation is usually a q-alpha larger than design: angle of attack grows because of winds, a trajectory or throttle error that raises dynamic pressure, or an engine-out that requires steering. Dynamic pressure or angle-of-attack estimates move outside their envelope first. Bending strain in the interstage and tank walls then rises within a fraction of a second. If the load exceeds capability, a joint or skin buckles; strain gauges saturate or drop out, tank pressure may fall, and attitude rates diverge within one or two seconds as the structure loses stiffness.
+
+TELEMETRY SIGNATURES
+- Dynamic pressure or q-alpha estimate exceeding the design envelope near Max-Q, roughly 50-80 s after liftoff on many vehicles
+- Angle-of-attack or sideslip estimate growing before strain increases
+- Bending strain gauges on interstage or tank walls rising sharply, then saturating or dropping out
+- Tank pressure drop and attitude rate divergence following the strain peak by fractions of a second to seconds
+
+ROOT CAUSE
+Typical root causes are winds aloft outside the design envelope or not measured close to launch time, insufficient throttle-down for Max-Q, load-relief logic that is mistuned or disabled, structural margins eroded by mass growth or manufacturing defects, and errors in aerodynamic coefficients.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Use day-of-launch wind measurements to check q-alpha against structural limits
+- Tune load-relief and throttle-down so margins hold for dispersed winds and trajectories
+- When strain and attitude anomalies cluster at Max-Q, check whether angle of attack deviated first

@@ -1,0 +1,31 @@
+Title: Apollo 13 - Service Module oxygen tank 2 failure
+Category: electrical
+Failure mode: Wiring insulation fire and overpressure in a cryogenic oxygen tank
+Source type: historical
+Case ID: apollo13_oxygen_tank
+Date: 13 April 1970
+Vehicle: Apollo 13 Command/Service Module
+Sources: Report of the Apollo 13 Review Board (1970)
+
+FAILURE MODE
+Damaged electrical wiring insulation inside cryogenic oxygen tank 2 of the Service Module ignited when the tank fans were energised. Combustion raised tank pressure until the tank failed, removing the Service Module's oxygen supply and fuel-cell power and blowing off an external panel. The crew used the Lunar Module as a lifeboat, the landing was abandoned, and they returned safely.
+
+CAUSAL CHAIN
+The tank had earlier been dropped about two inches during handling at the manufacturer's plant, which probably loosened its internal fill tube. During the countdown demonstration test before launch the tank could not be emptied normally, so its internal heaters were left on for hours to boil off the oxygen. The heaters' thermostatic protection switches were rated for the spacecraft's 28 V DC supply but not for the 65 V DC ground supply then in use; the switches welded closed, and temperatures in the heater tube may have reached about 1,000 deg F, severely damaging the Teflon insulation on the fan and heater wiring. The damage went unrecognised. At about 55 hours 54 minutes after launch, the crew performed a routine cryogenic stir, switching on the tank fans. Damaged wiring short-circuited and ignited the insulation. Combustion inside the tank raised its pressure and temperature over tens of seconds until the tank failed. The failure also caused oxygen tank 1 to leak, and fuel cells 1 and 3 lost their reactant supply.
+
+TELEMETRY SIGNATURES
+- Hours before the event, the tank 2 quantity measurement failed off-scale high, an instrumentation anomaly inside the same tank.
+- Electrical current transients on the fan circuits shortly after the fans were switched on, indicating short circuits.
+- A rise in tank 2 pressure and temperature over roughly a minute and a half, then pressure falling abruptly to zero.
+- A telemetry dropout of about two seconds, with spacecraft attitude disturbances and a crew report of a bang.
+- Main bus B undervoltage, followed by fuel cell 1 and 3 failures and a slow, continuing decay of oxygen tank 1 pressure.
+
+ROOT CAUSE
+The Review Board concluded that the failure began with an electrical short and insulation fire inside oxygen tank 2. This was enabled by heater thermostatic switches incompatible with the 65 V ground supply, which let the heaters overheat and damage the insulation during pre-launch detanking. Contributing factors included the earlier drop, the unusual detanking procedure, combustible materials inside a high-pressure oxygen tank, and inadequate review of switch specifications when the ground supply voltage changed.
+
+LESSONS LEARNED
+- An electrical event can initiate a pressure-vessel failure: look for current or voltage transients immediately before a pressure excursion.
+- Bus undervoltage and fuel-cell failures can be consequences of a reactant loss rather than the initiating cause.
+- An earlier instrumentation failure inside the same component is a warning sign, not just a sensor nuisance.
+- Correlate commanded actions (fan on, valve open) with anomaly onset.
+- Ground-test history, such as abnormal detanking, belongs in the hypothesis set.

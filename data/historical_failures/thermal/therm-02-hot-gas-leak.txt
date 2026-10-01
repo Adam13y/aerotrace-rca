@@ -1,0 +1,29 @@
+Title: Hot gas leak through a seal or joint in a motor or engine
+Category: thermal
+Failure mode: Hot gas leak
+Source type: synthetic
+Case ID: therm-02-hot-gas-leak
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A hot gas leak occurs when combustion products at thousands of kelvin escape through a seal, joint, flange or crack in a solid motor case, engine manifold, turbine housing or hot gas duct. The escaping jet locally heats structure, lines and wiring far beyond their limits and can impinge on adjacent tanks or attachments.
+
+CAUSAL CHAIN
+A seal fails to seat or erodes, often due to low temperature reducing elastomer resilience, joint rotation under pressure, or contamination. Hot gas begins to flow through the gap. The first observable is often a small drop in chamber pressure relative to prediction combined with a temperature rise on sensors near the joint. As the leak path erodes, the jet grows within seconds, producing a visible plume and rapidly rising temperatures on adjacent structure. Impingement can weaken attachments or tank walls, leading to secondary pressure loss or structural failure tens of seconds later.
+
+TELEMETRY SIGNATURES
+- Rapid temperature rise on structure or harness thermocouples adjacent to a joint (earliest deviation)
+- Small chamber pressure deficit or asymmetry between motors or engines
+- Thrust vector control activity rising to counter a side force from the leak
+- Later pressure drop in an adjacent tank or line if the jet impinges on it
+
+ROOT CAUSE
+Typical causes are seal designs sensitive to joint rotation, operation below qualified seal temperature, erosion accepted as normal after earlier flights, assembly contamination, and insufficient redundancy or insulation protecting the seal from direct gas flow.
+
+HISTORICAL REFERENCE
+The loss of Space Shuttle Challenger (STS-51-L, January 1986) was attributed by the Rogers Commission to failure of O-ring seals in a field joint of the right solid rocket booster, allowing hot gas to escape and impinge on adjacent hardware and the external tank.
+
+LESSONS LEARNED
+- Do not accept seal erosion or blow-by as an in-family condition without understanding its cause
+- Qualify seals over the full temperature range including cold launch conditions
+- Instrument joints with temperature sensors to detect early leakage

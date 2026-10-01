@@ -1,0 +1,216 @@
+{
+  "category": "aerodynamic",
+  "source_type": "synthetic",
+  "cases": [
+    {
+      "id": "aero-01-max-q-structural-loading",
+      "title": "Structural overload near maximum dynamic pressure (Max-Q)",
+      "category": "aerodynamic",
+      "failure_mode": "Max-Q structural loading",
+      "failure_mode_description": "Maximum dynamic pressure (Max-Q) is the point of ascent where the product of air density and velocity squared peaks, typically about one minute after liftoff near Mach 1 to 1.5, at values of a few tens of kilopascals. Bending loads scale with dynamic pressure times angle of attack (q-alpha), so a small angle of attack near Max-Q produces large lateral loads on the vehicle, interstages and payload fairing.",
+      "causal_chain": "The initiating deviation is usually a q-alpha larger than design: angle of attack grows because of winds, a trajectory or throttle error that raises dynamic pressure, or an engine-out that requires steering. Dynamic pressure or angle-of-attack estimates move outside their envelope first. Bending strain in the interstage and tank walls then rises within a fraction of a second. If the load exceeds capability, a joint or skin buckles; strain gauges saturate or drop out, tank pressure may fall, and attitude rates diverge within one or two seconds as the structure loses stiffness.",
+      "telemetry_signatures": [
+        "Dynamic pressure or q-alpha estimate exceeding the design envelope near Max-Q, roughly 50-80 s after liftoff on many vehicles",
+        "Angle-of-attack or sideslip estimate growing before strain increases",
+        "Bending strain gauges on interstage or tank walls rising sharply, then saturating or dropping out",
+        "Tank pressure drop and attitude rate divergence following the strain peak by fractions of a second to seconds"
+      ],
+      "root_cause": "Typical root causes are winds aloft outside the design envelope or not measured close to launch time, insufficient throttle-down for Max-Q, load-relief logic that is mistuned or disabled, structural margins eroded by mass growth or manufacturing defects, and errors in aerodynamic coefficients.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Use day-of-launch wind measurements to check q-alpha against structural limits",
+        "Tune load-relief and throttle-down so margins hold for dispersed winds and trajectories",
+        "When strain and attitude anomalies cluster at Max-Q, check whether angle of attack deviated first"
+      ]
+    },
+    {
+      "id": "aero-02-control-surface-flutter",
+      "title": "Flutter of fins or control surfaces",
+      "category": "aerodynamic",
+      "failure_mode": "Control surface flutter",
+      "failure_mode_description": "Flutter is a self-excited oscillation in which aerodynamic forces couple with the elastic modes of a fin or control surface, typically bending and torsion, extracting energy from the airflow. Above the flutter speed, oscillations grow rather than damp. It affects fins, canards, grid fins, elevons and the actuators driving them, and is most likely at high dynamic pressure, often transonic or near Max-Q.",
+      "causal_chain": "As dynamic pressure rises, damping in a fin mode falls toward zero. The first observable is a narrowband vibration on fin-root strain or nearby accelerometers at the surface's natural frequency, commonly several to tens of hertz, growing over a few cycles to seconds. Actuator position begins to oscillate about the commanded value and actuator current rises. If amplitude keeps growing, the surface, its hinge or the actuator fails; control authority is lost on that axis and attitude errors grow within seconds.",
+      "telemetry_signatures": [
+        "Narrowband oscillation on fin strain gauges or accelerometers with growing amplitude as dynamic pressure rises",
+        "Actuator position oscillating around command with rising actuator current or hydraulic pressure ripple",
+        "Oscillation frequency close to a known fin bending or torsion mode",
+        "Loss of actuator feedback or step change in surface position, followed by attitude errors on that axis"
+      ],
+      "root_cause": "Typical causes are insufficient actuator stiffness or backlash in the linkage, mass balance not meeting design, structural stiffness lower than modelled because of manufacturing variation or heating, and flutter analyses that did not cover the flight envelope or transonic effects.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in aerospace engineering practice.",
+      "lessons_learned": [
+        "Ground vibration test flight hardware and update flutter analysis with measured modes",
+        "Control actuator backlash and stiffness as flutter-critical parameters",
+        "A growing narrowband vibration at a fin mode, before any attitude error, is the leading indicator"
+      ]
+    },
+    {
+      "id": "aero-03-wind-shear-response",
+      "title": "Vehicle response to high-altitude wind shear",
+      "category": "aerodynamic",
+      "failure_mode": "Wind shear response",
+      "failure_mode_description": "Wind shear is a rapid change of wind speed or direction with altitude. During ascent the vehicle passes through these layers in seconds, so the relative wind direction changes and the angle of attack jumps. Near Max-Q, this produces large aerodynamic loads and forces the guidance and thrust vector control to steer, which adds further loads on joints, actuators and engine mounts.",
+      "causal_chain": "The first deviation is the angle-of-attack or sideslip estimate stepping up as the vehicle enters the shear layer, often while dynamic pressure is near maximum. Within a fraction of a second, attitude control commands engine gimbal deflection to counter the aerodynamic moment; gimbal angles and actuator loads increase. Bending strain on the structure rises in phase with the angle of attack. If shear is severe, gimbal approaches its limit, attitude errors grow, and loads may exceed margins, so damage or a control excursion follows.",
+      "telemetry_signatures": [
+        "Sudden step in angle-of-attack or sideslip estimate without a preceding attitude command change",
+        "Engine gimbal angle and actuator pressure increasing within a fraction of a second of the step",
+        "Lateral acceleration and bending strain peaks coinciding with the shear layer altitude",
+        "Attitude error growing only if gimbal approaches its limit"
+      ],
+      "root_cause": "Typical root causes are winds stronger than the design envelope, wind measurements made hours before launch, steering laws not including load relief, and launch commit criteria that do not account for shear magnitude.",
+      "historical_reference": "Post-accident analyses of Challenger (STS-51-L, 1986) reported that the vehicle encountered significant wind shear in the Max-Q region, and that the resulting steering and structural loads may have contributed to breaking the temporary seal at the already leaking solid rocket booster joint.",
+      "lessons_learned": [
+        "Measure winds aloft as close to launch as practical and evaluate loads before commit",
+        "Use load-relief steering to reduce angle of attack in shear",
+        "Check whether angle of attack stepped before gimbal and strain anomalies when ranking causes"
+      ]
+    },
+    {
+      "id": "aero-04-aeroelastic-instability",
+      "title": "Aeroelastic and aeroservoelastic instability of a slender vehicle",
+      "category": "aerodynamic",
+      "failure_mode": "Aeroelastic instability",
+      "failure_mode_description": "Launch vehicles are slender and flexible, with low-frequency body bending modes, often a few hertz. Aeroelastic instability occurs when aerodynamic forces and structural deformation reinforce each other, or when the flight control system senses bending motion and drives the engines in a way that amplifies it (aeroservoelastic coupling). It typically appears at high dynamic pressure.",
+      "causal_chain": "The first deviation is an oscillation in rate-gyro or accelerometer data at the first or second body bending frequency, rather than at the rigid-body control frequency. If control filters do not attenuate it, the autopilot drives gimbal commands at the same frequency, and the gimbal begins oscillating within a few cycles. Aerodynamic loads, which scale with the local deflection, add energy. Amplitude grows over a few seconds, driving bending strain toward limits and causing large attitude rate oscillations or structural failure.",
+      "telemetry_signatures": [
+        "Rate-gyro or accelerometer oscillation at a body bending frequency, growing in amplitude",
+        "Engine gimbal commands and positions oscillating at the same frequency shortly after",
+        "Bending strain oscillation amplitude increasing with dynamic pressure",
+        "Dependence of amplitude on sensor location, consistent with a mode shape"
+      ],
+      "root_cause": "Typical causes are bending frequencies lower than predicted because of propellant mass or stiffness modelling errors, sensors placed near mode antinodes, insufficient filtering in the control system, and incorrect aerodynamic load distribution data.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Validate bending modes with modal testing and update control filters before flight",
+        "Locate rate sensors with knowledge of mode shapes",
+        "An oscillation at a bending frequency before any gimbal oscillation suggests the structure, not the actuator, as source"
+      ]
+    },
+    {
+      "id": "aero-05-grid-fin-deployment-fault",
+      "title": "Grid fin deployment or actuation fault on a returning booster",
+      "category": "aerodynamic",
+      "failure_mode": "Grid fin deployment fault",
+      "failure_mode_description": "Grid fins are lattice control surfaces stowed against a booster during ascent and deployed for descent, where they steer the stage through the atmosphere toward a landing site. A deployment fault means one or more fins fail to deploy, lock, or respond to commands, usually because of the hydraulic or electric actuation system.",
+      "causal_chain": "The first deviation is usually in the actuation system: hydraulic pressure is low, a pump stalls, or one fin's deploy indication is missing. When aerodynamic loads build during descent, the affected fin cannot track commands, so fin position diverges from command. The asymmetric control causes roll or yaw rates to build within seconds, and the guidance cannot reach the target. The stage may use reaction control or engine gimbal to recover, but often lands off target or is lost.",
+      "telemetry_signatures": [
+        "Grid fin deploy indication missing or delayed for one or more fins after the deploy command",
+        "Hydraulic system pressure or pump speed dropping, or actuator motor current abnormal, before position errors appear",
+        "Fin position not matching command as dynamic pressure rises during descent",
+        "Roll or yaw rates growing and landing-point prediction drifting from target"
+      ],
+      "root_cause": "Typical causes are actuator or pump failure, hydraulic fluid loss in open-loop systems, deploy latch binding from heating or debris, harness faults, and limited redundancy in actuation.",
+      "historical_reference": "During the Falcon 9 CRS-16 mission (2018), the first-stage booster reportedly entered a roll during descent after a grid fin hydraulic pump stalled, and it landed in the water near the planned landing zone instead of on it. Separately, the 2014 SpaceShipTwo loss illustrates the broader hazard of an aerodynamic surface moving at the wrong time in transonic flight.",
+      "lessons_learned": [
+        "Telemeter pump speed and hydraulic pressure so actuation degradation is visible early",
+        "Provide redundancy or graceful degradation in fin actuation",
+        "Check actuation health before attributing descent attitude errors to aerodynamics"
+      ]
+    },
+    {
+      "id": "aero-06-transonic-buffet",
+      "title": "Transonic buffet loading on fairing and interstage",
+      "category": "aerodynamic",
+      "failure_mode": "Transonic buffet",
+      "failure_mode_description": "Transonic buffet is unsteady aerodynamic loading caused by shock waves and separated flow that form and oscillate near Mach 0.8 to 1.2, especially around shape changes such as hammerhead fairings, boattails and interstage steps. The fluctuating pressure excites structural and acoustic vibration and can couple with body bending modes, producing large dynamic loads before or around Max-Q.",
+      "causal_chain": "As the vehicle passes Mach 0.8, a shock forms near a shoulder, and the flow behind it separates. The first observable is broadband fluctuating pressure on fairing and interstage pressure transducers, followed within a fraction of a second by increased vibration on nearby accelerometers. If buffet frequencies match a bending mode, bending strain oscillations grow. Excessive buffet can loosen or crack fairing panels, damage payload components through vibration, or add enough dynamic load to exceed structural margins near Max-Q.",
+      "telemetry_signatures": [
+        "Rise in unsteady pressure amplitude on fairing or interstage transducers as Mach number passes about 0.8",
+        "Broadband vibration increase on nearby accelerometers coinciding with transonic flight",
+        "Bending strain oscillations at body bending frequencies during transonic flight",
+        "Payload interface vibration levels exceeding predicted environments"
+      ],
+      "root_cause": "Typical causes are fairing shapes with abrupt shoulders or steep boattails, inaccurate buffet predictions from limited wind-tunnel data, structural modes lower than predicted, and changes to the outer mold line without new aerodynamic testing.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Fairing shape is usually chosen partly to limit buffet.",
+      "lessons_learned": [
+        "Test outer mold line changes in transonic wind tunnels with unsteady pressure measurements",
+        "Correlate buffet frequencies with modal test results",
+        "Vibration onset tied to Mach 0.8 points to buffet, not to propulsion"
+      ]
+    },
+    {
+      "id": "aero-07-protuberance-aerodynamic-heating",
+      "title": "Aerodynamic heating damage to protuberances",
+      "category": "aerodynamic",
+      "failure_mode": "Aerodynamic heating of protuberances",
+      "failure_mode_description": "Protuberances such as cable raceways, feedline fairings, antennas, attach fittings and sensor housings disrupt the boundary layer. Shock interaction and flow reattachment around them create local heating rates many times higher than on the smooth skin. Heating builds during supersonic ascent and, for returning stages, during reentry. Damage can degrade thermal protection, melt seals or burn through harnesses.",
+      "causal_chain": "The first observable is a local temperature rise on a thermocouple or a resistance change on a sensor near the protuberance, growing faster than nearby skin temperatures during supersonic flight. As heating continues, insulation chars or erodes, and the underlying structure or harness heats. Within seconds to tens of seconds, wires routed nearby may short or open, causing sensor dropouts or bus voltage transients. If the protuberance houses a line or valve, pressure or flow anomalies follow.",
+      "telemetry_signatures": [
+        "Local thermocouple temperature rising faster than nearby skin temperatures during supersonic ascent or reentry",
+        "Sensor dropouts or erratic readings on channels routed through the protuberance",
+        "Bus voltage transients or current spikes from harness damage",
+        "Pressure changes on lines inside the protuberance after heating peaks"
+      ],
+      "root_cause": "Typical causes are underestimated heating amplification factors around protuberances, insufficient thermal protection thickness, changes in protuberance shape or location after thermal analysis, and harness routing close to heated surfaces without margin.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Apply heating amplification factors around every protuberance and verify after design changes",
+        "Instrument key protuberances with thermocouples on development flights",
+        "Correlate electrical dropouts with nearby temperature rises to find heat-induced damage"
+      ]
+    },
+    {
+      "id": "aero-08-angle-of-attack-excursion-control-margin",
+      "title": "Angle-of-attack excursion and loss of aerodynamic control margin",
+      "category": "aerodynamic",
+      "failure_mode": "Angle-of-attack excursion / loss of aerodynamic control margin",
+      "failure_mode_description": "A vehicle maintains control only if its control effectors can generate more moment than the disturbing aerodynamic moments. Where the center of pressure is ahead of the center of gravity, the vehicle is aerodynamically unstable and depends on active control. An angle-of-attack excursion occurs when control authority or stability margin is less than predicted, so angle of attack grows beyond limits.",
+      "causal_chain": "The first deviation is typically a growing angle of attack or sideslip, sometimes as an oscillation, while control effectors move toward saturation. Thrust vector or fin position approaches limits within seconds. Once saturated, the attitude error grows rapidly. Increasing angle of attack raises aerodynamic loads, so strain increases and control surfaces or structure may fail, leading to breakup or a commanded termination.",
+      "telemetry_signatures": [
+        "Angle-of-attack or sideslip estimate growing or oscillating with increasing amplitude",
+        "Control effector positions approaching saturation before attitude errors grow large",
+        "Attitude rates diverging after effector saturation",
+        "Structural strain rising with angle of attack, followed by loss of a surface or sensor"
+      ],
+      "root_cause": "Typical causes are inaccurate aerodynamic coefficients, actuator dynamics modelled incorrectly, center-of-gravity errors, and control gains tuned for nominal models without enough margin for uncertainties.",
+      "historical_reference": "The first X-43A flight attempt (2001) was lost when the Pegasus-based booster lost control during transonic flight; the mishap investigation attributed the instability mainly to modelling inaccuracies, including the fin actuation system and aerodynamics, that left too little control margin.",
+      "lessons_learned": [
+        "Validate aerodynamic and actuator models across the flight envelope, especially transonic",
+        "Design control margins that cover combined model uncertainties",
+        "Angle-of-attack oscillations and effector saturation appearing before attitude divergence indicate loss of margin"
+      ]
+    },
+    {
+      "id": "aero-09-plume-induced-flow-separation",
+      "title": "Base-pressure anomaly and plume-induced flow separation",
+      "category": "aerodynamic",
+      "failure_mode": "Base-pressure / plume-induced flow separation",
+      "failure_mode_description": "As a vehicle climbs, ambient pressure falls and the exhaust plumes expand. At high altitude the plume can grow larger than the vehicle diameter, forcing the oncoming boundary layer to separate ahead of the base. This plume-induced flow separation shifts aerodynamic loads and moments, changes base pressure, and can draw hot exhaust into recirculation regions, increasing base heating.",
+      "causal_chain": "The effect normally develops gradually after Max-Q, typically above roughly 20-30 km, as ambient pressure falls. The first observable is a departure of base pressure or aft-skin pressure readings from prediction as plume expansion increases. Recirculation of hot gas then raises base heat shield and engine compartment temperatures over seconds to tens of seconds. Because the separated region changes the aerodynamic moment on the aft body, the autopilot holds attitude with additional, slowly growing gimbal deflection. If heating exceeds design, insulation, actuator seals and harnesses in the engine bay degrade, and sensor dropouts or engine control anomalies follow later, which can be misread as a propulsion fault unless the earlier thermal trend is noticed.",
+      "telemetry_signatures": [
+        "Base or aft-skin pressure deviating from prediction as altitude increases",
+        "Rising base heat shield and engine compartment temperatures",
+        "Additional gimbal deflection without a corresponding wind or attitude disturbance",
+        "Engine compartment sensor dropouts or actuator anomalies after heating"
+      ],
+      "root_cause": "Typical causes are plume models that underpredict expansion or plume-plume interaction in multi-engine clusters, added engines or changed nozzle expansion ratios, insufficient base heat shield or flexible boot design, and lofted trajectories that reach low ambient pressure earlier than analysed.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Instrument base region pressure and temperature on early flights",
+        "Reassess plume effects after engine changes",
+        "Base heating sensors rising before engine bay anomalies point to plume recirculation"
+      ]
+    },
+    {
+      "id": "aero-10-returning-stage-reentry-instability",
+      "title": "Aerodynamic instability of a returning stage during reentry",
+      "category": "aerodynamic",
+      "failure_mode": "Reentry aerodynamic instability of a returning stage",
+      "failure_mode_description": "Reusable boosters reenter the atmosphere engine-first, using entry burns to reduce velocity and heating, and aerodynamic surfaces to steer. Aerodynamic instability occurs when the center of pressure and center of gravity relationship, together with control authority, cannot hold attitude through the high dynamic pressure and transonic portions of descent.",
+      "causal_chain": "The first deviation is usually an attitude or angle-of-attack disturbance during the high dynamic pressure phase of descent, often just after the entry burn ends or as the stage decelerates through transonic speeds, where center-of-pressure location shifts. Control surfaces and reaction control thrusters respond within a second, and their positions or duty cycles approach limits. If authority is insufficient, angle of attack grows and the stage begins to tumble or spin within seconds. Aerodynamic heating and loads then rise on parts not designed to face the flow, causing structural damage, propellant slosh that starves the engine inlets, or failure to relight the landing engine.",
+      "telemetry_signatures": [
+        "Attitude or angle-of-attack disturbance during descent dynamic pressure peak",
+        "Control surface positions and reaction control duty cycles approaching limits",
+        "Rising angular rates indicating tumble or spin",
+        "Abnormal temperatures on surfaces not normally facing the flow"
+      ],
+      "root_cause": "Typical causes are an off-nominal entry burn that leaves the stage faster or at a different attitude than planned, propellant slosh shifting the center of gravity, aerodynamic data for engine-first descent configurations based on limited test data, and control surface, hydraulic or reaction control gas depletion failures.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Validate descent aerodynamic data across the range of attitude and Mach",
+        "Model propellant slosh and center-of-gravity shifts during descent",
+        "Rank attitude disturbances against descent dynamic pressure timing when diagnosing loss of a returning stage"
+      ]
+    }
+  ]
+}

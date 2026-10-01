@@ -1,0 +1,29 @@
+Title: Aeroelastic and aeroservoelastic instability of a slender vehicle
+Category: aerodynamic
+Failure mode: Aeroelastic instability
+Source type: synthetic
+Case ID: aero-04-aeroelastic-instability
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Launch vehicles are slender and flexible, with low-frequency body bending modes, often a few hertz. Aeroelastic instability occurs when aerodynamic forces and structural deformation reinforce each other, or when the flight control system senses bending motion and drives the engines in a way that amplifies it (aeroservoelastic coupling). It typically appears at high dynamic pressure.
+
+CAUSAL CHAIN
+The first deviation is an oscillation in rate-gyro or accelerometer data at the first or second body bending frequency, rather than at the rigid-body control frequency. If control filters do not attenuate it, the autopilot drives gimbal commands at the same frequency, and the gimbal begins oscillating within a few cycles. Aerodynamic loads, which scale with the local deflection, add energy. Amplitude grows over a few seconds, driving bending strain toward limits and causing large attitude rate oscillations or structural failure.
+
+TELEMETRY SIGNATURES
+- Rate-gyro or accelerometer oscillation at a body bending frequency, growing in amplitude
+- Engine gimbal commands and positions oscillating at the same frequency shortly after
+- Bending strain oscillation amplitude increasing with dynamic pressure
+- Dependence of amplitude on sensor location, consistent with a mode shape
+
+ROOT CAUSE
+Typical causes are bending frequencies lower than predicted because of propellant mass or stiffness modelling errors, sensors placed near mode antinodes, insufficient filtering in the control system, and incorrect aerodynamic load distribution data.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Validate bending modes with modal testing and update control filters before flight
+- Locate rate sensors with knowledge of mode shapes
+- An oscillation at a bending frequency before any gimbal oscillation suggests the structure, not the actuator, as source

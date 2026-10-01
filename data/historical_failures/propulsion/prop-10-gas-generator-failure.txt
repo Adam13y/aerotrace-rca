@@ -1,0 +1,30 @@
+Title: Gas generator malfunction reducing turbine power
+Category: propulsion
+Failure mode: Gas generator failure
+Source type: synthetic
+Case ID: prop-10-gas-generator-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Gas generator failure covers malfunctions of the small combustor that produces turbine drive gas in gas-generator-cycle engines: off-nominal mixture ratio, blockage, combustion instability, ignition failure or burn-through. Because the gas generator powers the turbopump, its failure directly changes pump output and engine thrust, and hot-gas leakage can damage adjacent engine-bay hardware.
+
+CAUSAL CHAIN
+The first observable is a deviation in gas generator chamber pressure or turbine inlet temperature. A rich or lean shift changes gas temperature, a blockage lowers gas generator pressure, and burn-through causes a sudden pressure drop with local temperature rise. Turbine power changes accordingly, so turbopump speed decreases, or increases for an over-hot mixture, within hundreds of milliseconds. Pump discharge pressures and flows follow, changing main chamber pressure and thrust. Excessive turbine inlet temperature can damage blades and raise vibration, while escaping hot gas can trigger engine-bay temperature alarms before shutdown.
+
+TELEMETRY SIGNATURES
+- Gas generator chamber pressure or turbine inlet temperature deviates first
+- Turbopump speed changes within a fraction of a second in the direction of turbine power
+- Pump discharge pressures and main chamber pressure follow the speed change
+- Engine-bay temperatures rise in burn-through or leak cases
+- Turbopump vibration increases if turbine blades are damaged by over-temperature
+
+ROOT CAUSE
+Typical root causes include gas generator injector contamination or erosion, valve or orifice calibration errors, combustion instability within the gas generator, thermal fatigue cracking of the gas generator or turbine manifold, and igniter faults. Reused hardware can accumulate hot-gas-path damage that is invisible without inspection.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. It is mainly encountered in development and acceptance testing of gas-generator-cycle engines.
+
+LESSONS LEARNED
+- Instrument gas generator pressure and turbine inlet temperature at adequate rate
+- Set turbine inlet temperature redlines that act before blade damage occurs
+- Inspect the hot-gas path between uses on reusable hardware

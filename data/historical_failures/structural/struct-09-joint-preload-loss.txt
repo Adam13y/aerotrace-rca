@@ -1,0 +1,29 @@
+Title: Preload loss and slippage in an interstage or thrust-structure joint
+Category: structural
+Failure mode: Joint preload loss and slippage
+Source type: synthetic
+Case ID: struct-09-joint-preload-loss
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Large bolted or clamped joints, such as interstage flanges, engine thrust structure attachments and payload adapter rings, rely on preload so that load is carried by friction and contact rather than by bolt bending. Preload loss lets mating surfaces gap or slip, reducing joint stiffness and changing vehicle dynamics without necessarily breaking any part.
+
+CAUSAL CHAIN
+Preload is lost through thermal contraction mismatch between flange and bolt materials, gasket or coating creep, vibration-induced loosening, or embedment of surfaces. As preload falls, peak bending load opens the joint on the tension side. The first observable is usually a change in joint strain gauges or a drop in the vehicle bending-mode frequency because the joint is softer. Slippage events produce small, repeated acceleration impulses. Reduced stiffness can couple with the control system, producing attitude oscillation; in severe cases the gap allows hot gas or aerodynamic flow into the joint, or fasteners fail in bending.
+
+TELEMETRY SIGNATURES
+- Downward shift of first bending-mode frequency in body accelerometers or rate gyro spectra (first deviation)
+- Strain gauges across the joint showing nonlinear, hysteretic response to bending load
+- Repeated small acceleration impulses consistent with stick-slip
+- Attitude rate oscillation near the bending frequency as control loops interact with reduced stiffness
+
+ROOT CAUSE
+Root causes include incorrect torque procedures, flange materials with different thermal expansion from bolts, cryogenic cooling of joints near tanks, insufficient margin against gapping in design, and reuse of fasteners beyond their qualified life.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Account for thermal preload loss in joint design, especially near cryogenic tanks
+- Verify preload with ultrasonic or load-indicating fasteners
+- Include measured joint stiffness in the structural model used for control-system stability analysis

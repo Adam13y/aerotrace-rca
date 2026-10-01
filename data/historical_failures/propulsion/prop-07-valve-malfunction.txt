@@ -1,0 +1,29 @@
+Title: Main propellant valve malfunction
+Category: propulsion
+Failure mode: Valve malfunction
+Source type: synthetic
+Case ID: prop-07-valve-malfunction
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Valve malfunction covers main propellant, igniter, bleed and throttle or mixture control valves that fail to open, fail to close, move too slowly, or stall mid-travel. These valves are typically pneumatically or electromechanically actuated, with position feedback from limit switches or potentiometers. A malfunction disrupts start and shutdown sequencing, flow regulation or thrust control.
+
+CAUSAL CHAIN
+The initiating event is a valve command. The first observable is a discrepancy between commanded and measured position: the valve misses its limit switch within the expected stroke time, or a continuous position sensor lags or stalls. Actuator pressure or motor current deviates at the same time, for example sustained high current on a jammed electromechanical valve. Within milliseconds to seconds the affected flow, pressure or temperature fails to reach its expected value, controllers saturate while compensating, and sequencing logic may abort the start or shut the engine down.
+
+TELEMETRY SIGNATURES
+- Valve position feedback disagrees with command; stroke time exceeds limit or position stalls mid-travel
+- Actuation pressure drops, or motor current spikes and stays high at command time
+- Downstream pressure or flow fails to follow the command within the expected time
+- Sequencer abort or shutdown referencing a valve timing limit
+
+ROOT CAUSE
+Root causes include contamination or ice at seals and seats, insufficient actuator pressure, seal hardening at cryogenic temperatures, binding from differential thermal contraction, feedback wiring faults, and software timing errors. A failed position sensor can mimic a valve fault, so feedback must be cross-checked against process variables.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Valve timing faults are a frequent cause of automated aborts during engine start sequences.
+
+LESSONS LEARNED
+- Cross-check valve feedback against downstream pressure or flow to separate sensor faults from valve faults
+- Characterise stroke times at flight temperatures and actuation pressures, including cold soak
+- Include contamination tolerance and seat-leak checks in valve acceptance testing

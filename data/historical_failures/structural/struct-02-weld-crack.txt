@@ -1,0 +1,29 @@
+Title: Weld crack growth in a propellant tank under pressure and flight loads
+Category: structural
+Failure mode: Weld crack
+Source type: synthetic
+Case ID: struct-02-weld-crack
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Launch-vehicle tanks are commonly assembled from aluminium-lithium or aluminium alloy panels and domes joined by fusion or friction-stir welds. A weld crack is a flaw in the weld nugget or heat-affected zone, such as porosity, lack of fusion or a hot crack, that grows under pressure cycling and flight loads until it leaks or ruptures the tank wall.
+
+CAUSAL CHAIN
+The initiating condition is a pre-existing weld flaw that escaped inspection. Proof testing, cryogenic chilldown and repeated pressurization cycles extend the crack. In flight, combined hoop stress from tank pressure and axial load from thrust and bending push the stress intensity at the crack tip past fracture toughness. A through-wall crack first produces a slow leak, seen as a tank pressure decay that the pressurization system tries to compensate. If the crack becomes unstable, the leak becomes a rupture within milliseconds, followed by loss of structural integrity and breakup.
+
+TELEMETRY SIGNATURES
+- Tank ullage pressure decaying faster than propellant consumption explains, with pressurant flow rising to compensate (first deviation)
+- Local skin temperature drop near the leak on cryogenic tanks as propellant escapes
+- Strain gauge redistribution near a weld seam before rupture
+- Sudden ullage pressure collapse and accelerometer shock if the crack becomes unstable
+
+ROOT CAUSE
+Root causes include weld process drift (heat input, tool wear, contamination), inspection methods with insufficient sensitivity to tight cracks, residual stress from welding, and repair welds that create new heat-affected zones with reduced toughness.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Weld flaws are a common finding in tank qualification and proof testing programmes.
+
+LESSONS LEARNED
+- Control weld parameters statistically and qualify every repair weld separately
+- Use proof testing and fracture-mechanics flaw screening sized to the inspection method's detection limit
+- Monitor pressurant consumption against prediction to detect slow leaks early in flight

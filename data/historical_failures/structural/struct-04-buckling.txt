@@ -1,0 +1,29 @@
+Title: Compressive buckling of a thin-walled tank or interstage shell
+Category: structural
+Failure mode: Buckling
+Source type: synthetic
+Case ID: struct-04-buckling
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Buckling is a stability failure in which a thin-walled shell or stiffened panel under axial compression or bending suddenly deforms out of plane. Propellant tanks often rely on internal pressure for stiffness, while unpressurized interstages and skirts rely on stringers and frames. Buckling typically occurs near maximum dynamic pressure, at peak axial acceleration, or when tank pressure is low.
+
+CAUSAL CHAIN
+The usual trigger is a combination of high compressive load and reduced capacity. Capacity drops when tank pressure falls, for example from a pressurization fault, or when geometric imperfections exceed the design knockdown. Load rises with thrust, aerodynamic bending from wind shear or angle of attack, and dynamic events. The first observable is often the deviation that reduced capacity, such as low ullage pressure, or rising bending strain. At the critical load, the shell snaps into a buckled shape within milliseconds, producing a step in strain gauges, an acceleration transient and possibly a change in vehicle bending stiffness visible in attitude control.
+
+TELEMETRY SIGNATURES
+- Tank ullage pressure below its structural minimum, or rising bending strain, preceding the event
+- Abrupt divergence and sign reversal among circumferentially spaced strain gauges
+- Broadband accelerometer transient and changed bending-mode frequency
+- Attitude rate disturbance as the guidance system responds to changed structural dynamics
+
+ROOT CAUSE
+Root causes include insufficient knockdown factors for manufacturing imperfections, pressurization system faults that remove pressure stabilization, unexpected aerodynamic loads, and ground handling or venting errors that allow a tank to collapse under external pressure.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Pressure-stabilized tanks are known to be vulnerable to collapse during ground venting or loss of pressurization.
+
+LESSONS LEARNED
+- Treat minimum tank pressure as a structural limit and monitor it in flight software
+- Measure as-built shell imperfections and use test-validated knockdown factors
+- Place strain gauges around the circumference so buckling can be distinguished from bending

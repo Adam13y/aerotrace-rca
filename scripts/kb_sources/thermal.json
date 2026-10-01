@@ -1,0 +1,216 @@
+{
+  "category": "thermal",
+  "source_type": "synthetic",
+  "cases": [
+    {
+      "id": "therm-01-tps-tile-loss",
+      "title": "Loss of thermal protection tiles exposing underlying structure",
+      "category": "thermal",
+      "failure_mode": "TPS tile loss",
+      "failure_mode_description": "Reusable entry vehicles and some booster bases use discrete ceramic or ablative tiles bonded or mechanically attached to the structure. Tile loss occurs when a tile detaches through bond failure, attachment failure or debris impact, leaving a gap where the structure, typically aluminium or steel with a much lower temperature limit than the tile, is exposed to aerodynamic heating.",
+      "causal_chain": "The initiating event is usually during ascent or earlier: a weak bond, damaged attachment, or a debris strike loosens a tile, and aerodynamic loads or vibration remove it. The loss itself often leaves little trace except perhaps a brief acceleration spike. The first thermal observable appears during entry or high-heating flight: the bondline or structure temperature beneath the gap rises much faster than neighbouring locations. Gap edges also trip local flow, heating downstream tiles. If heating persists, the structure softens or burns through, which can then affect internal systems.",
+      "telemetry_signatures": [
+        "Bondline or structure thermocouple at one location rising well above neighbouring sensors during peak heating (first thermal deviation)",
+        "Elevated temperatures downstream of the gap from disturbed boundary-layer flow",
+        "Thermocouple going off-scale or open-circuit as the sensor or its wiring is damaged",
+        "Possible small acceleration impulse during ascent when the tile is shed"
+      ],
+      "root_cause": "Root causes include bond adhesive cure or surface preparation defects, gap filler or attachment degradation over reuse, debris impact from the vehicle itself, and inspection methods that cannot detect weak bonds before flight.",
+      "historical_reference": "Public accounts of Space Shuttle mission STS-27 in 1988 describe extensive tile damage from ascent debris and the loss of at least one tile; the underlying structure in that area reportedly avoided burn-through partly because a thick antenna mounting plate lay beneath it.",
+      "lessons_learned": [
+        "Control ascent debris sources, since tile loss often originates during launch",
+        "Verify bond strength by process control and pull testing of witness samples",
+        "Place bondline thermocouples in high-heating areas so local overheating can be localized"
+      ]
+    },
+    {
+      "id": "therm-02-hot-gas-leak",
+      "title": "Hot gas leak through a seal or joint in a motor or engine",
+      "category": "thermal",
+      "failure_mode": "Hot gas leak",
+      "failure_mode_description": "A hot gas leak occurs when combustion products at thousands of kelvin escape through a seal, joint, flange or crack in a solid motor case, engine manifold, turbine housing or hot gas duct. The escaping jet locally heats structure, lines and wiring far beyond their limits and can impinge on adjacent tanks or attachments.",
+      "causal_chain": "A seal fails to seat or erodes, often due to low temperature reducing elastomer resilience, joint rotation under pressure, or contamination. Hot gas begins to flow through the gap. The first observable is often a small drop in chamber pressure relative to prediction combined with a temperature rise on sensors near the joint. As the leak path erodes, the jet grows within seconds, producing a visible plume and rapidly rising temperatures on adjacent structure. Impingement can weaken attachments or tank walls, leading to secondary pressure loss or structural failure tens of seconds later.",
+      "telemetry_signatures": [
+        "Rapid temperature rise on structure or harness thermocouples adjacent to a joint (earliest deviation)",
+        "Small chamber pressure deficit or asymmetry between motors or engines",
+        "Thrust vector control activity rising to counter a side force from the leak",
+        "Later pressure drop in an adjacent tank or line if the jet impinges on it"
+      ],
+      "root_cause": "Typical causes are seal designs sensitive to joint rotation, operation below qualified seal temperature, erosion accepted as normal after earlier flights, assembly contamination, and insufficient redundancy or insulation protecting the seal from direct gas flow.",
+      "historical_reference": "The loss of Space Shuttle Challenger (STS-51-L, January 1986) was attributed by the Rogers Commission to failure of O-ring seals in a field joint of the right solid rocket booster, allowing hot gas to escape and impinge on adjacent hardware and the external tank.",
+      "lessons_learned": [
+        "Do not accept seal erosion or blow-by as an in-family condition without understanding its cause",
+        "Qualify seals over the full temperature range including cold launch conditions",
+        "Instrument joints with temperature sensors to detect early leakage"
+      ]
+    },
+    {
+      "id": "therm-03-ablative-erosion",
+      "title": "Excessive ablative erosion of nozzle or chamber liner",
+      "category": "thermal",
+      "failure_mode": "Ablative erosion",
+      "failure_mode_description": "Ablative liners in solid motor nozzles, throat inserts, combustion chambers and heat shields protect structure by charring and eroding in a controlled way. Excessive ablative erosion occurs when the material recedes faster than designed, thinning the liner until the underlying structure or bond overheats, or enlarging the nozzle throat enough to change performance.",
+      "causal_chain": "Erosion accelerates when local heat flux or particle impingement exceeds the design, or when the material has defects such as voids, ply wrinkles or low density. The throat area grows, so the first observable in a nozzle is typically a gradual chamber pressure decline below the predicted trace, with thrust falling correspondingly. Next, backside thermocouples on the liner or case show temperatures rising earlier than predicted. If erosion breaches the liner, hot gas reaches the structural shell, producing a rapid temperature spike and possibly burn-through.",
+      "telemetry_signatures": [
+        "Chamber pressure trending below prediction with a slow, progressive deficit (first deviation in throat erosion)",
+        "Backside or case thermocouples rising earlier and faster than predicted",
+        "Thrust and acceleration deficit relative to the nominal trajectory",
+        "Sudden temperature spike or off-scale thermocouple if the liner is breached"
+      ],
+      "root_cause": "Root causes include ablative material defects, changes in raw material or supplier, propellant formulation changes that increase particle impingement or heat flux, and erosion models calibrated on insufficient test data.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Requalify ablative materials after any raw material or process change",
+        "Compare measured chamber pressure against predicted traces to detect throat erosion early",
+        "Measure post-test or post-flight erosion depths and feed them back into models"
+      ]
+    },
+    {
+      "id": "therm-04-cooling-channel-blockage",
+      "title": "Blockage of regenerative cooling channels in a liquid engine",
+      "category": "thermal",
+      "failure_mode": "Cooling channel blockage",
+      "failure_mode_description": "Regeneratively cooled chambers and nozzles circulate propellant through small channels in the wall. Cooling channel blockage occurs when one or more channels are obstructed by debris, braze material, coking deposits from hydrocarbon fuel, or manufacturing defects, so that the local wall loses cooling while the overall coolant flow appears nearly normal.",
+      "causal_chain": "A local obstruction reduces flow in a few channels. Because total coolant flow barely changes, the first observable is usually subtle: a small rise in cooling jacket pressure drop and a localized increase in coolant outlet temperature. The hot wall under the blocked channel rises toward its melting or oxidation limit. Within seconds to tens of seconds the liner can crack, bulge or burn through, releasing fuel into the chamber. This produces a hot streak, changes injector-chamber pressure balance and can lead to external burn-through of the chamber jacket.",
+      "telemetry_signatures": [
+        "Increase in cooling jacket pressure drop or decrease in jacket flow relative to pump discharge (earliest sign)",
+        "Coolant outlet manifold temperature rising above nominal",
+        "External chamber wall thermocouple hot spot localized circumferentially",
+        "Chamber pressure fluctuations or fuel manifold pressure drop if a burn-through opens a leak"
+      ],
+      "root_cause": "Typical causes are braze or machining debris left in channels, inadequate flow testing of individual channels, hydrocarbon fuel coking at high wall temperatures, contamination from upstream filters or lines, and erosion of internal coatings.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Flow-test and inspect cooling channels after manufacture and after hot fire",
+        "Control fuel quality and wall temperature to limit coking in hydrocarbon engines",
+        "Trend jacket pressure drop and outlet temperature across tests and flights"
+      ]
+    },
+    {
+      "id": "therm-05-tps-breach",
+      "title": "Thermal protection breach allowing hot gas ingress during entry",
+      "category": "thermal",
+      "failure_mode": "TPS breach",
+      "failure_mode_description": "A TPS breach is a hole or crack through a heat shield, leading edge or thermal blanket that lets hot boundary-layer gas or plasma flow into the internal structure. Unlike tile loss, which exposes a surface, a breach admits gas into internal cavities, where it heats structure, wiring and hydraulic lines from inside.",
+      "causal_chain": "The initiating damage commonly occurs before the heating phase, for example a debris impact during ascent or a micrometeoroid strike. During entry, high-enthalpy gas enters through the breach. The first observables are temperature rises on sensors inside the affected cavity, behind the TPS, often well before external or vehicle-level effects. As gas spreads, sensors and wiring are damaged, producing off-scale readings and loss of signal in a geographic pattern. Structural weakening then changes aerodynamics, increasing drag or rolling moments that the control system must counter until control authority is exceeded.",
+      "telemetry_signatures": [
+        "Internal structure or cavity temperatures rising unusually fast in one area during entry heating (first deviation)",
+        "Progressive off-scale-low or loss-of-signal readings on sensors whose wiring passes through the affected region",
+        "Increasing roll or yaw trim and control surface deflection to counter asymmetric drag",
+        "Tyre pressure, hydraulic or other unrelated sensors in the same area failing in sequence"
+      ],
+      "root_cause": "Root causes include ascent debris impacts, limited ability to inspect or repair TPS in flight, impact damage tolerance not characterized for real debris types, and normalization of previously observed debris events.",
+      "historical_reference": "The loss of Space Shuttle Columbia (STS-107, February 2003) was attributed by the Columbia Accident Investigation Board to a foam strike during ascent that breached the left wing leading edge, allowing hot gas into the wing during entry.",
+      "lessons_learned": [
+        "Treat recurring debris events as safety issues, not maintenance items",
+        "Provide in-flight inspection and damage assessment capability for TPS",
+        "Map sensor wiring routes so loss-of-signal patterns can locate a breach"
+      ]
+    },
+    {
+      "id": "therm-06-radiative-heating-anomaly",
+      "title": "Radiative heating anomaly from plumes, shock layers or solar exposure",
+      "category": "thermal",
+      "failure_mode": "Radiative heating anomaly",
+      "failure_mode_description": "Radiative heating is heat transfer by thermal radiation from hot engine plumes, particle-laden solid motor exhaust, high-temperature shock layers during fast entries, or the sun during coast phases. A radiative heating anomaly occurs when absorbed radiation exceeds the design, overheating surfaces, propellant tanks or sensitive equipment that convective analyses alone would not flag.",
+      "causal_chain": "Typical triggers are an unexpected plume shape at altitude, higher particle loading, a changed attitude that exposes a surface to the sun or plume, or degraded surface optical properties such as soot deposits raising absorptance. The first observable is a temperature rise on surfaces with line of sight to the source, often on one side of the vehicle and correlated with attitude or plume conditions. Heat soaks inward over tens of seconds to minutes, raising tank or bay temperatures, increasing cryogenic boil-off and ullage pressure, or pushing electronics toward limits.",
+      "telemetry_signatures": [
+        "Surface thermocouple or radiometer rise on the side facing the plume or sun, correlated with attitude (first deviation)",
+        "Temperature asymmetry between opposite sides of the vehicle",
+        "Delayed rise in cryogenic tank ullage pressure or vent activity from increased boil-off",
+        "Equipment bay temperature increases lagging the surface rise by minutes"
+      ],
+      "root_cause": "Root causes include plume radiation models not validated at altitude, surface coatings contaminated or degraded, mission attitude profiles that differ from analysed cases, and insufficient margins on coating optical properties.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Validate plume radiation models with flight radiometer data",
+        "Protect and verify thermal coatings and their optical properties before launch",
+        "Analyse thermal effects of off-nominal attitudes and extended coasts"
+      ]
+    },
+    {
+      "id": "therm-07-base-heating",
+      "title": "Base heating from plume recirculation overheating the engine compartment",
+      "category": "thermal",
+      "failure_mode": "Base heating overtemperature",
+      "failure_mode_description": "As a vehicle climbs and ambient pressure falls, multi-engine exhaust plumes expand and interact, driving hot gas back toward the vehicle base. This plume recirculation, together with plume radiation, heats the base heat shield, engine compartment, actuators, lines and wiring. Base heating overtemperature occurs when the heat shield, flexible closures or thermal blankets fail to keep compartment temperatures within limits.",
+      "causal_chain": "Base heating grows with altitude as plumes expand, typically peaking during the upper part of first-stage flight. A degraded heat shield seal, torn flexible boot or inadequate insulation lets hot gas into the compartment. The first observable is a rise in base heat shield or compartment gas temperature beyond prediction, usually beginning tens of seconds after lift-off. Components then overheat in sequence: actuator hydraulic fluid, sensor wiring, valves. Damage manifests as erratic sensor readings, loss of signal on harness channels, hydraulic or TVC anomalies, and in severe cases fire in the engine bay.",
+      "telemetry_signatures": [
+        "Base heat shield and compartment temperatures rising above prediction as altitude increases (first deviation)",
+        "Engine bay harness channels becoming noisy or dropping out",
+        "Hydraulic fluid or actuator temperature rise and TVC response degradation",
+        "Engine valve or sensor anomalies with no matching change in chamber pressure"
+      ],
+      "root_cause": "Root causes include underpredicted plume interaction for engine clustering, heat shield seal or flexible closure damage from ground processing, engine-out or throttle conditions changing plume structure, and inadequate insulation on harnesses.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Multi-engine vehicles generally require base heat shields because of plume recirculation.",
+      "lessons_learned": [
+        "Fly base heat flux gauges and gas temperature sensors on early flights",
+        "Inspect flexible closures and heat shield seals before each flight",
+        "Analyse base heating for engine-out and off-nominal throttle cases"
+      ]
+    },
+    {
+      "id": "therm-08-cryogenic-insulation-debonding",
+      "title": "Cryogenic tank insulation debonding and increased boil-off",
+      "category": "thermal",
+      "failure_mode": "Cryogenic insulation debonding",
+      "failure_mode_description": "Cryogenic tanks for liquid hydrogen, liquid oxygen or methane are often covered with sprayed or bonded foam insulation. Debonding occurs when foam separates from the tank wall or cracks, reducing insulation, allowing air to condense or freeze on the cold wall, and potentially shedding foam fragments as debris during ascent.",
+      "causal_chain": "Voids or poor adhesion from spraying, combined with thermal contraction during loading, create a disbond. Air or nitrogen in the void can liquefy against a liquid hydrogen tank wall and later expand as it warms, driving cracking. The first observable is often during loading: a local cold spot or frost on the outer surface and elevated boil-off rates. In flight, increased heat leak raises ullage pressure and vent activity. Aerodynamic loads and expanding gas can then shed the foam, producing debris and further exposing the tank to aerodynamic heating.",
+      "telemetry_signatures": [
+        "Elevated boil-off or vent flow and higher replenish flow during loading (first deviation)",
+        "Local outer-surface temperature well below neighbours or frost visible on cameras",
+        "Ullage pressure rising faster than predicted and more frequent vent valve cycling in flight",
+        "Skin temperature rise where foam is lost during ascent heating"
+      ],
+      "root_cause": "Root causes include manual foam application variability, inadequate surface preparation, complex geometry such as ramps and brackets, insufficient inspection for subsurface voids, and design that underestimates thermal cycling stresses.",
+      "historical_reference": "Foam shedding from the Space Shuttle External Tank was a recurring, publicly documented problem, and post-Columbia investigations examined foam voids and application processes. Its main consequence there was debris rather than boil-off.",
+      "lessons_learned": [
+        "Control foam application processes and inspect for voids non-destructively",
+        "Trend boil-off and vent rates during loading to detect insulation degradation",
+        "Treat foam loss as a debris hazard as well as a thermal one"
+      ]
+    },
+    {
+      "id": "therm-09-avionics-bay-thermal-control-failure",
+      "title": "Thermal control failure in an avionics bay",
+      "category": "thermal",
+      "failure_mode": "Avionics bay thermal control failure",
+      "failure_mode_description": "Avionics bays house flight computers, inertial units, power distribution and telemetry equipment. Their temperature is held within limits by conditioned air or nitrogen purge on the pad, by cold plates, heaters and insulation in flight, and on longer missions by fluid loops or radiators. Thermal control failure lets equipment temperatures drift outside qualified limits.",
+      "causal_chain": "Typical initiators include loss of pad purge or conditioning before lift-off, a stuck-on or failed heater, a fluid loop pump failure, or a heater thermostat fault. The first observable is a bay or cold plate temperature diverging from its normal band, often slowly over minutes. Electronics then respond: power supply efficiencies drop, oscillators drift, and some units throttle or reset. Bus current changes as heaters fail on or off. Later effects appear as intermittent telemetry, sensor bias drift, computer resets, and finally loss of function if units exceed their limits.",
+      "telemetry_signatures": [
+        "Bay air or cold plate temperature trending outside its band (first deviation, often minutes ahead)",
+        "Heater bus current stuck high or zero inconsistent with thermostat setpoints",
+        "Inertial sensor bias drift or clock drift correlated with temperature",
+        "Unit resets, telemetry dropouts or bus voltage sags following the temperature excursion"
+      ],
+      "root_cause": "Root causes include single-string heater control, thermostat failure, purge or conditioning interruption before launch, inadequate thermal analysis of long coasts or holds, and equipment dissipating more power than modelled.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Include bay temperatures and heater currents in launch commit criteria",
+        "Use redundant heater control with independent thermostats",
+        "Verify thermal margins for extended holds and long coast phases"
+      ]
+    },
+    {
+      "id": "therm-10-regen-coolant-starvation",
+      "title": "Regenerative cooling coolant starvation from low flow or inlet pressure",
+      "category": "thermal",
+      "failure_mode": "Regenerative coolant starvation",
+      "failure_mode_description": "Coolant starvation is a system-level loss of regenerative cooling flow across the whole jacket, unlike a local channel blockage. It occurs when the fuel or oxidizer used as coolant is delivered at insufficient flow or pressure, because of pump degradation, cavitation, a valve sequencing error, or gas ingestion, while combustion continues to heat the chamber wall.",
+      "causal_chain": "The initiating event is upstream of the jacket: low pump inlet pressure causes cavitation, a turbopump degrades, a valve opens late, or gas is ingested from a depleting tank. Coolant flow drops, so the first observable is a falling pump discharge pressure or jacket inlet pressure, or a rising pump speed if the pump is unloading. Coolant outlet temperature then rises quickly, and in supercritical coolants the heat transfer can deteriorate abruptly. Within seconds the chamber wall overheats around its full circumference, leading to liner cracking, burn-through and engine shutdown or failure.",
+      "telemetry_signatures": [
+        "Pump inlet or discharge pressure drop, or pump speed rise, preceding thermal effects (first deviation)",
+        "Jacket inlet pressure and flow falling while chamber pressure is initially near normal",
+        "Rapid coolant outlet temperature rise across all manifold sensors",
+        "Chamber pressure roughness and engine shutdown on redline shortly afterwards"
+      ],
+      "root_cause": "Root causes include tank pressure or ullage control faults reducing pump inlet pressure, propellant depletion and gas ingestion, turbopump wear, valve timing errors, and insufficient margin between design coolant flow and the minimum required to protect the wall.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.",
+      "lessons_learned": [
+        "Protect pump inlet pressure margins with tank pressurization and level monitoring",
+        "Set fast redlines on coolant outlet temperature and jacket pressure",
+        "Distinguish system-wide starvation from local blockage by comparing all manifold temperatures"
+      ]
+    }
+  ]
+}

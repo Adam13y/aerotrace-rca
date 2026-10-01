@@ -1,0 +1,29 @@
+Title: Propellant slosh loading and slosh baffle failure
+Category: structural
+Failure mode: Slosh baffle failure
+Source type: synthetic
+Case ID: struct-10-slosh-baffle-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Liquid propellant in large tanks can oscillate laterally in slosh modes, typically at frequencies below a few hertz. Baffles, rings and anti-vortex devices damp this motion. Slosh baffle failure occurs when these internal structures crack, detach or are undersized, leaving slosh undamped and imposing large oscillating loads on tank walls and the vehicle.
+
+CAUSAL CHAIN
+Steering manoeuvres, wind gusts, engine shutdown or stage separation excite the slosh mode. If a baffle has cracked or detached, perhaps from fatigue under earlier slosh cycles, damping drops sharply. The first observable is a growing low-frequency oscillation in lateral acceleration and attitude rates near the predicted slosh frequency. The thrust vector control system then shows increasing gimbal activity as it reacts. Slosh can couple with control, growing in amplitude; large slosh can uncover the tank outlet, causing engine inlet pressure fluctuations, and loose baffle pieces can block outlets or damage feed systems.
+
+TELEMETRY SIGNATURES
+- Low-frequency lateral acceleration and attitude-rate oscillation at the slosh frequency, growing over several cycles (first deviation)
+- Increasing thrust vector control gimbal angle and actuator activity at the same frequency
+- Oscillating tank bottom or engine inlet pressure as propellant moves
+- Liquid level sensor fluctuations and, in severe cases, engine shutdown on low inlet pressure
+
+ROOT CAUSE
+Underestimated slosh mass or damping, baffles designed only for static loads, fatigue of baffle welds, inadequate control-system filtering at the slosh frequency, and propellant fill levels outside the analysed range are common root causes.
+
+HISTORICAL REFERENCE
+SpaceX's account of the second Falcon 1 flight in March 2007 attributed the early second-stage shutdown to liquid oxygen slosh coupling with the control system, causing a roll oscillation. That event was a control-structure interaction rather than a baffle structural failure.
+
+LESSONS LEARNED
+- Verify slosh damping devices by test and analyse their fatigue under expected slosh cycles
+- Include slosh modes and their uncertainty in control-system stability margins
+- Monitor attitude rates for growing oscillation at the slosh frequency

@@ -1,0 +1,29 @@
+Title: Cryogenic tank insulation debonding and increased boil-off
+Category: thermal
+Failure mode: Cryogenic insulation debonding
+Source type: synthetic
+Case ID: therm-08-cryogenic-insulation-debonding
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Cryogenic tanks for liquid hydrogen, liquid oxygen or methane are often covered with sprayed or bonded foam insulation. Debonding occurs when foam separates from the tank wall or cracks, reducing insulation, allowing air to condense or freeze on the cold wall, and potentially shedding foam fragments as debris during ascent.
+
+CAUSAL CHAIN
+Voids or poor adhesion from spraying, combined with thermal contraction during loading, create a disbond. Air or nitrogen in the void can liquefy against a liquid hydrogen tank wall and later expand as it warms, driving cracking. The first observable is often during loading: a local cold spot or frost on the outer surface and elevated boil-off rates. In flight, increased heat leak raises ullage pressure and vent activity. Aerodynamic loads and expanding gas can then shed the foam, producing debris and further exposing the tank to aerodynamic heating.
+
+TELEMETRY SIGNATURES
+- Elevated boil-off or vent flow and higher replenish flow during loading (first deviation)
+- Local outer-surface temperature well below neighbours or frost visible on cameras
+- Ullage pressure rising faster than predicted and more frequent vent valve cycling in flight
+- Skin temperature rise where foam is lost during ascent heating
+
+ROOT CAUSE
+Root causes include manual foam application variability, inadequate surface preparation, complex geometry such as ramps and brackets, insufficient inspection for subsurface voids, and design that underestimates thermal cycling stresses.
+
+HISTORICAL REFERENCE
+Foam shedding from the Space Shuttle External Tank was a recurring, publicly documented problem, and post-Columbia investigations examined foam voids and application processes. Its main consequence there was debris rather than boil-off.
+
+LESSONS LEARNED
+- Control foam application processes and inspect for voids non-destructively
+- Trend boil-off and vent rates during loading to detect insulation degradation
+- Treat foam loss as a debris hazard as well as a thermal one

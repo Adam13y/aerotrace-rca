@@ -1,0 +1,29 @@
+Title: Ground loop or lost ground reference causing measurement offsets
+Category: electrical
+Failure mode: Ground loop / grounding fault
+Source type: synthetic
+Case ID: elec-10-ground-loop-grounding-fault
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A grounding fault occurs when the intended single-point or controlled return scheme is violated: a return lead opens, an unintended connection to structure creates a ground loop, or bonding resistance increases. Return currents then flow through signal references, shifting the zero of analog measurements and adding noise. It affects analog sensors, discrete interfaces and pyrotechnic circuit isolation.
+
+CAUSAL CHAIN
+A return wire or bonding strap degrades, or an unintended structure contact forms. The FIRST observable is a simultaneous offset or noise change on multiple analog channels that share the affected reference, frequently correlated with current in a large load (heater, actuator, valve) that now returns through the signal ground. Readings move when the load switches, not when the physical quantity changes. Severe faults can shift discrete thresholds, causing false status indications or, in pyro circuits, loss of isolation detected by isolation monitors.
+
+TELEMETRY SIGNATURES
+- Common-mode offsets appearing on several analog channels at once, stepping when an unrelated high-current load switches
+- Increase in isolation-monitor reading or chassis-to-return voltage
+- Noise at power-converter switching frequency on low-level channels
+- Distinguishing check: real physical changes affect one parameter consistently with physics; ground faults shift many channels together and track load current
+
+ROOT CAUSE
+Typical root causes are undocumented or inconsistent grounding architecture across subsystems, bonding surfaces painted or anodised, corrosion, loose fasteners, shield drains terminated at both ends against design intent, and harness changes made without grounding review.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Maintain a single documented grounding and bonding philosophy for the vehicle
+- Measure bonding resistance and isolation after every integration change
+- Check whether channel offsets correlate with load switching before diagnosing a physical anomaly

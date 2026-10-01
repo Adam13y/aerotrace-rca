@@ -1,0 +1,30 @@
+Title: Space Shuttle Columbia STS-107 - thermal protection breach from launch foam strike
+Category: thermal
+Failure mode: Wing leading edge thermal protection breach and re-entry burn-through
+Source type: historical
+Case ID: columbia_foam_strike
+Date: 16 January 2003 (launch) / 1 February 2003 (loss during re-entry)
+Vehicle: Space Shuttle Columbia
+Sources: Columbia Accident Investigation Board Report, Volume I (2003)
+
+FAILURE MODE
+A breach in the reinforced carbon-carbon (RCC) thermal protection on the left wing leading edge let superheated air into the wing structure during re-entry. The hot gas progressively destroyed wiring and aluminium structure inside the wing, increasing drag on the left side until the flight control system could no longer hold attitude, and the orbiter broke up. All seven crew members were lost.
+
+CAUSAL CHAIN
+About 82 seconds after launch, a piece of insulating foam of about 1.7 lb broke off the external tank's left bipod ramp. It struck the left wing leading edge near RCC panel 8 at a relative speed of roughly 545 mph, creating a breach. The strike was seen in launch imagery and analysed during the mission, but the damage was judged not to be a safety-of-flight issue, and no on-orbit imagery of the wing was obtained. On 1 February the orbiter began re-entry. Shortly after entry interface, plasma flowing through the breach heated the wing interior. Sensors behind the leading edge and in the left wheel well began showing unusual readings, then failed as their wiring burned through. Ground observers saw debris being shed. The growing damage increased left-wing drag, and the flight control system responded with increasing aileron trim and yaw-jet firings. Contact was lost shortly before 9:00 a.m. EST, and the orbiter broke up over Texas about 16 minutes before its scheduled landing.
+
+TELEMETRY SIGNATURES
+- Early in re-entry, unusual strain and temperature rises on sensors inside the left wing (leading edge spar, wheel well, hydraulic lines) while right-wing sensors stayed nominal.
+- A spatial sequence of left-wing sensors failing off-scale low as their wiring burned through; off-scale low here meant destroyed wiring, not real cold.
+- Growing aileron trim and yaw reaction-control jet activity to counteract rising left-side drag.
+- Loss of left main landing gear tire pressure and wheel temperature indications shortly before loss of signal.
+
+ROOT CAUSE
+The Board found the physical cause to be a breach in the left wing leading edge thermal protection, initiated by the foam strike at launch. Organisational causes were given equal weight: foam shedding had occurred on earlier flights and had come to be treated as an accepted, maintenance-level risk rather than a safety issue; schedule pressure; and a safety culture in which engineering concerns and requests for imagery did not reach effective decision-making.
+
+LESSONS LEARNED
+- A launch-phase event can cause a failure much later in the mission; carry known debris or impact events forward as hypotheses.
+- Sensors dropping off-scale in a spatial pattern indicate physical damage propagating, not independent sensor faults.
+- Left/right asymmetry between symmetric sensors is a strong localisation clue.
+- Rising control effort (trim, jet firings) can reveal an aerodynamic asymmetry before any structural measurement does.
+- Recurring 'in-family' anomalies should be treated as unresolved risks.

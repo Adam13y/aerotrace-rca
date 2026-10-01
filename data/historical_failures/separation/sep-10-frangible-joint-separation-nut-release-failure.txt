@@ -1,0 +1,29 @@
+Title: Incomplete frangible joint or separation nut release
+Category: separation
+Failure mode: Incomplete frangible joint / separation nut release
+Source type: synthetic
+Case ID: sep-10-frangible-joint-separation-nut-release-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Frangible joints use an expanding tube or a linear charge to fracture a notched structural ring along its whole circumference. Separation nuts are segmented nuts that release a bolt when fired. Both are used for stage, fairing and payload separation. An incomplete release leaves a section of ring unbroken or a bolt still held, keeping the bodies mechanically linked even though the ordnance fired.
+
+CAUSAL CHAIN
+The fire command is issued and firing current is nominal, so the pyrotechnic chain appears healthy. The first deviation is mechanical: a segment of the joint does not fully fracture, or a nut segment binds. Separation switches near the held point stay closed while others open. Bodies then either stay attached, so the vehicle continues with unexpected mass and a misaligned load path, or tear free late with a large tip-off, producing a sudden attitude rate on the free body.
+
+TELEMETRY SIGNATURES
+- Nominal firing current and initiator status, yet one sector's separation switches or breakwires remain intact
+- Pyroshock amplitude lower than qualification levels on accelerometers near the held sector
+- Delayed tear-out transient followed by attitude rate jump, or continued coupled motion of the two bodies
+- Acceleration lower than predicted when the lower body stays attached
+
+ROOT CAUSE
+Typical causes are joint material outside specification (strength, ductility or wall thickness at the notch), a charge with reduced loading or a gap in the expanding tube, corrosion or contamination in a nut, preload above design, and assembly errors such as an incorrectly seated tube. Lot acceptance testing that does not reproduce flight temperatures can miss marginal hardware.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Fairing joint failures discussed in a separate summary show how material properties can affect release.
+
+LESSONS LEARNED
+- Control and test joint material properties per lot, especially at the notch
+- Place separation indicators around the full circumference so a held sector is located
+- Nominal firing current does not prove separation; check the mechanical indicators

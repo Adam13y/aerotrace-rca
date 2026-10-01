@@ -1,0 +1,31 @@
+Title: Proton-M GLONASS launch - inverted yaw rate sensors
+Category: avionics
+Failure mode: Angular rate sensors installed upside down, causing control reversal
+Source type: historical
+Case ID: proton_m_2013
+Date: 2 July 2013
+Vehicle: Proton-M with Block DM-03 upper stage carrying three GLONASS-M satellites
+Sources: Russian state commission findings (July 2013) and Roscosmos statements
+
+FAILURE MODE
+A Proton-M rocket launched from Baikonur veered off course within seconds of lift-off, pitched over violently, broke apart and crashed close to the launch complex less than a minute after launch. The cause was that several angular velocity sensors in the control system had been installed upside down, so that the flight control system received rate measurements with the wrong sign and drove the vehicle away from its intended attitude. The three navigation satellites were lost and a large quantity of toxic propellant burned or dispersed near the pad.
+
+CAUSAL CHAIN
+At lift-off the first-stage engines operated normally. Almost immediately the vehicle began to deviate in yaw. Because the yaw rate sensors were inverted, the control system interpreted the deviation in the wrong direction and its corrective commands amplified it rather than damping it. The vehicle's attitude departed rapidly, with large oscillations, and the rocket began to break up under aerodynamic loads. Engine shutdown was reportedly inhibited during the first part of flight by design, to keep a failing vehicle from falling back onto the launch complex, so the engines kept firing as the vehicle turned over. It struck the ground near the launch complex well under a minute after lift-off.
+
+TELEMETRY SIGNATURES
+- Nominal engine ignition and chamber pressure through lift-off
+- Yaw rate measurements with sign opposite to the motion indicated by other attitude sources
+- Nozzle gimbal commands growing in the same direction as the attitude error instead of opposing it
+- Rapidly diverging yaw and pitch attitude with large angular rates within seconds of lift-off
+- Structural breakup indications and loss of telemetry at impact around 30 seconds
+
+ROOT CAUSE
+The state commission found that three yaw angular velocity sensors had been mounted inverted during assembly at the manufacturing plant. The mounting design allowed the sensors to be forced into the wrong orientation despite markings indicating the correct direction, and the error was not caught by inspection or by pre-launch checks. Contributing factors cited included inadequate quality control and workmanship oversight at the manufacturer.
+
+LESSONS LEARNED
+- Positive feedback signatures, where control commands increase the error, point strongly to sensor or actuator polarity errors
+- Cross-check rate gyro signs against integrated attitude, accelerometers or other independent sources at the start of flight
+- Polarity and orientation checks on sensors should be part of end-to-end pre-launch tests
+- Physical mounting should be designed so that incorrect orientation is impossible, not merely marked
+- A deviation that begins at lift-off with healthy engines and grows monotonically under active control implicates the guidance and control chain before propulsion

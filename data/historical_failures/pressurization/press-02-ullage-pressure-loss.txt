@@ -1,0 +1,30 @@
+Title: Loss of tank ullage pressure
+Category: pressurization
+Failure mode: Ullage pressure loss
+Source type: synthetic
+Case ID: press-02-ullage-pressure-loss
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Ullage pressure loss is a decline of tank ullage pressure below the required operating band during pre-launch or flight. It reduces engine inlet pressure and, in stages that rely on internal pressure for structural stiffness, reduces load-carrying margin. It differs from feed-line blockage, where ullage pressure stays normal and only inlet pressure falls.
+
+CAUSAL CHAIN
+Initiators include insufficient pressurant flow, a leak at a tank fitting or vent, or rapid ullage cooling (pressurant collapse) when warm gas contacts cold propellant, for example when sloshing mixes liquid into the ullage. The first observable is ullage pressure falling below its control band, while pressurisation valves show increased duty cycle as the controller compensates. Pump inlet pressure follows within about a second, reducing NPSH margin; turbopump speed and vibration may then rise from cavitation, and chamber pressure falls. On pressure-stabilised structures, compressive load margin decreases, raising buckling risk under flight loads.
+
+TELEMETRY SIGNATURES
+- Ullage pressure falls below the control band first, with pressurant valves commanded open more often
+- Pressurant bottle pressure falls faster than expected if a leak exists downstream
+- Ullage gas temperature drops sharply in pressurant collapse, often coinciding with slosh or manoeuvres
+- Pump inlet pressure tracks ullage pressure down, followed by turbopump speed and vibration rise
+- Chamber pressure and thrust decrease if inlet margin is lost
+
+ROOT CAUSE
+Root causes include undersized pressurant flow paths, regulator under-delivery, leaking seals or fittings, pressurant supplied colder than intended, inadequate anti-slosh baffling, and failure to model ullage collapse during manoeuvres, staging or engine restarts. Low pressurant reserves leave little capacity to recover from collapse events.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Ullage collapse is a recognised design concern for cryogenic upper stages that coast and restart.
+
+LESSONS LEARNED
+- Model pressurant heat and mass transfer, including slosh-induced ullage collapse
+- Monitor pressurant valve duty cycle as an early indicator of leaks or collapse
+- Hold pressurant reserves sized for worst-case collapse scenarios

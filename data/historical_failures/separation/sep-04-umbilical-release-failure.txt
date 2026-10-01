@@ -1,0 +1,29 @@
+Title: Umbilical release or retraction failure at liftoff
+Category: separation
+Failure mode: Umbilical release failure
+Source type: synthetic
+Case ID: sep-04-umbilical-release-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Umbilicals carry power, data, purge gas and propellant fill and drain lines from the launch tower to the vehicle. At or just before liftoff they must disconnect cleanly and retract out of the vehicle's path. A release failure leaves an umbilical attached, retracts it too slowly, or tears it off, which can damage vehicle ports or the tower and can corrupt power and data paths during the first seconds of flight.
+
+CAUSAL CHAIN
+The disconnect command is issued during the terminal count or by liftoff motion itself. The first deviation is a missing or late disconnect indication: a plate stays latched, a lanyard does not pull the connector, or a retract arm stalls. If launch proceeds, the vehicle drags or strikes the umbilical; electrical lines may short or open, producing noise or brief dropouts on vehicle buses, and a propellant or gas line may leak at the vehicle-side quick-disconnect. Within seconds, debris or a leaking port can produce local pressure loss or contamination.
+
+TELEMETRY SIGNATURES
+- Umbilical disconnect or arm-retract indication missing or later than the scripted time relative to liftoff
+- Short voltage transients or dropouts on vehicle power buses at liftoff as ground power is lost abnormally
+- Lateral accelerometer spikes during the first seconds of rise
+- Pressure decay in a tank or purge line served by the umbilical port shortly after liftoff
+
+ROOT CAUSE
+Root causes include ice on cryogenic umbilical plates, worn or misadjusted latches and lanyards, low pressure in the retract system, wind loads outside design, and procedural errors such as a locking pin left installed.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Make positive umbilical disconnect a hard launch-commit item with independent indications
+- Protect cryogenic umbilical interfaces from icing and verify them with test fixtures that reproduce frost loads
+- When anomalies start in the first second after liftoff, check ground-system disconnect data first

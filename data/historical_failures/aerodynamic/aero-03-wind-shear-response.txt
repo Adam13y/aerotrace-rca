@@ -1,0 +1,29 @@
+Title: Vehicle response to high-altitude wind shear
+Category: aerodynamic
+Failure mode: Wind shear response
+Source type: synthetic
+Case ID: aero-03-wind-shear-response
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Wind shear is a rapid change of wind speed or direction with altitude. During ascent the vehicle passes through these layers in seconds, so the relative wind direction changes and the angle of attack jumps. Near Max-Q, this produces large aerodynamic loads and forces the guidance and thrust vector control to steer, which adds further loads on joints, actuators and engine mounts.
+
+CAUSAL CHAIN
+The first deviation is the angle-of-attack or sideslip estimate stepping up as the vehicle enters the shear layer, often while dynamic pressure is near maximum. Within a fraction of a second, attitude control commands engine gimbal deflection to counter the aerodynamic moment; gimbal angles and actuator loads increase. Bending strain on the structure rises in phase with the angle of attack. If shear is severe, gimbal approaches its limit, attitude errors grow, and loads may exceed margins, so damage or a control excursion follows.
+
+TELEMETRY SIGNATURES
+- Sudden step in angle-of-attack or sideslip estimate without a preceding attitude command change
+- Engine gimbal angle and actuator pressure increasing within a fraction of a second of the step
+- Lateral acceleration and bending strain peaks coinciding with the shear layer altitude
+- Attitude error growing only if gimbal approaches its limit
+
+ROOT CAUSE
+Typical root causes are winds stronger than the design envelope, wind measurements made hours before launch, steering laws not including load relief, and launch commit criteria that do not account for shear magnitude.
+
+HISTORICAL REFERENCE
+Post-accident analyses of Challenger (STS-51-L, 1986) reported that the vehicle encountered significant wind shear in the Max-Q region, and that the resulting steering and structural loads may have contributed to breaking the temporary seal at the already leaking solid rocket booster joint.
+
+LESSONS LEARNED
+- Measure winds aloft as close to launch as practical and evaluate loads before commit
+- Use load-relief steering to reduce angle of attack in shear
+- Check whether angle of attack stepped before gimbal and strain anomalies when ranking causes

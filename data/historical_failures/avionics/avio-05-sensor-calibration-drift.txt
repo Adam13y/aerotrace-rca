@@ -1,0 +1,29 @@
+Title: Slow calibration drift in a flight sensor
+Category: avionics
+Failure mode: Sensor calibration drift
+Source type: synthetic
+Case ID: avio-05-sensor-calibration-drift
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Calibration drift is a slow change in a sensor's offset or gain relative to its ground calibration, caused by temperature, ageing, radiation, mounting stress or electronics drift. Pressure, temperature, position and rate sensors are all susceptible. Drift is dangerous because it looks like a genuine slow physical trend and can trigger false redlines or mask real anomalies.
+
+CAUSAL CHAIN
+The sensor or its signal conditioning experiences a change (usually thermal) that alters offset or gain. The FIRST observable is a slow trend in the sensor reading, often correlated with local temperature telemetry rather than process variables. Redundant sensors measuring the same quantity begin to disagree. If the sensor feeds control or limits, closed-loop behaviour shifts gradually (e.g. a regulator settling at a different pressure) or a limit is reached and triggers an action.
+
+TELEMETRY SIGNATURES
+- Gradual divergence between redundant sensors, typically tens of seconds to minutes
+- Sensor trend correlated with its housing or electronics temperature rather than with the physical process
+- Non-zero reading during periods when the true value is known (e.g. zero flow, ambient pressure before pressurisation)
+- Distinguishing check: a real physical trend is mirrored by related quantities; drift appears on one sensor only and tracks temperature
+
+ROOT CAUSE
+Root causes include inadequate temperature compensation, calibration performed at conditions unlike flight, component ageing, mounting stress, radiation effects on electronics, and lack of in-flight reference points or redundant sensors.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Calibrate across the expected temperature range and record sensor temperature
+- Use known reference conditions to check offsets during flight
+- Require corroboration before acting on a single slowly trending channel

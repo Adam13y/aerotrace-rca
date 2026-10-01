@@ -1,0 +1,29 @@
+Title: Flight software unit mismatch or numeric range conversion error
+Category: avionics
+Failure mode: Flight software unit/range conversion error
+Source type: synthetic
+Case ID: avio-09-software-unit-range-conversion-error
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+This failure mode covers software that uses data with the wrong physical units, scale factors or sign conventions, or converts values into a data type that cannot represent them (overflow, saturation or exceptions). It often appears when software or parameters are reused from another vehicle or trajectory, or when interfaces between teams are incompletely specified.
+
+CAUSAL CHAIN
+A latent defect exists in code, a constant or an interface definition. It activates only when flight conditions reach a value range not seen in testing, such as higher horizontal velocity than a previous vehicle. The FIRST observable is often inside the avionics: an error or exception flag, a variable at its saturation limit, or a computed value off by a constant ratio (e.g. 4.45 for pound-force vs newtons). Downstream, navigation or control computes wrong outputs, so actuator commands and attitude errors deviate within milliseconds to seconds.
+
+TELEMETRY SIGNATURES
+- Software exception, overflow or saturation flags in computer status words before physical deviation
+- Internal variable pinned at a type limit (e.g. 32767) or differing from expectation by a constant factor
+- Sudden step in actuator command without a corresponding sensor change
+- Distinguishing check: hardware failures show sensor health flags; conversion errors show healthy sensors with implausible computed outputs
+
+ROOT CAUSE
+Root causes include reuse of software without revalidation for new flight envelopes, unprotected numeric conversions, missing unit specifications in interface documents, incomplete end-to-end simulation with realistic trajectories, and inadequate independent review of parameter files.
+
+HISTORICAL REFERENCE
+Ariane 5 Flight 501 (1996, summarised separately) failed when a 64-bit floating-point value converted to a 16-bit integer overflowed in reused inertial reference software. Mars Climate Orbiter (1999) was lost after ground software supplied impulse data in pound-force seconds where newton-seconds were expected.
+
+LESSONS LEARNED
+- Revalidate reused software against the new vehicle's full flight envelope
+- Specify units and ranges explicitly in every interface document
+- Protect numeric conversions and test with flight-representative data

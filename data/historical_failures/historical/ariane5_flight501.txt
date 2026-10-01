@@ -1,0 +1,30 @@
+Title: Ariane 5 Flight 501 - inertial reference software overflow
+Category: avionics
+Failure mode: Unprotected numeric conversion overflow in reused inertial reference software
+Source type: historical
+Case ID: ariane5_flight501
+Date: 4 June 1996
+Vehicle: Ariane 5 (Flight 501)
+Sources: Ariane 501 Inquiry Board report (ESA/CNES, July 1996)
+
+FAILURE MODE
+The maiden flight of Ariane 5, carrying the four Cluster scientific satellites, was lost about 37 seconds after lift-off from Kourou. Both inertial reference systems (SRIs) failed almost simultaneously because of the same software exception. The on-board computer then interpreted diagnostic data from the failed SRI as valid flight data and commanded extreme nozzle deflections, causing the launcher to veer abruptly, break up under aerodynamic loads and self-destruct.
+
+CAUSAL CHAIN
+The SRI software included an alignment function inherited from Ariane 4 that continued running for roughly 40 seconds after lift-off, although it served no purpose on Ariane 5 once flight had begun. Ariane 5's trajectory produced much higher horizontal velocity early in flight than Ariane 4. Around 36 to 37 seconds after lift-off, the conversion of a 64-bit floating-point value related to horizontal velocity (horizontal bias) into a 16-bit signed integer overflowed. The conversion was not protected, so an operand error was raised and the SRI processor shut down. The backup SRI, running identical software, had failed the same way a fraction of a second earlier. The active SRI then transmitted a diagnostic bit pattern, which the on-board computer read as attitude data. It commanded full deflection of the solid booster nozzles and the Vulcain engine nozzle, driving the angle of attack beyond about 20 degrees. The resulting aerodynamic loads began separating the boosters from the core stage, which triggered the self-destruct system at roughly 39 seconds.
+
+TELEMETRY SIGNATURES
+- Nominal attitude, rates and engine data for the first ~36 seconds of flight
+- Backup SRI failure flag, followed within tens of milliseconds by the primary SRI failure flag
+- Attitude data replaced by implausible values (diagnostic pattern) with no physical transition
+- Abrupt full-scale nozzle deflection commands on boosters and main engine
+- Rapid growth in angle of attack, angular rates and structural loads, then booster separation indication and self-destruct within a few seconds
+
+ROOT CAUSE
+The Inquiry Board found the cause to be the reuse of Ariane 4 SRI software without analysing or testing it against Ariane 5 trajectory data. The unprotected conversion had been judged safe for Ariane 4 based on that vehicle's physical limits. Contributing factors included the alignment function running after lift-off without need, the design choice to shut down a processor on any exception, identical software in both redundant units (so redundancy gave no protection against a design error), and the absence of a full closed-loop system test with realistic flight data.
+
+LESSONS LEARNED
+- Near-simultaneous failure of redundant units strongly suggests a common-mode design or software cause rather than random hardware failure
+- Sensor data that jump instantly to implausible values without physical transients should be flagged as invalid rather than acted upon
+- Validate reused software against the new vehicle's flight envelope, including range checks on every conversion
+- Diagnostic output and flight data must not share a channel in a way that can be confused by the consumer

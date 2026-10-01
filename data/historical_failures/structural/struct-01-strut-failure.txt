@@ -1,0 +1,29 @@
+Title: Internal strut failure releasing a tank-mounted component under flight acceleration
+Category: structural
+Failure mode: Strut failure
+Source type: synthetic
+Case ID: struct-01-strut-failure
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Struts and brackets carry concentrated loads from heavy internal components, such as pressurant bottles (COPVs), engine thrust structure members or propellant feedlines, into the tank wall or thrust frame. A strut failure occurs when one of these discrete load paths breaks, usually in tension at a rod end, clevis or casting, letting the supported mass move freely inside a pressurized tank or engine bay.
+
+CAUSAL CHAIN
+Axial acceleration rises during ascent, so strut load grows through the burn. A strut with a material defect fractures near peak acceleration. The first observable is often an acceleration transient or strain-gauge step at the mounting location. The released component then shifts; if it is a pressurant bottle, its plumbing ruptures and helium floods the tank. Within a fraction of a second to a few seconds, ullage pressure exceeds the relief setting and the tank can burst before engine telemetry reacts.
+
+TELEMETRY SIGNATURES
+- Step change or loss of signal on strain gauges near the strut attachment, often the earliest deviation
+- Short high-frequency accelerometer spike (shock event) in the affected stage
+- Pressurant bottle pressure drop followed within seconds by tank ullage pressure rise toward relief limits
+- Relief valve open indications, then abrupt loss of telemetry if the tank bursts
+
+ROOT CAUSE
+Typical causes are a defective batch of rod ends or castings with strength below specification, reliance on vendor certification without lot testing, margins that ignore material scatter, and fatigue or handling damage introduced during integration. Fracture usually occurs well below the predicted rated load.
+
+HISTORICAL REFERENCE
+SpaceX's public account of the Falcon 9 CRS-7 loss in June 2015 attributed it to a failed steel strut supporting a helium bottle inside the second-stage liquid oxygen tank, leading to over-pressurization of that tank.
+
+LESSONS LEARNED
+- Test every flight lot of critical structural hardware rather than relying solely on supplier certification
+- Treat brackets and struts inside pressurized tanks as single-point failures with pressure-system consequences
+- Place strain or acceleration sensors near heavy internal components so the initiating event can be time-ordered

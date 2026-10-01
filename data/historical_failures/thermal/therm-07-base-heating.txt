@@ -1,0 +1,29 @@
+Title: Base heating from plume recirculation overheating the engine compartment
+Category: thermal
+Failure mode: Base heating overtemperature
+Source type: synthetic
+Case ID: therm-07-base-heating
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+As a vehicle climbs and ambient pressure falls, multi-engine exhaust plumes expand and interact, driving hot gas back toward the vehicle base. This plume recirculation, together with plume radiation, heats the base heat shield, engine compartment, actuators, lines and wiring. Base heating overtemperature occurs when the heat shield, flexible closures or thermal blankets fail to keep compartment temperatures within limits.
+
+CAUSAL CHAIN
+Base heating grows with altitude as plumes expand, typically peaking during the upper part of first-stage flight. A degraded heat shield seal, torn flexible boot or inadequate insulation lets hot gas into the compartment. The first observable is a rise in base heat shield or compartment gas temperature beyond prediction, usually beginning tens of seconds after lift-off. Components then overheat in sequence: actuator hydraulic fluid, sensor wiring, valves. Damage manifests as erratic sensor readings, loss of signal on harness channels, hydraulic or TVC anomalies, and in severe cases fire in the engine bay.
+
+TELEMETRY SIGNATURES
+- Base heat shield and compartment temperatures rising above prediction as altitude increases (first deviation)
+- Engine bay harness channels becoming noisy or dropping out
+- Hydraulic fluid or actuator temperature rise and TVC response degradation
+- Engine valve or sensor anomalies with no matching change in chamber pressure
+
+ROOT CAUSE
+Root causes include underpredicted plume interaction for engine clustering, heat shield seal or flexible closure damage from ground processing, engine-out or throttle conditions changing plume structure, and inadequate insulation on harnesses.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Multi-engine vehicles generally require base heat shields because of plume recirculation.
+
+LESSONS LEARNED
+- Fly base heat flux gauges and gas temperature sensors on early flights
+- Inspect flexible closures and heat shield seals before each flight
+- Analyse base heating for engine-out and off-nominal throttle cases

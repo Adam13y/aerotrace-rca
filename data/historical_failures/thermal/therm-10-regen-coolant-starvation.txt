@@ -1,0 +1,29 @@
+Title: Regenerative cooling coolant starvation from low flow or inlet pressure
+Category: thermal
+Failure mode: Regenerative coolant starvation
+Source type: synthetic
+Case ID: therm-10-regen-coolant-starvation
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Coolant starvation is a system-level loss of regenerative cooling flow across the whole jacket, unlike a local channel blockage. It occurs when the fuel or oxidizer used as coolant is delivered at insufficient flow or pressure, because of pump degradation, cavitation, a valve sequencing error, or gas ingestion, while combustion continues to heat the chamber wall.
+
+CAUSAL CHAIN
+The initiating event is upstream of the jacket: low pump inlet pressure causes cavitation, a turbopump degrades, a valve opens late, or gas is ingested from a depleting tank. Coolant flow drops, so the first observable is a falling pump discharge pressure or jacket inlet pressure, or a rising pump speed if the pump is unloading. Coolant outlet temperature then rises quickly, and in supercritical coolants the heat transfer can deteriorate abruptly. Within seconds the chamber wall overheats around its full circumference, leading to liner cracking, burn-through and engine shutdown or failure.
+
+TELEMETRY SIGNATURES
+- Pump inlet or discharge pressure drop, or pump speed rise, preceding thermal effects (first deviation)
+- Jacket inlet pressure and flow falling while chamber pressure is initially near normal
+- Rapid coolant outlet temperature rise across all manifold sensors
+- Chamber pressure roughness and engine shutdown on redline shortly afterwards
+
+ROOT CAUSE
+Root causes include tank pressure or ullage control faults reducing pump inlet pressure, propellant depletion and gas ingestion, turbopump wear, valve timing errors, and insufficient margin between design coolant flow and the minimum required to protect the wall.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Protect pump inlet pressure margins with tank pressurization and level monitoring
+- Set fast redlines on coolant outlet temperature and jacket pressure
+- Distinguish system-wide starvation from local blockage by comparing all manifold temperatures

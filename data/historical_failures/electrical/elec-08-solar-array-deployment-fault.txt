@@ -1,0 +1,29 @@
+Title: Solar array fails to fully deploy after separation
+Category: electrical
+Failure mode: Solar array deployment fault
+Source type: synthetic
+Case ID: elec-08-solar-array-deployment-fault
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+After separation, spacecraft and some upper stages deploy solar arrays using hold-down release mechanisms, hinges and springs or motors. A deployment fault leaves one or more wings stowed or partially deployed, reducing generated power and possibly disturbing attitude control. The vehicle then runs on battery and can reach critical depth of discharge within hours.
+
+CAUSAL CHAIN
+The release command is sent; one hold-down fails to release, a hinge binds, or a harness or blanket snags. The FIRST observable is deployment telemetry: release-device or deploy-complete switches not indicating, or a hinge potentiometer stopping short. Solar array current is then lower than predicted when illuminated, while battery current remains in discharge. Over orbits, battery state of charge and bus voltage trend downward, and load shedding follows. Asymmetric deployment can also produce a small attitude disturbance at the release time.
+
+TELEMETRY SIGNATURES
+- Missing deploy-complete or latch microswitch indication after the release command
+- Array current well below predicted for the measured sun angle; battery stays in discharge in sunlight
+- Battery state-of-charge and bus voltage trending downward over successive orbits
+- Distinguishing check: a failed latch switch with normal array current and charging indicates an instrumentation problem, not a deployment failure
+
+ROOT CAUSE
+Root causes include release mechanisms sensitive to temperature or preload, interference between arrays and adjacent structure or blankets, harness routing that restricts motion, ground deployment testing that did not represent zero-g or thermal conditions, and damage during ascent.
+
+HISTORICAL REFERENCE
+Skylab (1973) is a well-documented example: loss of its micrometeoroid shield during ascent tore away one main solar array wing and left the other jammed by debris, until astronauts freed it during an extravehicular activity.
+
+LESSONS LEARNED
+- Verify deployment with both mechanism switches and array current
+- Test release mechanisms across the full flight thermal range
+- Size batteries and load-shed plans to survive a delayed deployment

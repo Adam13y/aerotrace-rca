@@ -1,0 +1,30 @@
+Title: Tank relief valve malfunction
+Category: pressurization
+Failure mode: Relief valve malfunction
+Source type: synthetic
+Case ID: press-04-relief-valve-malfunction
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Relief valve malfunction is a failure of a tank or line relief valve to crack at its set pressure, to reseat after relieving, or to pass its rated flow, or premature cracking below its set pressure. Relief valves are the last line of protection against overpressure, so failure to open is hazardous, while failure to reseat wastes pressurant and propellant and can lower ullage pressure.
+
+CAUSAL CHAIN
+In a failure to open, the first observable is ullage pressure crossing the crack pressure without the expected plateau while the relief position indicator remains closed; pressure continues upward and the event becomes a tank overpressure. In premature opening or failure to reseat, the first observable is a relief-open indication or unexplained ullage pressure decay below the set point, followed by increased pressurisation demand, faster pressurant depletion and, on cryogenic tanks, falling vent-line temperatures. Downstream effects then mirror ullage pressure loss: reduced pump inlet pressure and suction margin within seconds.
+
+TELEMETRY SIGNATURES
+- Failure to open: ullage pressure passes the relief set point with no plateau and no valve-open indication
+- Premature opening or failure to reseat: relief-open indication or vent-line temperature drop at pressures below set point
+- Pressurant bottle pressure decreases faster as the controller compensates for venting
+- Ullage pressure sawtooth with cracking and reseating at drifting pressures
+- Pump inlet pressure follows ullage pressure down in leaking cases
+
+ROOT CAUSE
+Root causes include seat contamination, ice formation in cryogenic vent paths, spring drift or incorrect set point, seal damage from repeated cycling, and flow capacity that is undersized for credible failure inflows. Testing only at ambient temperature may not reveal cryogenic behaviour of seats and springs.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Relief valve crack and reseat drift is typically detected during propellant loading and tanking tests.
+
+LESSONS LEARNED
+- Verify crack pressure, reseat pressure and flow capacity at flight temperatures
+- Provide independent position indication on relief valves
+- Use vent-line temperature as a secondary indicator of relief flow

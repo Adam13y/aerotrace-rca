@@ -1,0 +1,29 @@
+Title: Aerodynamic instability of a returning stage during reentry
+Category: aerodynamic
+Failure mode: Reentry aerodynamic instability of a returning stage
+Source type: synthetic
+Case ID: aero-10-returning-stage-reentry-instability
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Reusable boosters reenter the atmosphere engine-first, using entry burns to reduce velocity and heating, and aerodynamic surfaces to steer. Aerodynamic instability occurs when the center of pressure and center of gravity relationship, together with control authority, cannot hold attitude through the high dynamic pressure and transonic portions of descent.
+
+CAUSAL CHAIN
+The first deviation is usually an attitude or angle-of-attack disturbance during the high dynamic pressure phase of descent, often just after the entry burn ends or as the stage decelerates through transonic speeds, where center-of-pressure location shifts. Control surfaces and reaction control thrusters respond within a second, and their positions or duty cycles approach limits. If authority is insufficient, angle of attack grows and the stage begins to tumble or spin within seconds. Aerodynamic heating and loads then rise on parts not designed to face the flow, causing structural damage, propellant slosh that starves the engine inlets, or failure to relight the landing engine.
+
+TELEMETRY SIGNATURES
+- Attitude or angle-of-attack disturbance during descent dynamic pressure peak
+- Control surface positions and reaction control duty cycles approaching limits
+- Rising angular rates indicating tumble or spin
+- Abnormal temperatures on surfaces not normally facing the flow
+
+ROOT CAUSE
+Typical causes are an off-nominal entry burn that leaves the stage faster or at a different attitude than planned, propellant slosh shifting the center of gravity, aerodynamic data for engine-first descent configurations based on limited test data, and control surface, hydraulic or reaction control gas depletion failures.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Validate descent aerodynamic data across the range of attitude and Mach
+- Model propellant slosh and center-of-gravity shifts during descent
+- Rank attitude disturbances against descent dynamic pressure timing when diagnosing loss of a returning stage

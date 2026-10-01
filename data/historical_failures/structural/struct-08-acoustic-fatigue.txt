@@ -1,0 +1,29 @@
+Title: Acoustic fatigue of thin panels and fairing structure
+Category: structural
+Failure mode: Acoustic fatigue
+Source type: synthetic
+Case ID: struct-08-acoustic-fatigue
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Acoustic fatigue is high-cycle fatigue driven by intense broadband pressure fluctuations rather than mechanical vibration. Lift-off acoustics reflected from the pad and aerodynamic noise near transonic flight and maximum dynamic pressure can exceed roughly 140 to 150 dB in some regions. Thin skins, fairing panels, stiffener attachments and lightweight brackets resonate and accumulate many cycles quickly.
+
+CAUSAL CHAIN
+The acoustic environment excites panel resonances in the hundreds of hertz, accumulating a very large number of cycles in tens of seconds. Cracks initiate at rivet rows, spot welds or bonded edges where stress concentrates. The first observable is rising response on microphones and panel accelerometers, peaking at lift-off and again near transonic flight and maximum dynamic pressure. A cracked panel then shows a shifted resonance or rattle. Failed panels can detach, admitting aerodynamic flow, or damage nearby equipment and harnesses; failures often become visible shortly after the acoustic peak rather than during it.
+
+TELEMETRY SIGNATURES
+- Elevated sound pressure level on internal or external microphones exceeding the predicted envelope (first deviation)
+- High panel accelerometer response at specific resonance frequencies
+- Shift in panel resonance or appearance of nonlinear harmonics indicating cracking
+- Compartment pressure or temperature change if a panel opens to the airstream
+
+ROOT CAUSE
+Typical causes are underpredicted acoustic environments, ineffective pad sound suppression, lack of damping treatments, panel designs with resonances in the dominant acoustic band, and test programmes that did not reproduce the flight acoustic spectrum.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice. Pad water deluge systems exist largely to reduce lift-off acoustic loads.
+
+LESSONS LEARNED
+- Qualify panels and brackets in reverberant acoustic testing to flight-derived spectra
+- Add damping and avoid placing panel resonances in the peak acoustic band
+- Fly microphones to validate and update acoustic predictions

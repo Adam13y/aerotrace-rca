@@ -1,0 +1,29 @@
+Title: Intermittent connector contact under flight vibration
+Category: electrical
+Failure mode: Connector intermittency under vibration
+Source type: synthetic
+Case ID: elec-09-connector-intermittency-vibration
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Connector intermittency is the momentary opening or resistance increase of an electrical contact when vibration or shock moves mating parts. Causes include partially mated or unlocked connectors, pin back-out, fretting corrosion and worn sockets. Because the fault is intermittent and depends on dynamic environment, it often passes static ground tests and appears only at liftoff, transonic buffet, max-q or staging.
+
+CAUSAL CHAIN
+Vibration excites the connector or harness; a marginal contact opens for microseconds to milliseconds. The FIRST observable is a burst of dropouts, spikes or bit errors on signals through that connector, temporally correlated with vibration accelerometer levels. Power contacts produce brief voltage dips on the downstream unit, possibly triggering resets. As vibration subsides the symptoms disappear, which is the characteristic pattern. Repeated fretting gradually increases resistance and can make the fault permanent.
+
+TELEMETRY SIGNATURES
+- Spikes, dropouts or checksum errors on a group of channels sharing one connector, concentrated during high-vibration phases
+- Symptom rate tracks vibration amplitude and stops when vibration falls
+- Brief undervoltage events or resets of a unit powered through the connector
+- Distinguishing check: physical process changes would persist after vibration ends; intermittency that correlates with accelerometer RMS and channel grouping points to the connector
+
+ROOT CAUSE
+Root causes include incomplete mating or missing lock-wire and safety checks, contacts not fully seated, inadequate strain relief and harness support, connector selection not rated for the vibration environment, and repeated mate-demate cycles during ground processing.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Group telemetry anomalies by connector to reveal common-cause intermittency
+- Verify connector mating and locking with independent inspection
+- Include powered, monitored vibration testing to catch intermittent contacts

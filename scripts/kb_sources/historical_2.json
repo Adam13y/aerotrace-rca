@@ -1,0 +1,257 @@
+{
+  "category": "historical",
+  "source_type": "historical",
+  "cases": [
+    {
+      "id": "atlas5_centaur",
+      "title": "Atlas V OA-6 - RD-180 early shutdown compensated by Centaur",
+      "category": "propulsion",
+      "failure_mode": "First-stage premature cutoff from mixture ratio control valve anomaly",
+      "date": "22 March 2016",
+      "vehicle": "Atlas V 401 with Centaur upper stage (Cygnus OA-6 mission)",
+      "sources": "United Launch Alliance post-flight statements and anomaly investigation summary (2016); NASA and Orbital ATK mission statements",
+      "failure_mode_description": "This case covers the March 2016 OA-6 mission only, not the 2007 NROL-30 Centaur event. During ascent the Atlas V first stage, powered by a single RD-180 engine, shut down several seconds earlier than planned (ULA described it as roughly five to six seconds early). The shortfall in first-stage velocity was made up by the Centaur upper stage, whose guidance extended its burn by on the order of a minute and delivered the Cygnus cargo spacecraft to an acceptable orbit. The mission was therefore a success, but the event was treated as a significant anomaly because the performance margin consumed by Centaur was large and the cause lay in the booster engine.",
+      "causal_chain": "Lift-off and early ascent appeared nominal. Over the first-stage burn, an anomaly in the RD-180 mixture ratio control valve assembly caused the engine to consume propellant at a different ratio than planned, so one propellant was depleted ahead of schedule. Booster engine cutoff then occurred early on a depletion condition rather than at the planned point, leaving the stack short of the planned velocity at staging. Separation and Centaur ignition proceeded normally. Centaur's closed-loop guidance recognised the velocity deficit and lengthened its burn, using reserve propellant to reach the target orbit; Cygnus separated and later berthed with the ISS. Subsequent Atlas V launches were delayed while ULA investigated, and the affected valve hardware was addressed before return to flight.",
+      "telemetry_signatures": [
+        "Booster engine chamber pressure and thrust near nominal for most of the burn, then terminating several seconds before the predicted cutoff time",
+        "First-stage propellant level or consumption trend diverging from prediction, with one propellant approaching depletion early (indicating an off-nominal mixture ratio)",
+        "Staging event and Centaur ignition occurring at nominal sequence but from a lower-than-planned velocity and altitude state",
+        "Centaur burn duration substantially longer than planned, with Centaur propellant reserves correspondingly reduced at cutoff",
+        "Final orbit parameters within acceptable limits despite the booster underperformance"
+      ],
+      "root_cause": "ULA's investigation attributed the early shutdown to a malfunction in the RD-180's mixture ratio control valve assembly, which produced an off-nominal propellant mixture ratio and early depletion of propellant. Publicly released detail on the exact internal failure mechanism of the valve was limited, so finer specifics should not be assumed. The key contributing factor to mission success, rather than failure, was the upper stage's guidance design and propellant reserve, which absorbed the booster shortfall.",
+      "lessons_learned": [
+        "Track propellant consumption rate and implied mixture ratio against prediction throughout the burn; drift gives early warning before a depletion cutoff",
+        "An early cutoff with otherwise healthy chamber pressure points toward propellant management or valve control rather than combustion failure",
+        "Upper-stage burn extension and reserve depletion are themselves telemetry evidence of an upstream performance shortfall",
+        "Successful missions with large margin consumption still warrant full anomaly investigation before the next flight"
+      ]
+    },
+    {
+      "id": "ariane5_flight501",
+      "title": "Ariane 5 Flight 501 - inertial reference software overflow",
+      "category": "avionics",
+      "failure_mode": "Unprotected numeric conversion overflow in reused inertial reference software",
+      "date": "4 June 1996",
+      "vehicle": "Ariane 5 (Flight 501)",
+      "sources": "Ariane 501 Inquiry Board report (ESA/CNES, July 1996)",
+      "failure_mode_description": "The maiden flight of Ariane 5, carrying the four Cluster scientific satellites, was lost about 37 seconds after lift-off from Kourou. Both inertial reference systems (SRIs) failed almost simultaneously because of the same software exception. The on-board computer then interpreted diagnostic data from the failed SRI as valid flight data and commanded extreme nozzle deflections, causing the launcher to veer abruptly, break up under aerodynamic loads and self-destruct.",
+      "causal_chain": "The SRI software included an alignment function inherited from Ariane 4 that continued running for roughly 40 seconds after lift-off, although it served no purpose on Ariane 5 once flight had begun. Ariane 5's trajectory produced much higher horizontal velocity early in flight than Ariane 4. Around 36 to 37 seconds after lift-off, the conversion of a 64-bit floating-point value related to horizontal velocity (horizontal bias) into a 16-bit signed integer overflowed. The conversion was not protected, so an operand error was raised and the SRI processor shut down. The backup SRI, running identical software, had failed the same way a fraction of a second earlier. The active SRI then transmitted a diagnostic bit pattern, which the on-board computer read as attitude data. It commanded full deflection of the solid booster nozzles and the Vulcain engine nozzle, driving the angle of attack beyond about 20 degrees. The resulting aerodynamic loads began separating the boosters from the core stage, which triggered the self-destruct system at roughly 39 seconds.",
+      "telemetry_signatures": [
+        "Nominal attitude, rates and engine data for the first ~36 seconds of flight",
+        "Backup SRI failure flag, followed within tens of milliseconds by the primary SRI failure flag",
+        "Attitude data replaced by implausible values (diagnostic pattern) with no physical transition",
+        "Abrupt full-scale nozzle deflection commands on boosters and main engine",
+        "Rapid growth in angle of attack, angular rates and structural loads, then booster separation indication and self-destruct within a few seconds"
+      ],
+      "root_cause": "The Inquiry Board found the cause to be the reuse of Ariane 4 SRI software without analysing or testing it against Ariane 5 trajectory data. The unprotected conversion had been judged safe for Ariane 4 based on that vehicle's physical limits. Contributing factors included the alignment function running after lift-off without need, the design choice to shut down a processor on any exception, identical software in both redundant units (so redundancy gave no protection against a design error), and the absence of a full closed-loop system test with realistic flight data.",
+      "lessons_learned": [
+        "Near-simultaneous failure of redundant units strongly suggests a common-mode design or software cause rather than random hardware failure",
+        "Sensor data that jump instantly to implausible values without physical transients should be flagged as invalid rather than acted upon",
+        "Validate reused software against the new vehicle's flight envelope, including range checks on every conversion",
+        "Diagnostic output and flight data must not share a channel in a way that can be confused by the consumer"
+      ]
+    },
+    {
+      "id": "soyuz_ms10",
+      "title": "Soyuz MS-10 - strap-on booster separation failure and crew abort",
+      "category": "separation",
+      "failure_mode": "Abnormal strap-on booster separation causing collision with core stage",
+      "date": "11 October 2018",
+      "vehicle": "Soyuz-FG with Soyuz MS-10 crewed spacecraft",
+      "sources": "Roscosmos state commission findings (announced November 2018); NASA statements on the abort",
+      "failure_mode_description": "About two minutes after launch from Baikonur, during separation of the four first-stage strap-on boosters from the core (second) stage, one booster did not separate cleanly and struck the core stage near its upper end. The impact damaged the core stage, which lost attitude control. The launch abort system separated the crew spacecraft, which made a ballistic descent and landed safely in Kazakhstan with both crew members, one Russian and one American, uninjured.",
+      "causal_chain": "Lift-off and first-stage flight were nominal. At the planned strap-on separation time, roughly 118 seconds into flight, three boosters separated normally. On one booster, a separation sensor had been damaged during vehicle assembly at the launch site: a contact pin was bent. Because of this, the mechanism that opens the booster's oxidizer tank vent at the top of the booster did not operate as designed, so the booster did not pivot away from the core stage in the normal way. Its upper end struck the core stage near the top of the core stage's tank section, damaging it and causing a loss of stabilisation. The abort system detected the loss of control and separated the crewed spacecraft using the motors on the payload fairing (the escape tower had already been jettisoned earlier in ascent). The descent module followed a steep ballistic re-entry with high deceleration loads and landed under parachute.",
+      "telemetry_signatures": [
+        "Nominal chamber pressures and trajectory through the first-stage burn",
+        "Booster separation event with one booster's separation indication off-nominal or inconsistent with the other three",
+        "Sudden angular rate and attitude disturbance on the core stage immediately after separation, consistent with a collision",
+        "Possible core-stage tank pressure disturbance and loss of attitude stabilisation within seconds",
+        "Abort command, fairing motor firing and spacecraft separation, followed by ballistic descent with elevated g-loads"
+      ],
+      "root_cause": "The Roscosmos commission concluded that the failure was caused by deformation of a separation sensor pin on one strap-on booster during assembly of the booster cluster at Baikonur, which prevented proper opening of the oxidizer tank vent cover and therefore normal separation. The damage was not caught before launch. Onboard camera footage released later showed the booster contacting the core stage. Rockets in the assembly flow were inspected afterwards.",
+      "lessons_learned": [
+        "At staging events, compare separation indications across symmetric elements; a single outlier is a strong discriminator",
+        "A rate or attitude transient immediately after separation points to contact or recontact rather than an engine fault",
+        "Assembly-induced damage to separation hardware may produce no signature until the separation event itself",
+        "Abort system triggering logic based on attitude loss worked; telemetry should capture the exact sequence to support review"
+      ]
+    },
+    {
+      "id": "progress_ms04",
+      "title": "Progress MS-04 - Soyuz-U third-stage failure",
+      "category": "propulsion",
+      "failure_mode": "Third-stage engine/oxidizer system destruction during upper-stage flight",
+      "date": "1 December 2016",
+      "vehicle": "Soyuz-U with Progress MS-04 cargo spacecraft",
+      "sources": "Roscosmos commission findings (announced late December 2016 / early 2017) and Roscosmos press statements",
+      "failure_mode_description": "The Progress MS-04 cargo ship bound for the ISS was lost when its Soyuz-U launcher failed during third-stage flight, roughly 380 seconds after launch from Baikonur. Telemetry was lost at about that time, and most debris burned up over a remote area of the Tuva region in Siberia. No crew were involved. The exact failure mechanism was not observed directly, and the official cause was presented as the most likely scenario rather than a confirmed one.",
+      "causal_chain": "First- and second-stage flight were reported as nominal, and the third stage, powered by an RD-0110 engine, ignited as planned. At approximately 382 seconds into flight, during the third-stage burn, the vehicle experienced an abrupt anomaly and telemetry from the vehicle ceased shortly afterwards. Roscosmos reported that the spacecraft separated prematurely from the third stage, together with debris, at an altitude of roughly 190 km, before orbital velocity had been reached. Neither the stage nor the spacecraft reached orbit and both re-entered.",
+      "telemetry_signatures": [
+        "Nominal first- and second-stage performance and normal third-stage ignition",
+        "During third-stage burn, a sudden off-nominal event (reported publicly only at a high level; likely visible as abrupt changes in engine or tank parameters)",
+        "Unplanned spacecraft separation indication well before scheduled orbital insertion",
+        "Abrupt loss of telemetry at roughly T+382 s, with no extended degradation phase reported",
+        "Absence of the expected orbital tracking acquisition after the planned insertion time"
+      ],
+      "root_cause": "Investigators attributed the failure to the destruction of the third stage's engine area, with the most likely cause given as a failure involving the oxidizer pump of the RD-0110 engine, possibly linked to ignition caused by engine assembly or manufacturing defects or foreign material. Public statements also referenced the possibility of a design or manufacturing issue at the engine supplier. Because the investigation relied on limited telemetry and no recovered hardware, the conclusion should be treated as the most probable explanation rather than a definitive finding. Soyuz-U flew again in February 2017 after corrective measures on the engine.",
+      "lessons_learned": [
+        "Turbopump destruction can propagate to loss of vehicle in well under a second; high-rate sampling of pump speed, pressures and vibration is needed to capture precursors",
+        "When telemetry ends abruptly, the last few frames of turbomachinery and tank data are the main evidence, so preserve them at full resolution",
+        "Unplanned separation indications can be a consequence of structural breakup rather than a separation-system fault",
+        "Conclusions drawn without recovered hardware should be carried as probable causes, and fleet-wide manufacturing checks used to reduce residual risk"
+      ]
+    },
+    {
+      "id": "spacex_crs1",
+      "title": "SpaceX CRS-1 - Falcon 9 first-stage engine-out during ascent",
+      "category": "propulsion",
+      "failure_mode": "Single Merlin engine loss of pressure and commanded shutdown",
+      "date": "8 October 2012 (UTC; evening of 7 October local time)",
+      "vehicle": "Falcon 9 v1.0 with Dragon CRS-1, secondary payload Orbcomm OG2 prototype",
+      "sources": "SpaceX post-flight statements (2012); NASA and Orbcomm statements",
+      "failure_mode_description": "On the first operational Commercial Resupply Services flight to the ISS, one of the nine Merlin 1C first-stage engines suffered a sudden loss of pressure roughly 79 seconds after lift-off. The flight computer shut that engine down and the remaining eight engines burned longer to compensate. Dragon reached its planned orbit and later berthed with the ISS. The secondary Orbcomm satellite, however, was left in a lower than intended orbit and re-entered within days.",
+      "causal_chain": "Ascent was nominal until about T+79 s, near the period of high aerodynamic pressure. Engine 1 experienced an abrupt pressure loss; video showed a flash and debris, which SpaceX later said was mainly the engine's aerodynamic fairing being shed and that the engine did not explode. The flight computer detected the anomaly and commanded engine shutdown. The vehicle's guidance recomputed the trajectory, extending the burn of the remaining engines, and the second stage delivered Dragon to its target orbit. A planned second-stage restart to raise the Orbcomm satellite was not performed because the remaining propellant margin did not meet the probability threshold NASA required for operations near the ISS, so the satellite was deployed into the lower insertion orbit.",
+      "telemetry_signatures": [
+        "Single-engine chamber pressure drop to near zero while the other eight engines remain nominal",
+        "Engine shutdown command for the affected engine immediately after the pressure loss",
+        "Small attitude disturbance and short transient in thrust-vector control as the remaining engines compensate",
+        "Longer-than-planned first-stage burn and adjusted staging time",
+        "Reduced upper-stage propellant reserve at insertion, leading to cancellation of a later burn"
+      ],
+      "root_cause": "SpaceX reported that the most probable cause was a flaw in the material of the engine's combustion chamber jacket, leading to a breach and loss of chamber pressure. Detailed failure analysis was not fully published. The engine-out tolerance designed into the nine-engine first stage allowed the primary mission to continue, while the ISS-related safety constraint on the second-stage restart, rather than any further hardware fault, caused the secondary payload loss.",
+      "lessons_learned": [
+        "In clustered-engine stages, isolate per-engine chamber pressure; one channel collapsing while others hold steady points to a local engine fault",
+        "Visible debris or flashes do not by themselves indicate catastrophic failure; correlate with pressure and shutdown data",
+        "Engine-out compensation shows up as extended burn and reduced reserves, which can constrain later mission events",
+        "Range or proximity safety rules can turn a recovered propulsion anomaly into a secondary-mission loss"
+      ]
+    },
+    {
+      "id": "x43a_first_flight",
+      "title": "X-43A first flight - Hyper-X launch vehicle loss of control",
+      "category": "aerodynamic",
+      "failure_mode": "Flight control instability from inaccurate aerodynamic and actuator modelling",
+      "date": "2 June 2001",
+      "vehicle": "Hyper-X Launch Vehicle (modified Pegasus first stage) carrying X-43A, air-launched from B-52B",
+      "sources": "NASA X-43A Mishap Investigation Board report (2001, publicly summarised by NASA)",
+      "failure_mode_description": "On the first attempted flight of the X-43A scramjet research vehicle, the booster that was to accelerate it to hypersonic speed lost control shortly after ignition. The Hyper-X Launch Vehicle, a modified Pegasus first stage, developed a growing control oscillation during transonic flight, a control surface failed structurally, and the vehicle departed its trajectory. It was destroyed by range safety over the Pacific, and the X-43A never separated or tested its engine.",
+      "causal_chain": "The stack was dropped from the B-52B carrier aircraft, the solid rocket motor ignited, and the vehicle began its pull-up. Within several seconds of ignition, as the vehicle approached transonic speed, a control-system oscillation developed, mainly visible in roll and yaw. The fin actuators reached their limits and the oscillation grew. A control surface (one of the elevons) then failed structurally, the vehicle lost control and deviated significantly from its planned path, and the flight termination system was commanded. Total flight time after drop was well under a minute.",
+      "telemetry_signatures": [
+        "Normal drop and motor ignition, with nominal chamber pressure",
+        "Onset of a growing oscillation in roll and yaw rates shortly after ignition, approaching transonic conditions",
+        "Fin actuator position commands and rates reaching saturation limits, with actuator response lagging commands",
+        "Abrupt asymmetric change in fin response consistent with loss of a control surface",
+        "Large attitude departure from planned trajectory followed by flight termination and loss of signal"
+      ],
+      "root_cause": "The Mishap Investigation Board found no single cause. It concluded that the vehicle's control system design did not have adequate margin because the models used in its design and verification were inaccurate. Errors identified included modelling of the fin actuation system, vehicle aerodynamics (notably in the transonic regime) and mass properties. Together these led to an unstable control loop that the pre-flight analysis had not predicted. After model corrections and changes to the flight profile, the second and third X-43A flights in 2004 succeeded.",
+      "lessons_learned": [
+        "A growing oscillation in angular rates with actuators saturating is a classic signature of a control-loop instability rather than a propulsion fault",
+        "Actuator command-versus-position tracking error is a sensitive early indicator of insufficient control authority or actuator modelling error",
+        "Pre-flight simulations are only as good as their aerodynamic and actuator models; flight data should be compared against model predictions in real time",
+        "Transonic regimes deserve dedicated margin analysis because aerodynamic coefficients change rapidly there"
+      ]
+    },
+    {
+      "id": "spaceshiptwo_2014",
+      "title": "SpaceShipTwo VSS Enterprise - premature feather unlock and in-flight breakup",
+      "category": "aerodynamic",
+      "failure_mode": "Uncommanded feather deployment under transonic aerodynamic loads after early unlock",
+      "date": "31 October 2014",
+      "vehicle": "Scaled Composites / Virgin Galactic SpaceShipTwo VSS Enterprise (powered flight 4)",
+      "sources": "NTSB accident report and board meeting findings (2015)",
+      "failure_mode_description": "During a rocket-powered test flight over the Mojave Desert, SpaceShipTwo broke apart seconds after its feather system, a reconfigurable tail used for re-entry, was unlocked far earlier than the procedure called for. Aerodynamic loads then moved the feather into its deployed position without the separate deploy handle being operated, and the resulting forces destroyed the vehicle. The co-pilot was killed; the pilot was thrown clear, his parachute deployed, and he survived with serious injuries.",
+      "causal_chain": "After release from the WhiteKnightTwo carrier aircraft, the hybrid rocket motor ignited normally. The procedure required the feather to be unlocked only after the vehicle passed about Mach 1.4. Roughly 10 seconds after ignition, while the vehicle was at about Mach 0.8 and still transonic, the co-pilot moved the feather lock handle to unlock. At those conditions the aerodynamic hinge moment on the tail surfaces exceeded what the feather actuators could hold without the locks, and the feather began to extend uncommanded about two seconds later. The rapid change in configuration produced severe aerodynamic loads and the vehicle broke up within a few seconds.",
+      "telemetry_signatures": [
+        "Normal motor ignition with nominal chamber pressure and accelerating Mach number",
+        "Feather lock status changing to unlocked while Mach is well below the procedural unlock threshold",
+        "Feather position beginning to increase without a corresponding deploy command",
+        "Rapid nose-up pitch rate and large normal acceleration as the feather extends",
+        "Loss of telemetry and vehicle breakup within seconds of feather movement"
+      ],
+      "root_cause": "The NTSB found that the probable cause was the failure of the developer, Scaled Composites, to consider and protect against the possibility that a single human error could result in a catastrophic hazard. The early unlock was the initiating action, but the design had no safeguard such as an inhibit preventing unlock below a safe Mach number. Contributing factors included hazard analysis that did not address human error, training that did not emphasise the danger of early unlocking, and high workload during the transonic phase. The motor and its new fuel formulation were found not to be involved.",
+      "lessons_learned": [
+        "Check mode and configuration status changes against the flight envelope; a lock state change outside its allowed Mach window is a critical alarm",
+        "Uncommanded surface movement after an enabling action points to aerodynamic loads exceeding actuator holding capability",
+        "Correlate crew control inputs with vehicle state to separate human-initiated events from system faults",
+        "Single-point human actions with catastrophic consequences should be inhibited in software or hardware, and monitored in telemetry"
+      ]
+    },
+    {
+      "id": "vanguard_tv3",
+      "title": "Vanguard TV3 - first-stage thrust loss and pad explosion",
+      "category": "propulsion",
+      "failure_mode": "First-stage thrust loss seconds after lift-off with fall-back explosion",
+      "date": "6 December 1957",
+      "vehicle": "Vanguard TV3 (Test Vehicle 3), Cape Canaveral",
+      "sources": "U.S. Naval Research Laboratory / Project Vanguard reports and later NASA historical accounts",
+      "failure_mode_description": "Vanguard TV3 was the first U.S. attempt to place a satellite in orbit, made two months after Sputnik 1. About two seconds after ignition and lift-off, when the vehicle had risen only around a metre or so, the first stage lost thrust. The rocket settled back onto the pad, its tanks ruptured, and it was destroyed in a large fire and explosion. The small test satellite was thrown clear and was found still transmitting. The highly publicised failure drew heavy press criticism.",
+      "causal_chain": "The launch was made from Launch Complex 18A at Cape Canaveral after several days of delays. The first stage, a liquid-propellant engine burning kerosene and liquid oxygen, ignited and the vehicle began to rise. Within roughly two seconds, thrust decayed. Without sufficient thrust the vehicle fell back, collapsing onto the launch stand; the ruptured tanks fed a fireball that consumed most of the vehicle. The upper stages and the nose section were destroyed or damaged, while the satellite package was ejected and survived largely intact.",
+      "telemetry_signatures": [
+        "Normal ignition sequence and initial rise in first-stage chamber pressure",
+        "Lift-off indication followed within about two seconds by a drop in chamber pressure or thrust",
+        "Very low altitude and vertical velocity reversing sign shortly after lift-off",
+        "Abrupt loss of vehicle telemetry with the fire and explosion at the pad",
+        "Satellite beacon signal continuing after vehicle loss, indicating payload ejection"
+      ],
+      "root_cause": "The cause has not been documented with full certainty. The explanation most commonly given in historical accounts is that fuel tank pressure was too low during start, allowing hot combustion gases to enter the fuel system through the injector (or a leak at a fuel line connection), leading to a fire within the engine and loss of thrust. Other accounts mention a loose fuel line connection. Because instrumentation in 1957 was limited and the vehicle was destroyed, these should be treated as the most likely causes identified by investigators rather than a definitively proven mechanism.",
+      "lessons_learned": [
+        "Thrust decay in the first seconds after lift-off should be cross-checked against tank pressures and injector-side pressures to distinguish feed problems from combustion faults",
+        "Low ullage or tank pressure during start-up is a known precursor to backflow and engine fires",
+        "Instrumenting start transients at high rate is essential because failures there are brief and destroy the evidence",
+        "When telemetry is sparse, record the confidence level of the root cause alongside it"
+      ]
+    },
+    {
+      "id": "titan2",
+      "title": "Titan II Damascus 1980 - dropped socket punctures first-stage fuel tank",
+      "category": "structural",
+      "failure_mode": "Mechanical puncture of propellant tank leading to vapour accumulation and explosion",
+      "date": "18-19 September 1980",
+      "vehicle": "Titan II ICBM, Launch Complex 374-7 near Damascus, Arkansas",
+      "sources": "U.S. Air Force accident investigation findings (1980-1981); U.S. congressional and later historical accounts",
+      "failure_mode_description": "This case is the 1980 Damascus, Arkansas silo accident. During routine maintenance in a Titan II missile silo, a heavy socket fell from a technician's socket wrench, dropped a long distance down the silo, and punctured the skin of the missile's first-stage fuel tank. Fuel (Aerozine 50, a hydrazine-based propellant) leaked into the silo over several hours, creating a toxic and explosive environment. Early the next morning the silo exploded, blowing off the massive silo closure door and ejecting the nuclear warhead, which did not detonate or release radioactive material. One Air Force airman died and around twenty others were injured.",
+      "causal_chain": "On the evening of 18 September, a maintenance crew working on a platform in the silo was carrying out a procedure related to the oxidizer tank pressure on the second stage. A socket, roughly several kilograms in mass, slipped off a wrench, fell, bounced, and pierced the first-stage fuel tank. Fuel began spraying and vapour filled the silo. Personnel evacuated the launch control centre as conditions worsened. Over the following hours, the fuel tank pressure fell as fuel escaped, while monitoring showed abnormal pressure behaviour in the oxidizer tanks. Response teams attempted to assess and ventilate the site. At around 3 a.m. on 19 September the fuel vapour ignited and the silo exploded.",
+      "telemetry_signatures": [
+        "Sudden indication of fuel vapour by silo hazard sensors immediately after the puncture",
+        "Steady decline in first-stage fuel tank pressure over hours as propellant leaked",
+        "Abnormal pressure trends in the oxidizer tanks as tank structural support and conditions changed",
+        "Rising silo temperature and vapour concentration readings until sensor data were lost",
+        "Explosion with complete loss of all site instrumentation"
+      ],
+      "root_cause": "The initiating cause was a dropped tool during maintenance, a procedural and human-factors failure: the tool was not tethered and work was performed above an unprotected pressurised tank. Investigations also pointed to contributing factors including limited ability to respond to a leak of this type, communication problems in the emergency response, and the inherent hazard of storable hypergolic propellants in an enclosed silo. Detailed sequencing of the final ignition source is not definitively established in public accounts.",
+      "lessons_learned": [
+        "Pressurised tanks with thin walls are vulnerable to small mechanical impacts; leak and pressure monitoring must cover maintenance periods, not just flight",
+        "A slow, monotonic pressure decay in one tank with a vapour alarm is a clear leak signature that should trigger escalation",
+        "Correlated changes between tanks sharing structure can foreshadow structural failure",
+        "Tool control and procedure design are part of the safety system and should be reflected in hazard analysis"
+      ]
+    },
+    {
+      "id": "proton_m_2013",
+      "title": "Proton-M GLONASS launch - inverted yaw rate sensors",
+      "category": "avionics",
+      "failure_mode": "Angular rate sensors installed upside down, causing control reversal",
+      "date": "2 July 2013",
+      "vehicle": "Proton-M with Block DM-03 upper stage carrying three GLONASS-M satellites",
+      "sources": "Russian state commission findings (July 2013) and Roscosmos statements",
+      "failure_mode_description": "A Proton-M rocket launched from Baikonur veered off course within seconds of lift-off, pitched over violently, broke apart and crashed close to the launch complex less than a minute after launch. The cause was that several angular velocity sensors in the control system had been installed upside down, so that the flight control system received rate measurements with the wrong sign and drove the vehicle away from its intended attitude. The three navigation satellites were lost and a large quantity of toxic propellant burned or dispersed near the pad.",
+      "causal_chain": "At lift-off the first-stage engines operated normally. Almost immediately the vehicle began to deviate in yaw. Because the yaw rate sensors were inverted, the control system interpreted the deviation in the wrong direction and its corrective commands amplified it rather than damping it. The vehicle's attitude departed rapidly, with large oscillations, and the rocket began to break up under aerodynamic loads. Engine shutdown was reportedly inhibited during the first part of flight by design, to keep a failing vehicle from falling back onto the launch complex, so the engines kept firing as the vehicle turned over. It struck the ground near the launch complex well under a minute after lift-off.",
+      "telemetry_signatures": [
+        "Nominal engine ignition and chamber pressure through lift-off",
+        "Yaw rate measurements with sign opposite to the motion indicated by other attitude sources",
+        "Nozzle gimbal commands growing in the same direction as the attitude error instead of opposing it",
+        "Rapidly diverging yaw and pitch attitude with large angular rates within seconds of lift-off",
+        "Structural breakup indications and loss of telemetry at impact around 30 seconds"
+      ],
+      "root_cause": "The state commission found that three yaw angular velocity sensors had been mounted inverted during assembly at the manufacturing plant. The mounting design allowed the sensors to be forced into the wrong orientation despite markings indicating the correct direction, and the error was not caught by inspection or by pre-launch checks. Contributing factors cited included inadequate quality control and workmanship oversight at the manufacturer.",
+      "lessons_learned": [
+        "Positive feedback signatures, where control commands increase the error, point strongly to sensor or actuator polarity errors",
+        "Cross-check rate gyro signs against integrated attitude, accelerometers or other independent sources at the start of flight",
+        "Polarity and orientation checks on sensors should be part of end-to-end pre-launch tests",
+        "Physical mounting should be designed so that incorrect orientation is impossible, not merely marked",
+        "A deviation that begins at lift-off with healthy engines and grows monotonically under active control implicates the guidance and control chain before propulsion"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+Title: Progress MS-04 - Soyuz-U third-stage failure
+Category: propulsion
+Failure mode: Third-stage engine/oxidizer system destruction during upper-stage flight
+Source type: historical
+Case ID: progress_ms04
+Date: 1 December 2016
+Vehicle: Soyuz-U with Progress MS-04 cargo spacecraft
+Sources: Roscosmos commission findings (announced late December 2016 / early 2017) and Roscosmos press statements
+
+FAILURE MODE
+The Progress MS-04 cargo ship bound for the ISS was lost when its Soyuz-U launcher failed during third-stage flight, roughly 380 seconds after launch from Baikonur. Telemetry was lost at about that time, and most debris burned up over a remote area of the Tuva region in Siberia. No crew were involved. The exact failure mechanism was not observed directly, and the official cause was presented as the most likely scenario rather than a confirmed one.
+
+CAUSAL CHAIN
+First- and second-stage flight were reported as nominal, and the third stage, powered by an RD-0110 engine, ignited as planned. At approximately 382 seconds into flight, during the third-stage burn, the vehicle experienced an abrupt anomaly and telemetry from the vehicle ceased shortly afterwards. Roscosmos reported that the spacecraft separated prematurely from the third stage, together with debris, at an altitude of roughly 190 km, before orbital velocity had been reached. Neither the stage nor the spacecraft reached orbit and both re-entered.
+
+TELEMETRY SIGNATURES
+- Nominal first- and second-stage performance and normal third-stage ignition
+- During third-stage burn, a sudden off-nominal event (reported publicly only at a high level; likely visible as abrupt changes in engine or tank parameters)
+- Unplanned spacecraft separation indication well before scheduled orbital insertion
+- Abrupt loss of telemetry at roughly T+382 s, with no extended degradation phase reported
+- Absence of the expected orbital tracking acquisition after the planned insertion time
+
+ROOT CAUSE
+Investigators attributed the failure to the destruction of the third stage's engine area, with the most likely cause given as a failure involving the oxidizer pump of the RD-0110 engine, possibly linked to ignition caused by engine assembly or manufacturing defects or foreign material. Public statements also referenced the possibility of a design or manufacturing issue at the engine supplier. Because the investigation relied on limited telemetry and no recovered hardware, the conclusion should be treated as the most probable explanation rather than a definitive finding. Soyuz-U flew again in February 2017 after corrective measures on the engine.
+
+LESSONS LEARNED
+- Turbopump destruction can propagate to loss of vehicle in well under a second; high-rate sampling of pump speed, pressures and vibration is needed to capture precursors
+- When telemetry ends abruptly, the last few frames of turbomachinery and tank data are the main evidence, so preserve them at full resolution
+- Unplanned separation indications can be a consequence of structural breakup rather than a separation-system fault
+- Conclusions drawn without recovered hardware should be carried as probable causes, and fleet-wide manufacturing checks used to reduce residual risk

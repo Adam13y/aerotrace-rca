@@ -1,0 +1,29 @@
+Title: Stage separation anomaly: incomplete or disturbed staging event
+Category: separation
+Failure mode: Stage separation anomaly
+Source type: synthetic
+Case ID: sep-01-stage-separation-anomaly
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+A stage separation anomaly is any deviation from the planned sequence that releases the spent lower stage and lets the upper stage clear it: main engine cutoff, thrust tail-off, separation command, release of the interstage joint, push-off, and upper-stage ignition. Anomalies range from a delayed or partial release to an excessive tip-off rate that leaves the upper stage misaligned when its engine lights.
+
+CAUSAL CHAIN
+The first deviation is usually in the sequence itself: residual thrust tail-off is longer than modelled, or one release device on the separation plane fires late or not at all. If the joint releases asymmetrically, the upper stage receives a tip-off moment and its attitude rate rises within tens of milliseconds of the separation command. If the joint holds at one point, breakwires on that side stay intact and the upper stage ignites while partly attached. The resulting attitude error at ignition saturates the thrust vector control, and the upper-stage guidance either recovers with a large transient or loses control within seconds.
+
+TELEMETRY SIGNATURES
+- Separation command and pyro-fire currents recorded, but one or more breakwire or separation-switch channels change state late or never
+- Pyroshock spike on interstage accelerometers that is weaker or more asymmetric than in qualification data
+- Upper-stage pitch/yaw rates jump within 10-100 ms of separation, before upper-stage ignition
+- Upper-stage engine gimbal reaches its limit within seconds of ignition while chamber pressure is nominal
+
+ROOT CAUSE
+Typical root causes are an under-predicted thrust tail-off, a degraded or incorrectly installed release device, a cross-wired firing circuit, and timing margins set too short between cutoff, separation and ignition. Insufficient stage-level separation testing is a frequent contributor.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice.
+
+LESSONS LEARNED
+- Model thrust tail-off from measured engine data and keep explicit timing margin before separation and ignition
+- Instrument every release point with breakwires so a partial release is visible in telemetry
+- Rank the earliest separation-plane signal, not the later attitude divergence, as the likely root cause
