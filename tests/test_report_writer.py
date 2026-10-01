@@ -163,6 +163,11 @@ def test_resolve_reference_tolerates_near_copies(anomalies: list[AnomalyEvent]) 
     assert resolve_anomaly_reference("LOX tank pressure drop at T+142.0s", anomalies) is lox
     assert resolve_anomaly_reference(lox.id, anomalies) is lox
     assert resolve_anomaly_reference("LOX tank pressure drop (CRITICAL) at T+150.0s", anomalies) is None
+    # Sensor-name references without a time resolve only when unambiguous and the severity matches.
+    assert resolve_anomaly_reference("lox_tank_pressure CRITICAL anomaly", anomalies) is lox
+    assert resolve_anomaly_reference("lox_tank_pressure WARNING anomaly", anomalies) is None
+    second_lox = _anomaly("lox_tank_pressure", 200, Severity.CRITICAL)
+    assert resolve_anomaly_reference("lox_tank_pressure CRITICAL anomaly", [*anomalies, second_lox]) is None
 
 
 def test_llm_hypotheses_parsed_and_validated(kb: KnowledgeBase, anomalies: list[AnomalyEvent]) -> None:

@@ -153,16 +153,23 @@ def resolve_anomaly_reference(reference: Any, events: Sequence[AnomalyEvent]) ->
     for event in events:
         if _normalise_reference(event.label) == key or event.id.lower() == key:
             return event
+    def names_sensor(event: AnomalyEvent) -> bool:
+        return sensor_display_name(event.sensor_id).lower() in key or event.sensor_id.lower() in key
+
     match = re.search(r"T\s*\+\s*(\d+(?:\.\d+)?)", reference)
-    if not match:
-        return None
-    met = float(match.group(1))
-    candidates = [
-        e for e in events
-        if e.mission_elapsed_s is not None
-        and abs(e.mission_elapsed_s - met) <= 0.15
-        and sensor_display_name(e.sensor_id).lower() in key
-    ]
+    if match:
+        met = float(match.group(1))
+        candidates = [
+            e for e in events
+            if e.mission_elapsed_s is not None and abs(e.mission_elapsed_s - met) <= 0.15 and names_sensor(e)
+        ]
+        return candidates[0] if len(candidates) == 1 else None
+    # No time given (e.g. "lox_tank_pressure CRITICAL anomaly"): accept only if the sensor - and the
+    # severity, when one is written - identify exactly one detected anomaly.
+    candidates = [e for e in events if names_sensor(e)]
+    written = [s for s in ("critical", "warning", "info") if re.search(rf"\b{s}\b", key)]
+    if written:
+        candidates = [e for e in candidates if e.severity.value.lower() in written]
     return candidates[0] if len(candidates) == 1 else None
 
 
