@@ -46,6 +46,7 @@ def test_compose_wires_app_to_baked_ollama() -> None:
     assert "qwen2.5:14b-instruct-q4_K_M" in ollama["build"]["args"]["MODELS"]
     assert "nomic-embed-text" in ollama["build"]["args"]["MODELS"]
     assert ollama["healthcheck"]["test"] == ["CMD", "ollama", "list"]
+    assert ollama["build"]["args"]["OLLAMA_VERSION"] == "${OLLAMA_VERSION:-0.34.4}"  # pinned, not "latest"
     assert app["depends_on"]["ollama"]["condition"] == "service_healthy"
     env = app["environment"]
     assert env["OLLAMA_BASE_URL"] == "http://ollama:11434"
@@ -64,5 +65,6 @@ def test_dockerfiles_reference_existing_files() -> None:
     assert 'ENTRYPOINT ["/app/docker/entrypoint.sh"]' in app and "USER aerotrace" in app
     ollama = (ROOT / "docker" / "Dockerfile.ollama").read_text(encoding="utf-8")
     assert "COPY docker/pull-models.sh" in ollama and "pull-models.sh ${MODELS}" in ollama
+    assert "ARG OLLAMA_VERSION=0.34.4" in ollama and "latest" not in ollama.split("FROM")[0]
     for script in ("docker/entrypoint.sh", "docker/pull-models.sh"):
         assert (ROOT / script).read_text(encoding="utf-8").startswith("#!/bin/sh\n"), script

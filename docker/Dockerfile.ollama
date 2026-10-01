@@ -2,7 +2,7 @@
 #   qwen2.5:14b-instruct-q4_K_M  (~9 GB)  - triage and hypothesis generation
 #   nomic-embed-text             (~0.3 GB) - knowledge-base embeddings
 # Override with: docker compose build --build-arg MODELS="..." ollama
-ARG OLLAMA_VERSION=latest
+ARG OLLAMA_VERSION=0.34.4
 FROM ollama/ollama:${OLLAMA_VERSION}
 
 ARG MODELS="qwen2.5:14b-instruct-q4_K_M nomic-embed-text"

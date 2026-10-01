@@ -2,12 +2,6 @@
 ollama>=0.4
 anthropic>=0.40
 
-# --- Agent frameworks (optional extension points; the core pipeline does not
-# import them). crewai does not yet publish wheels for Python 3.14+. ---------
-crewai; python_version < "3.14"
-langchain
-langchain-community
-
 # --- Memory -----------------------------------------------------------------
 chromadb
 

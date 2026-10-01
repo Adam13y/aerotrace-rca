@@ -15,7 +15,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile.ollama
       args:
-        OLLAMA_VERSION: ${OLLAMA_VERSION:-latest}
+        OLLAMA_VERSION: ${OLLAMA_VERSION:-0.34.4}
         MODELS: ${OLLAMA_MODELS:-qwen2.5:14b-instruct-q4_K_M nomic-embed-text}
     image: aerotrace-rca-ollama:latest
     restart: unless-stopped

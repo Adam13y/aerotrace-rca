@@ -74,8 +74,7 @@ Local model (optional, ~9 GB, needs a GPU with about 12 GB VRAM for good speed):
 ollama pull qwen2.5:14b-instruct-q4_K_M
 ```
 
-> `crewai` is installed only on Python < 3.14 (it has no 3.14 wheels yet). `crewai`, `langchain` and
-> `langchain-community` are optional extension points. The core pipeline does not import them.
+> The agent orchestration is built into the supervisor; no agent framework (CrewAI, LangChain) is required.
 
 ---
 
@@ -97,7 +96,7 @@ docker compose run --rm aerotrace python scripts/run_pipeline.py --kb-stats
 - **GPU:** needs an NVIDIA GPU with the NVIDIA Container Toolkit (Linux) or Docker Desktop with WSL2 GPU support
   (Windows). Qwen 14B Q4 with a 10,240-token context fits in 12 GB of VRAM.
 - **CPU only:** `docker compose -f docker-compose.yml -f docker-compose.cpu.yml run --rm aerotrace` (much slower).
-- **Settings:** `OLLAMA_REPRODUCIBLE`, `OLLAMA_NUM_CTX`, `OLLAMA_VERSION` (Ollama image tag) and the optional
+- **Settings:** `OLLAMA_REPRODUCIBLE`, `OLLAMA_NUM_CTX`, `OLLAMA_VERSION` (Ollama image tag, pinned to 0.34.4 by default) and the optional
   `ANTHROPIC_API_KEY` can be set in the shell or in `.env` next to `docker-compose.yml`.
 
 ## Usage
