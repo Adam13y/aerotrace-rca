@@ -19,6 +19,7 @@ from src.memory.historical_rag import (
     anomaly_categories,
     anomaly_query,
     chunk_text,
+    describe_change,
     estimate_tokens,
     format_historical_context,
     load_documents,
@@ -413,3 +414,46 @@ def test_shipped_config_maps_every_sample_sensor() -> None:
                 "engine_bay_temp": "thermal", "avionics_bus_voltage": "electrical"}
     assert {s: sensor_category(s, config.sensor_categories, config.sensor_category_patterns)
             for s in expected} == expected
+
+
+# --------------------------------------------------------------------------- #
+# Signature-based retrieval query
+# --------------------------------------------------------------------------- #
+def _event(sensor: str, met: float, baseline: float, peak: float, duration: float = 2.0) -> AnomalyEvent:
+    ts = BASE + timedelta(seconds=met)
+    return AnomalyEvent(
+        id=f"ANM-{sensor[:4].upper()}{int(met * 10):05d}", timestamp=ts, sensor_id=sensor, severity=Severity.CRITICAL,
+        description=f"{sensor} deviated; Peak deviation 18.2 sigma; detected by zscore, derivative, moving_average.",
+        mission_elapsed_s=met, duration_s=duration, baseline_value=baseline, peak_value=peak, score=18.2,
+        detection_methods=["zscore", "derivative", "moving_average"], classification={"category": "pressurisation"},
+    )
+
+
+def test_signature_query_matches_specified_format() -> None:
+    events = [
+        _event("avionics_bus_voltage", 209.9, 27.85, 25.9),
+        _event("lox_tank_pressure", 142.4, 48.9, 43.03),
+        _event("turbopump_vibration", 143.2, 2.103, 8.18),
+        _event("engine_bay_temp", 148.5, 99.61, 136.47),
+    ]
+    assert anomaly_query(events) == (
+        "Failure signature: LOX tank pressure drop of 12%, then Turbopump vibration rise of 289% 0.8 s later, "
+        "then Engine bay temperature rise of 37% 5.3 s later, then Avionics bus voltage drop of 7% 61.4 s later."
+    )
+
+
+def test_signature_query_has_no_detector_boilerplate() -> None:
+    query = anomaly_query([_event("lox_tank_pressure", 142.4, 48.9, 43.0), _event("turbopump_vibration", 143.2, 2.1, 8.2)])
+    for noise in ("sigma", "zscore", "z-score", "derivative", "moving_average", "detected by", "CRITICAL",
+                  "pressurisation", "baseline", "T+", "ANM-"):
+        assert noise not in query, noise
+
+
+def test_signature_query_edge_cases() -> None:
+    single = _event("avionics_bus_voltage", 209.9, 28.0, 27.86)
+    assert anomaly_query([single]) == "Failure signature: Avionics bus voltage drop of 0.5%."
+    spike = _event("fuel_tank_pressure", 229.9, 43.8, 68.7, duration=0.2)
+    assert describe_change(spike) == "Fuel tank pressure spike of 57%"
+    unknown = spike.model_copy(update={"baseline_value": None})
+    assert describe_change(unknown) == "Fuel tank pressure anomaly"  # no baseline: direction unknown
+    assert anomaly_query([]) == "Failure signature: none."

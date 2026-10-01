@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-from src.models.telemetry_schema import AnomalyEvent
+from src.models.telemetry_schema import AnomalyEvent, sensor_display_name
 from src.utils.helpers import LLMUnavailableError, list_ollama_models, ollama_model_installed
 from src.utils.logger import get_logger
 
@@ -446,14 +446,37 @@ class HistoricalRAG:
         return self.search(anomaly_query(anomalies), k, prefer_categories=preferred)
 
 
+def describe_change(anomaly: AnomalyEvent) -> str:
+    """Plain physical description of one anomaly, e.g. ``LOX tank pressure drop of 12%``."""
+    text = f"{sensor_display_name(anomaly.sensor_id)} {anomaly.change_kind}"
+    baseline, peak = anomaly.baseline_value, anomaly.peak_value
+    if baseline is not None and peak is not None and abs(baseline) > 1e-9:
+        percent = abs(peak - baseline) / abs(baseline) * 100.0
+        text += f" of {percent:.0f}%" if percent >= 1 else f" of {percent:.1f}%"
+    return text
+
+
 def anomaly_query(anomalies: Sequence[AnomalyEvent]) -> str:
-    """Build a retrieval query describing anomalies in time order (signature + classification)."""
-    lines = []
+    """Build the retrieval query as a plain physical failure signature, in time order.
+
+    Example: ``Failure signature: LOX tank pressure drop of 12%, then Turbopump vibration rise
+    of 289% 0.8 s later, then Engine bay temperature rise of 37% 5.3 s later.``
+
+    Only physical content goes into the query: detector details (z-scores, sigma values,
+    detection methods), triage labels and absolute timestamps are left out because they are
+    not failure vocabulary and dilute the similarity search. Time deltas are measured from the
+    previous anomaly's start.
+    """
+    parts: list[str] = []
+    previous: float | None = None
     for anomaly in sorted(anomalies, key=lambda a: a.timestamp):
-        category = anomaly.classification.get("category", "")
-        subsystem = anomaly.classification.get("subsystem", "")
-        lines.append(f"{anomaly.label}; {category} {subsystem}; {anomaly.description}")
-    return "Rocket flight telemetry anomaly sequence:\n" + "\n".join(lines)
+        part = describe_change(anomaly)
+        start = anomaly.mission_elapsed_s
+        if previous is not None and start is not None:
+            part += f" {start - previous:.1f} s later"
+        parts.append(part)
+        previous = start if start is not None else previous
+    return "Failure signature: " + ", then ".join(parts) + "." if parts else "Failure signature: none."
 
 
 def format_historical_context(cases: Sequence[HistoricalCase], max_words: int = 150) -> str:

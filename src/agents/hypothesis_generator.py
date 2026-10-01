@@ -22,6 +22,7 @@ from src.memory.historical_rag import (
     DEFAULT_SENSOR_CATEGORY_PATTERNS,
     HistoricalCase,
     HistoricalRAG,
+    anomaly_query,
     format_historical_context,
     sensor_category,
 )
@@ -471,6 +472,7 @@ class HypothesisGenerator:
         self.last_rejections, self.last_flags, self.last_drops, self.last_retries = [], [], [], []
         self.last_historical_cases, self.last_historical_error = [], None
         self.last_category_preference: CategoryPreference | None = None
+        self.last_retrieval_query: str | None = None
         if not actionable:
             logger.info("No actionable anomalies - no hypotheses generated")
             self.last_source = "none"
@@ -494,6 +496,7 @@ class HypothesisGenerator:
             }
             if self.use_llm and self.router is not None:
                 self.last_category_preference = self.category_preference(physical)
+                self.last_retrieval_query = anomaly_query(physical)
                 self.last_historical_cases = self._retrieve_history(
                     physical, self.config.historical_cases, self.last_category_preference
                 )

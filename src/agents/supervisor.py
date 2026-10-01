@@ -330,6 +330,8 @@ class Supervisor:
             f"Excluded {len(excluded)} past-anomaly record(s) saved from this same dataset",
             f"dataset_id={dataset_id}; excluded={excluded}",
         )
+        if generator.last_retrieval_query:
+            self.log_decision("historical_rag", "Retrieval query", generator.last_retrieval_query)
         preference = generator.last_category_preference
         if preference is not None:
             self.log_decision(
