@@ -106,6 +106,9 @@ class DetectorConfig:
     onset_threshold_sigma: float = 3.0
     #: Anomalies first detected before this mission time are suppressed (and logged) as startup transients.
     startup_ignore_seconds: float = 5.0
+    #: An anomaly is "transient" if the ~1 s smoothed signal returns within 1 sigma of the pre-onset
+    #: baseline (sigma of the window before onset) within this many seconds of onset; else "sustained".
+    recovery_window_seconds: float = 10.0
     sensor_limits: dict[str, tuple[float | None, float | None]] = field(default_factory=dict)
     planned_events: list[PlannedEvent] = field(default_factory=list)
     #: (sensor glob, minimum relative change in %, minimum severity) - first matching pattern applies.
@@ -274,6 +277,8 @@ class AnomalyDetector:
             np.abs(scores.moving_average) * (cfg.zscore_threshold / cfg.moving_average_threshold),
         ])
         unit = str(group["unit"].iloc[0]) if "unit" in group else ""
+        smooth_k = max(3, int(round(1.0 / max(scores.dt, 1e-6))))
+        smoothed = pd.Series(scores.values).rolling(smooth_k, center=True, min_periods=1).median().to_numpy()
         original_index = group["index"].to_numpy()
         timestamps = group["timestamp"].reset_index(drop=True)
 
@@ -325,6 +330,12 @@ class AnomalyDetector:
                 sensor_id, unit, baseline, peak_value, float(scores.met[peak]), met_start, met_end, methods,
                 score, scores.dt, cfg.sensor_limits.get(sensor_id), limit_breached,
             )
+            recovery, recovery_s, settled = self._recovery(scores, smoothed, onset, peak, baseline)
+            if recovery == "transient":
+                description += f" Transient: recovered within {recovery_s:.1f} s."
+            else:
+                description += (f" Sustained: value remained at {settled:.4g} {unit} {cfg.recovery_window_seconds:g} s "
+                                f"after onset (baseline {baseline:.4g} {unit}).")
             if onset < start:
                 description += f" Onset backtracked to {format_met(met_start)} (first flagged at {format_met(detected_at)})."
             description += floor_note
@@ -353,6 +364,9 @@ class AnomalyDetector:
                     unit=unit,
                     mission_elapsed_s=met_start,
                     detected_at_s=detected_at,
+                    recovery=recovery,
+                    recovery_s=recovery_s,
+                    settled_value=settled,
                     duration_s=max(met_end - met_start, 0.0),
                     peak_value=peak_value,
                     baseline_value=baseline,
@@ -390,6 +404,32 @@ class AnomalyDetector:
         half = max(3, int(round(1.0 / max(scores.dt, 1e-6)))) // 2
         smoothed = min(start, walk(scores.slope_z) + half)
         return min(sample_level, smoothed)
+
+    def _recovery(
+        self, scores: _SensorScores, smoothed: np.ndarray, onset: int, peak: int, baseline: float
+    ) -> tuple[str, float | None, float | None]:
+        """Classify an event as transient (with recovery time) or sustained (with settled value).
+
+        "Baseline" is the pre-onset trend: a line fitted to the window before onset and extrapolated,
+        so a signal that returns to its normal slow drift counts as recovered. Its 1 sigma is the
+        scatter of the pre-onset samples around that line (never below the sensor noise).
+        """
+        cfg = self.config
+        window = max(5, int(round(cfg.window_seconds / max(scores.dt, 1e-6))))
+        lo = max(0, onset - window)
+        pre_t, pre_v = scores.met[lo:onset], scores.values[lo:onset]
+        if pre_v.size >= 5:
+            slope, intercept = np.polyfit(pre_t, pre_v, 1)
+            sigma = max(_robust_sigma(pre_v - (slope * pre_t + intercept)), scores.noise_sigma)
+        else:
+            slope, intercept, sigma = 0.0, baseline, scores.noise_sigma
+        horizon = scores.met[onset] + cfg.recovery_window_seconds
+        after = np.flatnonzero((scores.met > scores.met[peak]) & (scores.met <= horizon))
+        for j in after:
+            if abs(smoothed[j] - (slope * scores.met[j] + intercept)) <= sigma:
+                return "transient", float(scores.met[j] - scores.met[onset]), None
+        last = after[-1] if after.size else peak
+        return "sustained", None, float(smoothed[last])
 
     def _severity_floor(self, sensor_id: str, baseline: float, peak: float) -> tuple[Severity, str, float] | None:
         """Minimum severity for a relative change on this sensor type, from ``severity_floors``."""

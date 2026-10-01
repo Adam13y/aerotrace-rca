@@ -153,7 +153,7 @@ COVERAGE_PROMPT_TEMPLATE = """## Mission context
 
 ## Why earlier hypotheses for this flight were rejected or trimmed
 {reasons}
-
+{independence}
 None of the accepted root-cause hypotheses validly explains the anomaly "{label}".
 Propose up to 2 root-cause hypotheses for it, avoiding the mistakes listed above.
 
@@ -223,6 +223,28 @@ Respond with JSON exactly in this shape:
   "supporting_evidence": ["<evidence from the telemetry>", ...],
   "counter_evidence": ["<evidence against, or what would falsify it>", ...],
   "distinguishing_evidence": ["<observation that would confirm this cause and rule out the ones above>", ...],
+  "recommended_actions": ["<concrete next step>", ...]
+}}]}}"""
+
+SINGLE_CAUSE_PROMPT_TEMPLATE = """Give exactly ONE root cause for this single anomaly:
+{anomaly}
+
+The cause must involve only the {subsystem} subsystem that this sensor belongs to. Do not mention any other anomaly
+or any other subsystem. Name the sensor and quote the anomaly time (e.g. "at T+{met}s") in the description.
+Earlier answers were rejected for these reasons:
+{reasons}
+
+Respond with JSON exactly in this shape:
+{{"hypotheses": [{{
+  "type": "root_cause",
+  "title": "<short name of the root cause>",
+  "description": "<mechanism within the {subsystem} subsystem>",
+  "confidence": <0.0-1.0>,
+  "subsystem": "{subsystem}",
+  "related_anomalies": ["{label}"],
+  "supporting_evidence": ["<evidence from this sensor's telemetry>", ...],
+  "counter_evidence": ["<evidence against, or what would falsify it>", ...],
+  "distinguishing_evidence": ["<observation that would confirm this cause>", ...],
   "recommended_actions": ["<concrete next step>", ...]
 }}]}}"""
 
@@ -471,6 +493,8 @@ class HypothesisConfig:
     min_competing_hypotheses: int = 2
     #: Extra LLM calls to ask for a competing explanation when too few are valid (0 = report the shortfall).
     alternative_retries: int = 0
+    #: Add an "Unresolved ... manual review" placeholder when every follow-up for an anomaly fails.
+    unresolved_placeholders: bool = True
     evidence_rules: EvidenceRules = field(default_factory=EvidenceRules)
     correlation_window_seconds: float = 5.0
     flight_phases: list[FlightPhase] = field(default_factory=list)
@@ -511,6 +535,7 @@ class HypothesisConfig:
             historical_cases=int(data.get("historical_cases", 5)),
             min_competing_hypotheses=int(data.get("min_competing_hypotheses", 2)),
             alternative_retries=int(data.get("alternative_retries", 0)),
+            unresolved_placeholders=bool(data.get("unresolved_placeholders", True)),
             evidence_rules=EvidenceRules.from_dict(
                 data.get("evidence_rules"), mapping or None, patterns or None
             ),
@@ -583,6 +608,7 @@ class HypothesisGenerator:
         self.last_category_preference: CategoryPreference | None = None
         self.last_leading_group: list[AnomalyEvent] = []
         self.last_competing: list[str] = []
+        self.last_unresolved: list[str] = []
         self.last_retrieval_query: str | None = None
         self._vehicle_sensors = (
             sorted(s.sensor_id for s in analysis.sensors) if analysis is not None
@@ -696,6 +722,8 @@ class HypothesisGenerator:
         lead_ids = {a.id for a in lead}
         distinct: list[Hypothesis] = []
         for hypothesis in sorted(hypotheses, key=lambda h: h.confidence, reverse=True):
+            if hypothesis.hypothesis_type == "unresolved":
+                continue
             if lead_ids & set(hypothesis.related_anomalies) and not any(
                 near_duplicate(hypothesis.title, kept.title) for kept in distinct
             ):
@@ -923,40 +951,103 @@ class HypothesisGenerator:
         kb_matches: dict[str, list[SearchResult]],
         mission_context: str,
     ) -> list[Hypothesis]:
-        """Re-ask the LLM about each physical anomaly that no accepted hypothesis cites.
+        """Follow up on each physical anomaly that no accepted root cause explains.
 
-        Each retry prompt contains only the unexplained anomaly (plus context) and the reasons
-        earlier hypotheses were rejected or trimmed. Only hypotheses that cite the target are kept.
+        Attempt 1: focused prompt with the rejection reasons; if earlier hypotheses were rejected for
+        linking the anomaly to others, an explicit independence instruction names those anomalies.
+        Attempt 2: minimal prompt asking for exactly one cause within the sensor's own subsystem; the
+        answer must cite only the target. If every attempt fails, a placeholder
+        "Unresolved: ... - insufficient evidence" hypothesis flags the anomaly for manual review.
         """
         added: list[Hypothesis] = []
+        labels = anomaly_labels(anomalies)
         for target in physical:
+            attempts = 0
             for attempt in range(1, self.config.coverage_retries + 1):
-                if any(target.id in h.related_anomalies for h in [*accepted, *added] if h.hypothesis_type == "root_cause"):
+                if self._explained(target, [*accepted, *added]):
                     break
+                attempts = attempt
                 reasons = self._reasons_for(target)
                 record = CoverageRetry(target.id, target.label, attempt, reasons)
                 self.last_retries.append(record)
-                logger.info("Coverage retry %d for unexplained anomaly %s", attempt, target.label)
-                history = self._retrieve_history([target], min(2, self.config.historical_cases))
-                record.historical_cases = [c.title for c in history]
-                prompt = self._coverage_prompt(
-                    target, physical, kb_matches.get(target.id, []), reasons, mission_context, history
-                )
+                logger.info("Follow-up %d for unexplained anomaly %s", attempt, target.label)
+                if attempt == 1:
+                    history = self._retrieve_history([target], min(2, self.config.historical_cases))
+                    record.historical_cases = [c.title for c in history]
+                    prompt = self._coverage_prompt(
+                        target, physical, kb_matches.get(target.id, []), reasons, mission_context, history,
+                        independence=self._independence_note(target, labels),
+                    )
+                else:
+                    record.kind = "single_cause"
+                    prompt = self._single_cause_prompt(target, physical, reasons)
                 try:
                     candidates = self._ask_and_validate(prompt, anomalies, physical)
                 except (LLMUnavailableError, ValueError) as exc:
-                    logger.warning("Coverage retry for %s failed: %s", target.label, exc)
+                    logger.warning("Follow-up %d for %s failed: %s", attempt, target.label, exc)
                     continue
                 for hypothesis in candidates:
-                    if target.id in hypothesis.related_anomalies:
+                    only_target = hypothesis.related_anomalies == [target.id]
+                    if target.id in hypothesis.related_anomalies and (attempt == 1 or only_target):
                         added.append(hypothesis)
                         record.accepted.append(hypothesis.title)
                     else:
+                        why = ("follow-up answer does not cite the target" if target.id not in hypothesis.related_anomalies
+                               else "single-cause answer cites other anomalies")
                         self.last_rejections.append(HypothesisRejection(
-                            hypothesis.title, f"coverage retry answer does not cite the target '{target.label}'",
-                            [], hypothesis.related_anomalies,
+                            hypothesis.title, f"{why} '{target.label}'", [], hypothesis.related_anomalies,
                         ))
+            if attempts and not self._explained(target, [*accepted, *added]) and self.config.unresolved_placeholders:
+                added.append(self._unresolved_placeholder(target, attempts))
         return added
+
+    @staticmethod
+    def _explained(target: AnomalyEvent, hypotheses: list[Hypothesis]) -> bool:
+        return any(target.id in h.related_anomalies for h in hypotheses if h.hypothesis_type == "root_cause")
+
+    def _independence_note(self, target: AnomalyEvent, labels: dict[str, str]) -> str:
+        """Explicit instruction when earlier hypotheses were rejected for linking ``target`` to other anomalies."""
+        partners: list[str] = []
+        for rejection in self.last_rejections:
+            if target.id in rejection.cited_ids and rejection.reason.startswith("links "):
+                partners += [i for i in rejection.cited_ids if i != target.id and i not in partners]
+        if not partners:
+            return ""
+        others = ", ".join(f"[{labels.get(i, i)}]" for i in partners)
+        return (
+            f"\nIMPORTANT: The anomalies [{target.label}] and {others} are INDEPENDENT events - no physical coupling "
+            f"links their subsystems. You MUST provide a cause for [{target.label}] that does NOT reference {others}. "
+            "Do not attempt to link them.\n"
+        )
+
+    def _single_cause_prompt(self, target: AnomalyEvent, physical: list[AnomalyEvent], reasons: list[str]) -> str:
+        """Second follow-up: exactly one cause, within the sensor's own subsystem."""
+        rules = self.config.evidence_rules
+        subsystem = ", ".join(sorted(rules.evidence_categories(target.sensor_id))) or "its own"
+        return SINGLE_CAUSE_PROMPT_TEMPLATE.format(
+            anomaly=json.dumps(target.to_prompt_dict(anomaly_labels(physical)), indent=1, default=str),
+            subsystem=subsystem,
+            met=f"{target.mission_elapsed_s or 0:.1f}",
+            reasons="\n".join(f"- {r}" for r in reasons[:5]) or "- none",
+            label=target.label,
+        )
+
+    def _unresolved_placeholder(self, target: AnomalyEvent, attempts: int) -> Hypothesis:
+        """Placeholder so no anomaly is silently left unexplained (Fix 14, step 3)."""
+        self.last_unresolved.append(target.id)
+        logger.warning("No valid root cause for %s after %d follow-up(s) - flagged for manual review", target.label, attempts)
+        return Hypothesis(
+            title=f"Unresolved: {target.label} - insufficient evidence to determine root cause",
+            description=(f"No root cause for {target.label} passed validation after {attempts} follow-up request(s). "
+                         f"{target.description}"),
+            confidence=0.0,
+            subsystem=", ".join(sorted(self.config.evidence_rules.evidence_categories(target.sensor_id))) or "unknown",
+            related_anomalies=[target.id],
+            recommended_actions=[f"Manual engineering review of {target.label}."],
+            hypothesis_type="unresolved",
+            labels=["manual review required"],
+            source="pipeline placeholder",
+        )
 
     def _reasons_for(self, target: AnomalyEvent, limit: int = 8) -> list[str]:
         """Rejection/trim reasons from earlier attempts, those about ``target`` first."""
@@ -978,6 +1069,7 @@ class HypothesisGenerator:
         reasons: list[str],
         mission_context: str,
         history: list[HistoricalCase] | None = None,
+        independence: str = "",
     ) -> str:
         """Render the focused prompt for one unexplained anomaly."""
         labels = anomaly_labels(physical)
@@ -992,6 +1084,7 @@ class HypothesisGenerator:
             ) or "- none",
             reasons="\n".join(f"- {r}" for r in reasons) or "- no hypothesis cited this anomaly",
             historical_context=format_historical_context(history or []),
+            independence=independence,
             label=target.label,
         )
 

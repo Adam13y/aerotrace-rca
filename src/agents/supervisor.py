@@ -367,7 +367,7 @@ class Supervisor:
         for retry in generator.last_retries:
             outcome = f"accepted: {retry.accepted}" if retry.accepted else "no valid hypothesis returned"
             what = (f"Alternative retry {retry.attempt} for leading group (root '{retry.label}')"
-                    if retry.kind == "alternative" else f"Coverage retry {retry.attempt} for unexplained '{retry.label}'")
+                    if retry.kind == "alternative" else f"Follow-up {retry.attempt} ({retry.kind}) for unexplained '{retry.label}'")
             self.log_decision(
                 "hypothesis_generator", what,
                 f"id={retry.anomaly_id}; {outcome}; reasons_sent={retry.reasons_sent}",
@@ -385,6 +385,9 @@ class Supervisor:
                 + f"; competing={generator.last_competing}"
                 + (f"; rejected candidates: {rejected}" if count < needed and rejected else ""),
             )
+        for anomaly_id in generator.last_unresolved:
+            self.log_decision("hypothesis_generator", "Anomaly left unresolved - flagged for manual review",
+                              f"id={anomaly_id}; all follow-ups failed validation; placeholder hypothesis added")
         for flag in self.hypothesis_generator.last_flags:
             self.log_decision(
                 "hypothesis_validator", f"Flagged hypothesis '{flag.title}' as low-confidence",

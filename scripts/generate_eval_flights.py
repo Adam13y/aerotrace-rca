@@ -9,11 +9,14 @@ Sets (outputs are never read by the pipeline itself, only by scripts/evaluate_ge
     eval     data/eval/flights/*.csv + data/eval/ground_truth.json            (first unseen set)
     holdout  data/eval_holdout/flights/*.csv + data/eval_holdout/ground_truth.json
              (second unseen set: new seeds and new fault types, incl. a sensor with no subsystem)
+    fresh    data/eval_fresh/flights/*.csv + data/eval_fresh/ground_truth.json
+             (third unseen set, written before any pipeline run on it: new seeds 301-305, new fault
+             combinations, new timings)
     sample   data/eval/sample_ground_truth.json - ground truth for data/raw/sample_flight_nasa_long.csv
 
 Usage::
 
-    python scripts/generate_eval_flights.py [--set eval|holdout|sample]
+    python scripts/generate_eval_flights.py [--set eval|holdout|fresh|sample]
 """
 
 from __future__ import annotations
@@ -245,6 +248,93 @@ HOLDOUT_FLIGHTS: list[dict] = [
     },
 ]
 
+# ---------------------------------------------------------------------------- fresh held-out scenarios (seeds 301-305)
+def feedline_restriction(t: np.ndarray, s: dict[str, np.ndarray]) -> None:
+    """Feed-line restriction: chamber pressure falls first and stays low, vibration follows; tanks nominal."""
+    s["chamber_pressure"] -= 140.0 * _smoothstep(t, 245.0, 248.0)
+    s["turbopump_vibration"] += 1.5 * _smoothstep(t, 246.0, 246.5) * (1.0 - _smoothstep(t, 247.5, 248.5))
+
+
+def imu_dropout_and_thermal(t: np.ndarray, s: dict[str, np.ndarray]) -> None:
+    """IMU data dropout with no bus disturbance, and an unrelated engine-bay temperature rise 1.5 s later."""
+    s["imu_heartbeat_hz"][(t >= 95.0) & (t < 95.6)] = 0.0
+    s["engine_bay_temp"] += 20.0 * _decay_after(t, 96.5, 6.0, 40.0)
+
+
+def fuel_overpressure_chamber_rise(t: np.ndarray, s: dict[str, np.ndarray]) -> None:
+    """Fuel regulator fails open: fuel tank pressure rises, then chamber pressure rises with the extra feed pressure."""
+    s["fuel_tank_pressure"] += 4.0 * _decay_after(t, 215.0, 2.0, 25.0)
+    s["chamber_pressure"] += 70.0 * _decay_after(t, 216.5, 1.5, 15.0)
+
+
+def cascade_plus_independent(t: np.ndarray, s: dict[str, np.ndarray]) -> None:
+    """Bus sag browns out the IMU (cascade), plus an unrelated LOX tank pressure drop 3 s later."""
+    s["avionics_bus_voltage"][(t >= 160.0) & (t < 161.2)] -= 2.0
+    s["imu_heartbeat_hz"][(t >= 160.3) & (t < 162.3)] = 0.0
+    s["lox_tank_pressure"] -= 3.5 * _decay_after(t, 163.0, 1.0, 10.0)
+
+
+def bearing_wear(t: np.ndarray, s: dict[str, np.ndarray]) -> None:
+    """Turbopump bearing wear: vibration steps up and stays up; nothing else changes."""
+    s["turbopump_vibration"] += 1.2 * _smoothstep(t, 120.0, 121.0)
+
+
+FRESH_FLIGHTS: list[dict] = [
+    {
+        "flight": "fresh_feedline_restriction", "seed": 301, "inject": feedline_restriction,
+        "description": "Feed-line restriction: chamber pressure drops first (sustained), vibration follows, tanks nominal.",
+        "faults": [
+            {"sensor": "chamber_pressure", "start": 245.0, "end": 260.0, "cause_group": "A", "role": "root"},
+            {"sensor": "turbopump_vibration", "start": 246.0, "end": 248.5, "cause_group": "A", "role": "consequence"},
+        ],
+        "top_must_cite_any_of": ["chamber_pressure"],
+        "top_terms_any": ["block", "restrict", "clog", "feed", "filter", "flow", "starv"],
+        "top_terms_none": ["regulator", "helium", "battery"],
+    },
+    {
+        "flight": "fresh_imu_dropout_and_thermal", "seed": 302, "inject": imu_dropout_and_thermal,
+        "description": "Two independent faults 1.5 s apart: IMU data dropout (bus nominal) and an engine-bay heating.",
+        "faults": [
+            {"sensor": "imu_heartbeat_hz", "start": 95.0, "end": 95.6, "cause_group": "A", "role": "root"},
+            {"sensor": "engine_bay_temp", "start": 96.5, "end": 120.0, "cause_group": "B", "role": "root"},
+        ],
+        "top_must_cite_any_of": ["imu_heartbeat_hz", "engine_bay_temp"],
+        "top_terms_any": [],
+        "top_terms_none": [],
+    },
+    {
+        "flight": "fresh_fuel_overpressure_chamber_rise", "seed": 303, "inject": fuel_overpressure_chamber_rise,
+        "description": "Fuel regulator fails open: fuel tank pressure rises, then chamber pressure rises.",
+        "faults": [
+            {"sensor": "fuel_tank_pressure", "start": 215.0, "end": 240.0, "cause_group": "A", "role": "root"},
+            {"sensor": "chamber_pressure", "start": 216.5, "end": 230.0, "cause_group": "A", "role": "consequence"},
+        ],
+        "top_must_cite_any_of": ["fuel_tank_pressure"],
+        "top_terms_any": ["regulator", "overpressur", "over-pressur", "pressuris", "pressuriz", "relief"],
+        "top_terms_none": ["cavitat", "combustion instab"],
+    },
+    {
+        "flight": "fresh_cascade_plus_independent", "seed": 304, "inject": cascade_plus_independent,
+        "description": "Bus sag -> IMU dropout (cascade) plus an independent LOX tank pressure drop 3 s later.",
+        "faults": [
+            {"sensor": "avionics_bus_voltage", "start": 160.0, "end": 161.2, "cause_group": "A", "role": "root"},
+            {"sensor": "imu_heartbeat_hz", "start": 160.3, "end": 162.3, "cause_group": "A", "role": "consequence"},
+            {"sensor": "lox_tank_pressure", "start": 163.0, "end": 175.0, "cause_group": "B", "role": "root"},
+        ],
+        "top_must_cite_any_of": ["avionics_bus_voltage", "lox_tank_pressure"],
+        "top_terms_any": [],
+        "top_terms_none": [],
+    },
+    {
+        "flight": "fresh_bearing_wear", "seed": 305, "inject": bearing_wear,
+        "description": "Turbopump bearing wear: sustained vibration step, nothing else.",
+        "faults": [{"sensor": "turbopump_vibration", "start": 120.0, "end": 125.0, "cause_group": "A", "role": "root"}],
+        "top_must_cite_any_of": ["turbopump_vibration"],
+        "top_terms_any": ["bearing", "rotor", "imbalance", "wear", "rub", "turbopump"],
+        "top_terms_none": ["cavitat", "combustion", "regulator"],
+    },
+]
+
 #: Ground truth for the original tuning flight (data/raw/sample_flight_nasa_long.csv), for regression checks.
 SAMPLE_TRUTH = {
     "flight": "sample_flight_nasa_long",
@@ -315,12 +405,14 @@ def write_set(flights: list[dict], out_dir: Path) -> None:
 def main() -> int:
     """Write the requested evaluation set."""
     parser = argparse.ArgumentParser(description="Generate evaluation flights with known faults.")
-    parser.add_argument("--set", choices=("eval", "holdout", "sample"), default="eval")
+    parser.add_argument("--set", choices=("eval", "holdout", "fresh", "sample"), default="eval")
     args = parser.parse_args()
     if args.set == "eval":
         write_set(FLIGHTS, EVAL_DIR)
     elif args.set == "holdout":
         write_set(HOLDOUT_FLIGHTS, DATA_DIR / "eval_holdout")
+    elif args.set == "fresh":
+        write_set(FRESH_FLIGHTS, DATA_DIR / "eval_fresh")
     else:
         EVAL_DIR.mkdir(parents=True, exist_ok=True)
         truth = {"rules": SCORING_RULES, "flights": {SAMPLE_TRUTH["flight"]: SAMPLE_TRUTH}}

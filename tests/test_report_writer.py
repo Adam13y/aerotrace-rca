@@ -403,7 +403,9 @@ def test_sensor_fault_excluded_from_llm_reasoning(kb: KnowledgeBase, anomalies: 
     assert f'"anomaly": "{fuel_glitch.label}"' not in prompts[0]  # not offered as a physical anomaly
     assert "Instrumentation glitches" in prompts[0] and fuel_glitch.label in prompts[0]
     assert "instrumentation glitch (explained separately)" in generator.last_rejections[0].reason
-    assert {h.title for h in generated} == {"Pressurisation leak", "Instrumentation glitch on fuel tank pressure"}
+    assert {h.title for h in generated if h.hypothesis_type != "unresolved"} == \
+        {"Pressurisation leak", "Instrumentation glitch on fuel tank pressure"}
+    assert [h.related_anomalies for h in generated if h.hypothesis_type == "unresolved"] == [[anomalies[2].id]]
 
 
 # --------------------------------------------------------------------------- #

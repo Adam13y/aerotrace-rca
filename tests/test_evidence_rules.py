@@ -234,3 +234,78 @@ def test_passing_mention_no_longer_rejects(kb: KnowledgeBase) -> None:
     titles = {h.title: h for h in generator.generate([vib, camera, *planned])}
     assert set(titles) == {"Turbopump bearing wear", "Camera power supply failure"}
     assert not generator.last_rejections
+
+
+# --------------------------------------------------------------------------- Fix 16: cross-subsystem mechanisms
+def test_cross_subsystem_mechanism_needs_both_subsystems() -> None:
+    rules = EvidenceRules()
+    temp, vib, lox = _a("engine_bay_temp", 165), _a("turbopump_vibration", 164), _a("lox_tank_pressure", 163)
+    problem, _, _ = rules.component_check("Plume Recirculation Overheating Engine Compartment", [temp], VEHICLE)
+    assert problem and problem.startswith("cross-subsystem hypothesis: names thermal failure (thermal)")
+    assert "propulsion mechanism ('plume')" in problem
+    # with propulsion evidence cited, the same claim passes
+    assert rules.component_check("Plume Recirculation Overheating", [lox, vib, temp], VEHICLE)[0] is None
+    # "hot gas" counts for both thermal and propulsion
+    problem, _, _ = rules.component_check("Hot gas leak overheating the bay", [temp], VEHICLE)
+    assert problem and "propulsion mechanism ('hot gas')" in problem
+    # same-subsystem mechanisms are fine
+    assert rules.component_check("Overheating from insulation debonding", [temp], VEHICLE)[0] is None
+    # sensor names (also without their unit word) are not mechanisms
+    imu = _a("imu_heartbeat_hz", 188.3)
+    volt = _a("avionics_bus_voltage", 188)
+    assert rules.component_check("Bus under-voltage. The IMU heartbeat dropped.", [volt, imu],
+                                 [*VEHICLE, "imu_heartbeat_hz"])[0] is None
+
+
+def test_cross_subsystem_unobservable_is_capped() -> None:
+    temp = _a("engine_bay_temp", 165)
+    problem, caps, _ = EvidenceRules().component_check("Plume overheating", [temp], ["engine_bay_temp"])
+    assert problem is None and caps == [("unobservable - no sensor coverage: propulsion (cross-subsystem)", 0.3)]
+
+
+# --------------------------------------------------------------------------- Fix 14: staged follow-ups
+def test_independence_instruction_then_single_cause_then_placeholder(kb: KnowledgeBase) -> None:
+    lox, volt = _pair(_a("lox_tank_pressure", 150), _a("avionics_bus_voltage", 152.5))
+    linked = {"hypotheses": [
+        _h("LOX leak", [lox], "LOX tank pressurisation regulator failed at T+150s."),
+        _h("Leak caused bus sag", [lox, volt], "LOX tank pressure fell at T+150s; the avionics bus voltage then sagged."),
+    ]}
+    still_linked = {"hypotheses": [_h("Bus sag from leak", [lox, volt], "LOX tank pressure fell at T+150s; bus voltage sagged.")]}
+    generator, client = _generator(kb, linked, still_linked, still_linked, coverage_retries=2)
+    generated = generator.generate([lox, volt])
+    first_follow_up, second_follow_up = client.prompts[1], client.prompts[2]
+    assert "IMPORTANT: The anomalies [" + volt.label + "] and [" + lox.label + "] are INDEPENDENT events" in first_follow_up
+    assert "You MUST provide a cause for [" + volt.label + "] that does NOT reference [" + lox.label + "]" in first_follow_up
+    assert second_follow_up.startswith("Give exactly ONE root cause for this single anomaly:")
+    assert "only the electrical subsystem" in second_follow_up
+    assert [r.kind for r in generator.last_retries] == ["coverage", "single_cause"]
+    placeholder = next(h for h in generated if h.hypothesis_type == "unresolved")
+    assert placeholder.title == f"Unresolved: {volt.label} - insufficient evidence to determine root cause"
+    assert placeholder.labels == ["manual review required"] and placeholder.related_anomalies == [volt.id]
+    assert generator.last_unresolved == [volt.id]
+
+
+def test_single_cause_answer_resolves_anomaly(kb: KnowledgeBase) -> None:
+    lox, volt = _pair(_a("lox_tank_pressure", 150), _a("avionics_bus_voltage", 152.5))
+    generator, _ = _generator(kb, {"hypotheses": [
+        _h("LOX leak", [lox], "LOX tank pressurisation regulator failed at T+150s.")]},
+        {"hypotheses": []},
+        {"hypotheses": [_h("Battery cell transient", [volt], "Avionics bus voltage sagged at T+152.5s from a battery cell.")]},
+        coverage_retries=2)
+    titles = [h.title for h in generator.generate([lox, volt])]
+    assert "Battery cell transient" in titles and not generator.last_unresolved
+
+
+def test_single_cause_answer_citing_other_anomalies_is_not_accepted(kb: KnowledgeBase) -> None:
+    temp, volt = _a("engine_bay_temp", 100), _a("avionics_bus_voltage", 102)
+    generator, _ = _generator(kb, {"hypotheses": [
+        _h("Thermal control failure", [temp], "Bay thermal control lost at T+100s.")]},
+        {"hypotheses": []},
+        {"hypotheses": [_h("Heat-induced bus sag", [temp, volt],
+                           "Engine bay temperature rose at T+100s and heated the avionics bus power supply, "
+                           "which sagged at T+102s.")]},
+        coverage_retries=2)
+    generated = generator.generate([temp, volt])
+    assert generator.last_unresolved == [volt.id]
+    assert any("single-cause answer cites other anomalies" in r.reason for r in generator.last_rejections)
+    assert all(h.hypothesis_type != "root_cause" or volt.id not in h.related_anomalies for h in generated)

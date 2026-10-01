@@ -385,3 +385,31 @@ def test_shipped_config_has_floors_and_startup_filter(agents_config: dict) -> No
     config = DetectorConfig.from_dict(agents_config["anomaly_detector"])
     assert config.startup_ignore_seconds == 5.0 and config.onset_backtrack
     assert {p: m for p, m, _ in config.severity_floors} == {"*pressure*": 5, "*temp*": 10, "*vib*": 20, "*voltage*": 3}
+
+
+# --------------------------------------------------------------------------- #
+# Fix 15: transient vs sustained
+# --------------------------------------------------------------------------- #
+def test_recovery_classification_on_sample(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    events = {e.sensor_id: e for e in detector.detect(readings) if not e.expected}
+    assert events["fuel_tank_pressure"].recovery == "transient"        # single-sample glitch
+    assert events["avionics_bus_voltage"].recovery == "transient"      # 0.8 s sag
+    assert events["turbopump_vibration"].recovery == "transient"       # ~1 s burst
+    assert events["lox_tank_pressure"].recovery == "sustained"         # slow 12 s recovery
+    assert events["engine_bay_temp"].recovery == "sustained"           # 30 s decay
+    lox = events["lox_tank_pressure"]
+    assert lox.recovery_text.startswith("sustained (value remained at") and "baseline was" in lox.recovery_text
+    assert "Sustained: value remained at" in lox.description
+    assert events["fuel_tank_pressure"].to_prompt_dict()["recovery"].startswith("transient (recovered within")
+
+
+def test_step_is_sustained_and_glitch_is_transient() -> None:
+    rng = np.random.default_rng(14)
+    step = 28 + rng.normal(0, 0.04, 3000)
+    step[2300:] -= 0.9                                              # permanent step at T+230
+    glitch = 28 + rng.normal(0, 0.04, 3000)
+    glitch[2300:2304] -= 1.5                                        # 0.4 s dip
+    step_event = AnomalyDetector(use_llm=False).detect(_series(step, sensor="bus_voltage", unit="V"))[0]
+    glitch_event = AnomalyDetector(use_llm=False).detect(_series(glitch, sensor="bus_voltage", unit="V"))[0]
+    assert step_event.recovery == "sustained" and abs(step_event.settled_value - 27.1) < 0.1
+    assert glitch_event.recovery == "transient" and glitch_event.recovery_s < 1.5

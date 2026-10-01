@@ -27,3 +27,4 @@ data/vector_store/
 Thumbs.db
 data/eval/
 data/eval_holdout/
+data/eval_fresh/

@@ -21,6 +21,7 @@ anomaly_detector:
   onset_backtrack: true             # report when a deviation began, not when it was first flagged
   onset_threshold_sigma: 3.0
   startup_ignore_seconds: 5.0       # anomalies first detected before T+5s are suppressed (and logged)
+  recovery_window_seconds: 10.0     # transient = back within 1 sigma of baseline within this time of onset
   # Minimum severity for large relative changes (first matching sensor pattern wins; not applied to planned events).
   severity_floors:
     - {pattern: "*pressure*", min_change_pct: 5, severity: WARNING}
@@ -59,7 +60,8 @@ hypothesis_generator:
   max_hypotheses: 6
   knowledge_base_matches: 3
   temperature: 0.0                  # deterministic hypotheses (Ollama also uses a fixed seed)
-  coverage_retries: 1               # re-asks per real anomaly left unexplained after validation
+  coverage_retries: 2               # follow-ups per unexplained anomaly: 1 = focused (+independence), 2 = single-cause
+  unresolved_placeholders: true     # if all follow-ups fail: "Unresolved ... manual review" placeholder
   historical_cases: 5               # RAG: knowledge-base cases injected into the prompt
   min_competing_hypotheses: 2       # distinct explanations required for the leading correlated group
   alternative_retries: 0            # 0 = report a shortfall instead of asking the LLM again
@@ -70,22 +72,40 @@ hypothesis_generator:
     # requires = AND of OR-groups of sensor names (glob patterns allowed).
     components:
       turbopump_cavitation:
+        subsystem: propulsion
         terms: ["cavitat*"]
         requires: [[turbopump_vibration], [lox_tank_pressure, fuel_tank_pressure]]
       combustion_instability:
+        subsystem: propulsion
         terms: ["combustion instabilit*", "combustion oscillat*", chugging, "screech*"]
         requires: [[chamber_pressure]]
       thermal_failure:
+        subsystem: thermal
         terms: [thermal control, thermal failure, "overheat*", insulation, heat soak, cooling failure]
         requires: [[engine_bay_temp]]
       electrical_failure:
+        subsystem: electrical
         terms: [battery, batteries, cell, under-voltage, undervoltage, brownout, short circuit, short-circuit,
                 load transient, power distribution]
         requires: [[avionics_bus_voltage]]
       camera_failure:
+        subsystem: avionics
         terms: [camera]
         requires: [["camera_*"]]       # e.g. camera_status or camera_frame_rate_hz
         allow_inferred: true           # no camera sensor -> local_component_inferred, capped at 50%
+    # Mechanism keywords per subsystem. After a component match, mechanisms from OTHER subsystems in the
+    # title/primary cause make it a cross-subsystem hypothesis that needs evidence from both subsystems.
+    # A term listed under several subsystems ("hot gas") needs evidence from each of them.
+    mechanism_terms:
+      propulsion: [plume, combustion, thrust, "cavitat*", injector, turbopump, nozzle, gas generator,
+                   regenerative cooling, hot gas, hot-gas]
+      thermal: [radiative, convective, "ablat*", hot gas, hot-gas, heat soak, insulation]
+      pressurization: [regulator, helium, copv, ullage, pressurant, relief valve, vent valve]
+      electrical: [short circuit, short-circuit, battery, brownout, emi, under-voltage, undervoltage, power distribution]
+      avionics: [software, imu, guidance, gps, flight computer, star tracker]
+      structural: ["crack*", fatigue, strut, "buckl*", "fractur*"]
+      aerodynamic: ["buffet*", flutter, wind shear, "aerodynamic*"]
+      separation: ["pyrotechnic*", pyro, separation]
     # Phrases that name a subsystem as (part of) a cause. "*" = any word ending.
     subsystem_terms:
       propulsion: [turbopump, turbo pump, pump cavitation, "cavitat*", combustion, injector, nozzle, gas generator,

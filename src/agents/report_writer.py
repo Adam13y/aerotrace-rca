@@ -293,6 +293,8 @@ class ReportWriter:
                 f"- **Triage:** {cls.get('category', '-')} / {cls.get('subsystem', '-')} "
                 f"(confidence {float(cls.get('confidence', 0)):.0%}, by {cls.get('source', '-')})",
             ]
+            if a.recovery_text:
+                lines.append(f"- **Recovery:** {a.recovery_text}")
             if cls.get("fault_class"):
                 retagged = f" (triage had labelled it '{cls['triage_category']}')" if cls.get("triage_category") else ""
                 lines.append(f"- **Signal check:** {cls['fault_class']} - {cls.get('fault_class_reason', '')}{retagged}")
@@ -320,7 +322,8 @@ class ReportWriter:
             lines.append("")
             for rank, h in enumerate(report.hypotheses, 1):
                 kind = {"independent_events": " [independent coincident events]",
-                        "insufficient_evidence": " [insufficient evidence to discriminate]"}.get(h.hypothesis_type, "")
+                        "insufficient_evidence": " [insufficient evidence to discriminate]",
+                        "unresolved": " [UNRESOLVED - manual review]"}.get(h.hypothesis_type, "")
                 tags = "".join(f" [{label}]" for label in h.labels)
                 lines += [f"### H{rank}. {h.title} - {h.confidence:.0%}{kind}{tags}", "", h.description, ""]
                 if h.related_anomalies:

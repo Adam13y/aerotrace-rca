@@ -107,6 +107,29 @@ DEFAULT_COMPONENTS: dict[str, dict[str, Any]] = {
     },
     "camera_failure": {"terms": ["camera"], "requires": [["camera_*"]], "allow_inferred": True},
 }
+#: Subsystem each component belongs to (for the cross-subsystem mechanism check).
+DEFAULT_COMPONENT_SUBSYSTEMS: dict[str, str] = {
+    "turbopump_cavitation": "propulsion",
+    "combustion_instability": "propulsion",
+    "thermal_failure": "thermal",
+    "electrical_failure": "electrical",
+    "camera_failure": "avionics",
+}
+#: Mechanism keywords per subsystem. A term may belong to several subsystems ("hot gas" comes from
+#: the engine and heats its surroundings), in which case naming it needs evidence from each.
+DEFAULT_MECHANISM_TERMS: dict[str, list[str]] = {
+    "propulsion": ["plume", "combustion", "thrust", "cavitat*", "injector", "turbopump", "nozzle", "gas generator",
+                   "regenerative cooling", "hot gas", "hot-gas"],
+    "thermal": ["radiative", "convective", "ablat*", "hot gas", "hot-gas", "heat soak", "insulation"],
+    "pressurization": ["regulator", "helium", "copv", "ullage", "pressurant", "relief valve", "vent valve"],
+    "electrical": ["short circuit", "short-circuit", "battery", "brownout", "emi", "under-voltage", "undervoltage",
+                   "power distribution"],
+    "avionics": ["software", "imu", "guidance", "gps", "flight computer", "star tracker"],
+    "structural": ["crack*", "fatigue", "strut", "buckl*", "fractur*"],
+    "aerodynamic": ["buffet*", "flutter", "wind shear", "aerodynamic*"],
+    "separation": ["pyrotechnic*", "pyro", "separation"],
+}
+_UNIT_WORDS = frozenset({"hz", "psi", "v", "degc", "g", "k", "pa", "kpa", "a", "w", "rpm", "s"})
 HYPOTHESIS_TYPES = ("root_cause", "independent_events", "insufficient_evidence")
 INFERRED_LABEL = "local_component_inferred"
 UNOBSERVABLE_LABEL = "unobservable - no sensor coverage"
@@ -121,8 +144,11 @@ class EvidenceRules:
     sensor_evidence: dict[str, list[str]] = field(default_factory=lambda: {k: list(v) for k, v in DEFAULT_SENSOR_EVIDENCE.items()})
     couplings: dict[str, list[str]] = field(default_factory=lambda: {k: list(v) for k, v in DEFAULT_COUPLINGS.items()})
     unobservable_cap: float = 0.3
-    components: dict[str, dict[str, Any]] = field(default_factory=lambda: {k: dict(v) for k, v in DEFAULT_COMPONENTS.items()})
+    components: dict[str, dict[str, Any]] = field(default_factory=lambda: {
+        k: {**v, "subsystem": DEFAULT_COMPONENT_SUBSYSTEMS.get(k)} for k, v in DEFAULT_COMPONENTS.items()
+    })
     inferred_cap: float = 0.5
+    mechanism_terms: dict[str, list[str]] = field(default_factory=lambda: {k: list(v) for k, v in DEFAULT_MECHANISM_TERMS.items()})
     sensor_categories: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_SENSOR_CATEGORIES))
     sensor_category_patterns: list[tuple[str, str]] = field(default_factory=lambda: list(DEFAULT_SENSOR_CATEGORY_PATTERNS))
 
@@ -152,9 +178,12 @@ class EvidenceRules:
                     "terms": [str(t).lower() for t in spec.get("terms", [])],
                     "requires": [[str(s).lower() for s in group] for group in spec.get("requires", [])],
                     "allow_inferred": bool(spec.get("allow_inferred", False)),
+                    "subsystem": str(spec["subsystem"]).lower() if spec.get("subsystem") else None,
                 }
                 for name, spec in data["components"].items()
             }
+        if data.get("mechanism_terms"):
+            rules.mechanism_terms = {str(k).lower(): [str(t).lower() for t in v] for k, v in data["mechanism_terms"].items()}
         if sensor_categories:
             rules.sensor_categories = dict(sensor_categories)
         if sensor_category_patterns:
@@ -182,34 +211,47 @@ class EvidenceRules:
         first = re.split(r"(?<=[.!?])\s+", description.strip(), maxsplit=1)[0] if description else ""
         return f"{title}. {first}"
 
-    def _find_terms(self, text: str, sensor_ids: Iterable[str], terms: dict[str, list[str]]) -> set[str]:
-        """Keys of ``terms`` named in ``text`` (sensor names stripped first, longest phrase first)."""
+    def _find_terms(self, text: str, sensor_ids: Iterable[str], terms: dict[str, list[str]]) -> dict[str, str]:
+        """Keys of ``terms`` named in ``text`` -> the phrase that matched.
+
+        Sensor names (with and without a trailing unit word) are stripped first, then phrases are
+        matched longest first; a phrase listed under several keys counts for all of them.
+        """
         lowered = " " + text.lower().replace("_", " ") + " "
         names: set[str] = set()
         for sensor in sensor_ids:
-            names.add(sensor.lower().replace("_", " "))
-            names.add(sensor_display_name(sensor).lower())
+            for name in (sensor.lower().replace("_", " "), sensor_display_name(sensor).lower()):
+                names.add(name)
+                words = name.split()
+                if len(words) > 1 and words[-1] in _UNIT_WORDS:
+                    names.add(" ".join(words[:-1]))
         for name in sorted(names, key=len, reverse=True):
             lowered = re.sub(rf"\b{re.escape(name)}s?\b", " ", lowered)
-        phrases = [(term, key) for key, values in terms.items() for term in values]
-        phrases += [(phrase, None) for phrase in self.neutral_phrases]
-        found: set[str] = set()
-        for term, category in sorted(phrases, key=lambda pair: len(pair[0].rstrip("*")), reverse=True):
+        keys_by_term: dict[str, set[str | None]] = {}
+        for key, values in terms.items():
+            for term in values:
+                keys_by_term.setdefault(term, set()).add(key)
+        for phrase in self.neutral_phrases:
+            keys_by_term.setdefault(phrase, set()).add(None)
+        phrases = list(keys_by_term.items())
+        found: dict[str, str] = {}
+        for term, keys in sorted(phrases, key=lambda pair: len(pair[0].rstrip("*")), reverse=True):
             stem = term.rstrip("*")
             pattern = rf"\b{re.escape(stem)}[a-z-]*" if term.endswith("*") else rf"\b{re.escape(stem)}s?\b"
             if re.search(pattern, lowered):
-                if category:
-                    found.add(category)
+                for key in keys:
+                    if key:
+                        found.setdefault(key, stem)
                 lowered = re.sub(pattern, " ", lowered)
         return found
 
     def named_subsystems(self, text: str, sensor_ids: Iterable[str]) -> set[str]:
         """Subsystems named in ``text``."""
-        return self._find_terms(text, sensor_ids, self.subsystem_terms)
+        return set(self._find_terms(text, sensor_ids, self.subsystem_terms))
 
     def named_components(self, text: str, sensor_ids: Iterable[str]) -> set[str]:
         """Components (from ``components``) named in ``text``."""
-        return self._find_terms(text, sensor_ids, {k: v.get("terms", []) for k, v in self.components.items()})
+        return set(self._find_terms(text, sensor_ids, {k: v.get("terms", []) for k, v in self.components.items()}))
 
     def component_check(
         self, text: str, cited: Sequence[AnomalyEvent], vehicle_sensors: Iterable[str]
@@ -243,6 +285,23 @@ class EvidenceRules:
                 else:
                     caps.append((f"{UNOBSERVABLE_LABEL}: {name}", self.unobservable_cap))
                 break
+            # Cross-subsystem mechanism check: a component in subsystem A whose stated cause also uses a
+            # mechanism from subsystem B needs evidence from B as well.
+            home = spec.get("subsystem")
+            others = {k: v for k, v in self.mechanism_terms.items() if k != home}
+            cited_evidence = set().union(*(self.evidence_categories(a.sensor_id) for a in cited)) if cited else set()
+            observable = set().union(*(self.evidence_categories(s) for s in vehicle)) if vehicle else set()
+            for subsystem, term in sorted(self._find_terms(text, vehicle, others).items()):
+                if subsystem in cited_evidence:
+                    continue
+                if subsystem in observable:
+                    return (
+                        f"cross-subsystem hypothesis: names {name.replace('_', ' ')} ({home}) but also a {subsystem} "
+                        f"mechanism ('{term}'); evidence from both subsystems is required and no {subsystem} anomaly "
+                        f"is cited",
+                        [], True,
+                    )
+                caps.append((f"{UNOBSERVABLE_LABEL}: {subsystem} (cross-subsystem)", self.unobservable_cap))
         return None, caps, bool(named)
 
     def subsystem_check(

@@ -94,6 +94,10 @@ class AnomalyEvent(BaseModel):
     mission_elapsed_s: float | None = None
     #: When the detector first flagged the event (onset backtracking may put ``mission_elapsed_s`` earlier).
     detected_at_s: float | None = None
+    #: "transient" (returned to baseline within the recovery window) or "sustained".
+    recovery: str | None = None
+    recovery_s: float | None = None
+    settled_value: float | None = None
     duration_s: float = 0.0
     peak_value: float | None = None
     baseline_value: float | None = None
@@ -132,6 +136,17 @@ class AnomalyEvent(BaseModel):
             f"({self.severity.value}) at {_met_text(self.mission_elapsed_s)}"
         )
 
+    @property
+    def recovery_text(self) -> str | None:
+        """Plain-language transient/sustained summary (Fix 15)."""
+        if self.recovery == "transient":
+            return f"transient (recovered within {self.recovery_s:.1f} s)"
+        if self.recovery == "sustained":
+            settled = "-" if self.settled_value is None else f"{self.settled_value:.4g}"
+            base = "-" if self.baseline_value is None else f"{self.baseline_value:.4g}"
+            return f"sustained (value remained at {settled} {self.unit}, baseline was {base} {self.unit})".replace("  ", " ")
+        return None
+
     def to_prompt_dict(self, labels: Mapping[str, str] | None = None) -> dict[str, Any]:
         """Compact, LLM-friendly representation (no raw readings, no internal IDs).
 
@@ -154,6 +169,7 @@ class AnomalyEvent(BaseModel):
             "expected_transient": self.expected,
             "correlated_with": [labels.get(i, i) for i in self.correlated_with],
             "description": self.description,
+            "recovery": self.recovery_text,
             "classification": self.classification or None,
         }
 
@@ -176,7 +192,8 @@ class Hypothesis(BaseModel):
     recommended_actions: list[str] = Field(default_factory=list)
     #: Observations that would confirm this cause and rule out competing ones.
     distinguishing_evidence: list[str] = Field(default_factory=list)
-    #: "root_cause", "independent_events" (coincident but unrelated) or "insufficient_evidence".
+    #: "root_cause", "independent_events" (coincident but unrelated), "insufficient_evidence" or
+    #: "unresolved" (pipeline placeholder after failed follow-ups; needs manual review).
     hypothesis_type: str = "root_cause"
     #: Validator annotations, e.g. "unobservable - no sensor coverage: structural".
     labels: list[str] = Field(default_factory=list)

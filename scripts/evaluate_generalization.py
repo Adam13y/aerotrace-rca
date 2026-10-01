@@ -115,6 +115,9 @@ def score(report: dict[str, Any], truth: dict[str, Any]) -> dict[str, Any]:
         if len(real) > 1 or (real and "FP" in groups):
             false_links.append(f"'{h['title']}' links " + " + ".join(label[i] for i in h["related_anomalies"]))
     result["false_links"] = false_links
+    unresolved = [h["title"] for h in hypotheses if h.get("hypothesis_type") == "unresolved"]
+    result["unresolved"] = unresolved
+    result["failures"] += [f"left for manual review: {u}" for u in unresolved]
     result["failures"] += [f"false causal link: {fl}" for fl in false_links]
     return result
 
@@ -155,11 +158,13 @@ def main() -> int:
         console.print(f"done in {result.duration_s:.0f}s - {len(scored['failures'])} failure(s)")
 
     table = Table(title="Generalisation results", header_style="bold")
-    for column in ("Flight", "#1 hypothesis", "Detected", "Root cause #1", "All explained", "False links", "False pos."):
+    for column in ("Flight", "#1 hypothesis", "Detected", "Root cause #1", "All explained", "Unresolved",
+                   "False links", "False pos."):
         table.add_column(column)
     mark = lambda ok: "[green]yes[/green]" if ok else "[red]NO[/red]"  # noqa: E731
     for name, top, s in rows:
         table.add_row(name, top, s["detected"], mark(s["root_ok"]), mark(s["all_explained"]),
+                      str(len(s.get("unresolved", []))),
                       "[green]none[/green]" if not s["false_links"] else f"[red]{len(s['false_links'])}[/red]",
                       str(len(s["false_positives"])))
     console.print(table)
