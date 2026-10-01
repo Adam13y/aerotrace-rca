@@ -270,7 +270,7 @@ def test_triage_prompt_uses_labels_not_ids(detector: AnomalyDetector, readings: 
 
     client.chat = capture  # type: ignore[method-assign]
     AnomalyDetector(detector.config, router=LLMRouter(client, None)).classify(events)  # type: ignore[arg-type]
-    assert "LOX tank pressure drop (CRITICAL) at T+142.4s" in prompts[0]
+    assert "LOX tank pressure drop (CRITICAL) at T+142.1s" in prompts[0]  # onset, not first-flagged time
     assert "ANM-" not in prompts[0]
 
 
@@ -322,3 +322,66 @@ def test_two_sample_excursion_is_indeterminate() -> None:
     values[500:502] += 3.0
     event = next(e for e in AnomalyDetector(use_llm=False).detect(_series(values)) if e.consecutive_samples == 2)
     assert SensorFaultClassifier().verdict(event)[0] == "indeterminate"
+
+
+# --------------------------------------------------------------------------- #
+# Onset backtracking, startup filter, severity floors
+# --------------------------------------------------------------------------- #
+def test_onsets_close_to_injected_fault_times(detector: AnomalyDetector, readings: list[TelemetryReading]) -> None:
+    events = {e.sensor_id: e for e in detector.detect(readings) if not e.expected}
+    injected = {"lox_tank_pressure": 142.0, "turbopump_vibration": 143.5, "engine_bay_temp": 145.0,
+                "avionics_bus_voltage": 210.0, "fuel_tank_pressure": 230.0}
+    for sensor, met in injected.items():
+        assert abs(events[sensor].mission_elapsed_s - met) <= 1.0, sensor
+        assert events[sensor].mission_elapsed_s <= events[sensor].detected_at_s
+    temp = events["engine_bay_temp"]
+    assert temp.detected_at_s - temp.mission_elapsed_s > 2.0  # slow ramp: detected late, onset backtracked
+    assert "Onset backtracked" in temp.description
+    assert events["fuel_tank_pressure"].mission_elapsed_s == events["fuel_tank_pressure"].detected_at_s  # spike
+
+
+def test_slow_ramp_onset_precedes_later_sharp_event() -> None:
+    rng = np.random.default_rng(11)
+    t = np.arange(0, 300, 0.1)
+    ramp = 20 + rng.normal(0, 0.4, t.size)
+    ramp += 25 * np.clip((t - 130) / 4, 0, 1)                       # slow 4 s ramp from T+130
+    step = 45 + rng.normal(0, 0.1, t.size)
+    step[t >= 133.0] -= 4.0                                         # sharp drop at T+133
+    readings = _series(ramp, sensor="bay_temp", unit="degC") + _series(step, sensor="tank_pressure")
+    events = {e.sensor_id: e for e in AnomalyDetector(use_llm=False).detect(readings)}
+    assert events["bay_temp"].mission_elapsed_s < events["tank_pressure"].mission_elapsed_s
+
+
+def test_startup_transients_suppressed_and_reported() -> None:
+    rng = np.random.default_rng(12)
+    values = 50 + rng.normal(0, 0.1, 1000)
+    values[20:25] += 5.0                                            # T+2.0 - T+2.4
+    values[600:605] += 5.0                                          # T+60
+    detector = AnomalyDetector(use_llm=False)
+    events = detector.detect(_series(values))
+    assert all(e.mission_elapsed_s > 5 for e in events)
+    assert len(detector.last_suppressed) == 1 and detector.last_suppressed[0].startswith("test_sensor first detected at T+1.")
+    assert AnomalyDetector(DetectorConfig(startup_ignore_seconds=0), use_llm=False).detect(_series(values))[0] \
+        .mission_elapsed_s < 5
+
+
+def test_severity_floor_raises_large_relative_changes() -> None:
+    rng = np.random.default_rng(13)
+    values = 100 + rng.normal(0, 2.0, 1000)
+    values[500:560] += 12.0                                         # 12 % pressure change, modest in sigma terms
+    floors = [("*pressure*", 5.0, Severity.WARNING)]
+    plain = AnomalyDetector(DetectorConfig(), use_llm=False).detect(_series(values, sensor="tank_pressure"))
+    floored = AnomalyDetector(DetectorConfig(severity_floors=floors), use_llm=False).detect(
+        _series(values, sensor="tank_pressure"))
+    assert plain and floored
+    if plain[0].severity == Severity.INFO:
+        assert floored[0].severity == Severity.WARNING and "floor" in floored[0].description
+    assert all(e.severity != Severity.INFO for e in floored)
+    other = AnomalyDetector(DetectorConfig(severity_floors=floors), use_llm=False).detect(_series(values, sensor="x_rate"))
+    assert [e.severity for e in other] == [e.severity for e in plain]  # pattern does not match -> unchanged
+
+
+def test_shipped_config_has_floors_and_startup_filter(agents_config: dict) -> None:
+    config = DetectorConfig.from_dict(agents_config["anomaly_detector"])
+    assert config.startup_ignore_seconds == 5.0 and config.onset_backtrack
+    assert {p: m for p, m, _ in config.severity_floors} == {"*pressure*": 5, "*temp*": 10, "*vib*": 20, "*voltage*": 3}

@@ -276,6 +276,13 @@ class Supervisor:
         detected = self._step(
             "detect", lambda: self.detector.detect(result.readings, mission_start=mission_start), errors=result.errors
         )
+        if self.detector.last_suppressed:
+            self.log_decision(
+                "anomaly_detector",
+                f"Suppressed {len(self.detector.last_suppressed)} anomaly(ies) first detected before "
+                f"T+{self.detector.config.startup_ignore_seconds:g}s (startup transient filter)",
+                "; ".join(self.detector.last_suppressed),
+            )
         self.log_decision(
             "anomaly_detector", f"Detected {len(detected)} anomalies",
             f"{sum(not a.expected for a in detected)} actionable, {sum(a.expected for a in detected)} expected",

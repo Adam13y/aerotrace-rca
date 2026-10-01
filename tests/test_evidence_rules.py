@@ -122,11 +122,12 @@ def test_padding_mechanism_without_evidence_is_rejected(kb: KnowledgeBase) -> No
     planned = [_a(s, 1).model_copy(update={"expected": True}) for s in VEHICLE if s != "engine_bay_temp"]
     generator, _ = _generator(kb, answer)
     assert [h.title for h in generator.generate([temp, *planned])] == ["Thermal control failure"]
-    assert any("names propulsion as part of the cause" in r.reason for r in generator.last_rejections)
-    # A vehicle with only the temperature sensor cannot observe propulsion -> capped and labelled instead.
+    assert any("names turbopump cavitation as the cause" in r.reason for r in generator.last_rejections)
+    # A vehicle with only the temperature sensor cannot observe the turbopump -> capped and labelled instead.
     generator, _ = _generator(kb, answer)
     capped = {h.title: h for h in generator.generate([temp])}["Turbopump Cavitation and Rotor Instability"]
-    assert capped.confidence == pytest.approx(0.3) and capped.labels == [f"{UNOBSERVABLE_LABEL}: propulsion"]
+    assert capped.confidence == pytest.approx(0.3)
+    assert capped.labels == [f"{UNOBSERVABLE_LABEL}: turbopump_cavitation"]
 
 
 def test_unobservable_subsystem_is_capped_and_labelled(kb: KnowledgeBase) -> None:
@@ -136,7 +137,7 @@ def test_unobservable_subsystem_is_capped_and_labelled(kb: KnowledgeBase) -> Non
     hypothesis = generator.generate([lox])[0]
     assert hypothesis.confidence == pytest.approx(0.3)
     assert hypothesis.labels == [f"{UNOBSERVABLE_LABEL}: structural"]
-    assert any("no sensor for it" in f.reason for f in generator.last_flags)
+    assert any("no dedicated sensor" in f.reason for f in generator.last_flags)
 
 
 def test_independent_events_may_link_uncoupled_subsystems(kb: KnowledgeBase) -> None:
@@ -189,3 +190,47 @@ def test_prompt_shows_sensors_couplings_and_types(kb: KnowledgeBase) -> None:
     assert "- propulsion -> thermal" in prompt
     assert '"independent_events"' in prompt and '"insufficient_evidence"' in prompt
     assert "does NOT mean they are causally related" in prompt
+
+
+# --------------------------------------------------------------------------- component-level rule 1
+def test_component_requirements() -> None:
+    rules = EvidenceRules()
+    lox, vib = _a("lox_tank_pressure", 142), _a("turbopump_vibration", 143)
+    chamber = _a("chamber_pressure", 200)
+    vehicle = [*VEHICLE, "camera_frame_rate_hz"]
+    # cavitation needs turbopump vibration AND a tank pressure
+    assert rules.component_check("Propellant pump cavitation", [lox, vib], vehicle) == (None, [], True)
+    problem, _, _ = rules.component_check("Propellant pump cavitation", [lox], vehicle)
+    assert problem and "requires cited anomalies on turbopump_vibration AND (lox_tank_pressure OR fuel_tank_pressure)" in problem
+    problem, _, _ = rules.component_check("Pump cavitation", [chamber, vib], vehicle)
+    assert problem and "lox_tank_pressure" in problem
+    assert rules.component_check("Combustion instability in the main chamber", [chamber], vehicle)[0] is None
+    # camera: glob requirement, inferred when the vehicle has no camera sensor
+    camera = _a("camera_frame_rate_hz", 176)
+    assert rules.component_check("Camera power supply failure", [camera], vehicle) == (None, [], True)
+    assert rules.component_check("Camera failure", [vib], VEHICLE)[1] == [("local_component_inferred: camera_failure", 0.5)]
+    # no listed component -> caller falls back to the subsystem check
+    assert rules.component_check("Gas generator malfunction", [vib], vehicle) == (None, [], False)
+
+
+def test_only_title_and_primary_cause_are_checked() -> None:
+    text = EvidenceRules.primary_cause_text(
+        "Thermal control failure",
+        "Bay thermal control was lost at T+165s. Unlike a turbopump cavitation event, no pressure change was seen.")
+    assert text == "Thermal control failure. Bay thermal control was lost at T+165s."
+    assert EvidenceRules().named_components(text, VEHICLE) == {"thermal_failure"}
+
+
+def test_passing_mention_no_longer_rejects(kb: KnowledgeBase) -> None:
+    vib = _a("turbopump_vibration", 173.8)
+    camera = _a("camera_frame_rate_hz", 175.9)
+    generator, _ = _generator(kb, {"hypotheses": [
+        _h("Turbopump bearing wear", [vib], "Bearing wear raised turbopump vibration at T+173.8s. A battery or "
+                                           "electrical cause was considered but the bus voltage stayed nominal."),
+        _h("Camera power supply failure", [camera], "The camera's local power supply failed at T+175.9s. "
+                                                    "The main electrical bus was unaffected."),
+    ]})
+    planned = [_a(s, 1).model_copy(update={"expected": True}) for s in VEHICLE if s != "turbopump_vibration"]
+    titles = {h.title: h for h in generator.generate([vib, camera, *planned])}
+    assert set(titles) == {"Turbopump bearing wear", "Camera power supply failure"}
+    assert not generator.last_rejections

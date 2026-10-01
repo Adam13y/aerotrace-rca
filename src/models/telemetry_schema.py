@@ -92,6 +92,8 @@ class AnomalyEvent(BaseModel):
     readings: list[TelemetryReading] = Field(default_factory=list)
     unit: str = ""
     mission_elapsed_s: float | None = None
+    #: When the detector first flagged the event (onset backtracking may put ``mission_elapsed_s`` earlier).
+    detected_at_s: float | None = None
     duration_s: float = 0.0
     peak_value: float | None = None
     baseline_value: float | None = None

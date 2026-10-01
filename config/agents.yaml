@@ -18,6 +18,15 @@ telemetry_analyst:
 anomaly_detector:
   provider_preference: local        # local = Ollama first, Claude as fallback
   llm_temperature: 0.0              # deterministic triage
+  onset_backtrack: true             # report when a deviation began, not when it was first flagged
+  onset_threshold_sigma: 3.0
+  startup_ignore_seconds: 5.0       # anomalies first detected before T+5s are suppressed (and logged)
+  # Minimum severity for large relative changes (first matching sensor pattern wins; not applied to planned events).
+  severity_floors:
+    - {pattern: "*pressure*", min_change_pct: 5, severity: WARNING}
+    - {pattern: "*temp*", min_change_pct: 10, severity: WARNING}
+    - {pattern: "*vib*", min_change_pct: 20, severity: WARNING}
+    - {pattern: "*voltage*", min_change_pct: 3, severity: WARNING}
   window_seconds: 10.0
   zscore_threshold: 5.0             # robust z of residual vs. rolling median trend
   derivative_threshold: 6.0         # robust z of the first time derivative
@@ -55,7 +64,28 @@ hypothesis_generator:
   min_competing_hypotheses: 2       # distinct explanations required for the leading correlated group
   alternative_retries: 0            # 0 = report a shortfall instead of asking the LLM again
   evidence_rules:
-    unobservable_confidence_cap: 0.3  # subsystems the vehicle has no sensor for
+    unobservable_confidence_cap: 0.3  # subsystems/components the vehicle has no sensor for
+    inferred_confidence_cap: 0.5      # local components without a dedicated sensor (allow_inferred)
+    # Component-level evidence (checked first, on the title + primary cause sentence only).
+    # requires = AND of OR-groups of sensor names (glob patterns allowed).
+    components:
+      turbopump_cavitation:
+        terms: ["cavitat*"]
+        requires: [[turbopump_vibration], [lox_tank_pressure, fuel_tank_pressure]]
+      combustion_instability:
+        terms: ["combustion instabilit*", "combustion oscillat*", chugging, "screech*"]
+        requires: [[chamber_pressure]]
+      thermal_failure:
+        terms: [thermal control, thermal failure, "overheat*", insulation, heat soak, cooling failure]
+        requires: [[engine_bay_temp]]
+      electrical_failure:
+        terms: [battery, batteries, cell, under-voltage, undervoltage, brownout, short circuit, short-circuit,
+                load transient, power distribution]
+        requires: [[avionics_bus_voltage]]
+      camera_failure:
+        terms: [camera]
+        requires: [["camera_*"]]       # e.g. camera_status or camera_frame_rate_hz
+        allow_inferred: true           # no camera sensor -> local_component_inferred, capped at 50%
     # Phrases that name a subsystem as (part of) a cause. "*" = any word ending.
     subsystem_terms:
       propulsion: [turbopump, turbo pump, pump cavitation, "cavitat*", combustion, injector, nozzle, gas generator,

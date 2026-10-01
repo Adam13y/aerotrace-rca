@@ -100,8 +100,16 @@ class DetectorConfig:
     max_readings_per_event: int = 40
     provider_preference: str = "local"
     llm_temperature: float = 0.0
+    #: Walk back from the first flagged sample to where the deviation actually began.
+    onset_backtrack: bool = True
+    #: Deviation (in noise sigmas, on a ~1 s median-smoothed signal) that still counts as "already deviating".
+    onset_threshold_sigma: float = 3.0
+    #: Anomalies first detected before this mission time are suppressed (and logged) as startup transients.
+    startup_ignore_seconds: float = 5.0
     sensor_limits: dict[str, tuple[float | None, float | None]] = field(default_factory=dict)
     planned_events: list[PlannedEvent] = field(default_factory=list)
+    #: (sensor glob, minimum relative change in %, minimum severity) - first matching pattern applies.
+    severity_floors: list[tuple[str, float, Severity]] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> DetectorConfig:
@@ -119,11 +127,16 @@ class DetectorConfig:
             )
             for e in (data.pop("planned_events", None) or [])
         ]
-        known = {f for f in cls.__dataclass_fields__ if f not in {"sensor_limits", "planned_events"}}
+        floors = [
+            (str(f["pattern"]).lower(), float(f["min_change_pct"]), Severity(str(f.get("severity", "WARNING")).upper()))
+            for f in (data.pop("severity_floors", None) or [])
+        ]
+        known = {f for f in cls.__dataclass_fields__ if f not in {"sensor_limits", "planned_events", "severity_floors"}}
         unknown = set(data) - known
         if unknown:
             logger.warning("Ignoring unknown anomaly_detector options: %s", sorted(unknown))
-        return cls(**{k: v for k, v in data.items() if k in known}, sensor_limits=limits, planned_events=planned)
+        return cls(**{k: v for k, v in data.items() if k in known}, sensor_limits=limits, planned_events=planned,
+                   severity_floors=floors)
 
 
 @dataclass(slots=True)
@@ -138,6 +151,8 @@ class _SensorScores:
     limit_breach: np.ndarray
     noise_sigma: float
     dt: float
+    #: Robust z-score of the ~1 s averaged rate of change (vs. its rolling median); used for onset backtracking.
+    slope_z: np.ndarray
 
 
 class AnomalyDetector:
@@ -155,6 +170,7 @@ class AnomalyDetector:
         self.router = router
         self.use_llm = use_llm and router is not None
         self.last_classifier: str = "none"
+        self.last_suppressed: list[str] = []
 
     # ------------------------------------------------------------------ #
     # Detection
@@ -172,6 +188,7 @@ class AnomalyDetector:
         if not readings:
             logger.warning("No readings supplied to anomaly detector")
             return []
+        self.last_suppressed = []
         frame = readings_to_frame(readings)
         t0 = pd.Timestamp(mission_start) if mission_start is not None else frame["timestamp"].min()
         if t0.tzinfo is None:
@@ -224,7 +241,14 @@ class AnomalyDetector:
         if high is not None:
             breach |= values > float(high)
 
-        return _SensorScores(met, values, zscore, d_score, ma_score, breach, noise_sigma, dt)
+        # ~1 s averaged slope: noise averages out, sustained ramps stand out early, and a single-sample
+        # spike's up/down slopes cancel (so spikes are not backtracked).
+        k = max(3, int(round(1.0 / dt)))
+        slope = pd.Series(derivative).rolling(k, center=True, min_periods=1).mean().to_numpy()
+        slope_residual = slope - pd.Series(slope).rolling(window, center=True, min_periods=1).median().to_numpy()
+        slope_z = (slope_residual - np.median(slope_residual)) / _robust_sigma(slope_residual)
+
+        return _SensorScores(met, values, zscore, d_score, ma_score, breach, noise_sigma, dt, slope_z)
 
     def _detect_sensor(
         self,
@@ -271,9 +295,15 @@ class AnomalyDetector:
                 score = max(score, cfg.critical_score)
             if score < cfg.info_score and not limit_breached:
                 continue
+            detected_at = float(scores.met[start])
+            if detected_at < cfg.startup_ignore_seconds:
+                self.last_suppressed.append(f"{sensor_id} first detected at {format_met(detected_at)} (score {score:.1f})")
+                continue
 
-            baseline = _baseline(scores.values, start, scores.dt, cfg.window_seconds)
-            met_start, met_end = float(scores.met[start]), float(scores.met[end])
+            onset = self._onset_index(scores, start) if cfg.onset_backtrack else start
+            baseline = _baseline(scores.values, onset, scores.dt, cfg.window_seconds)
+            met_start, met_end = float(scores.met[onset]), float(scores.met[end])
+            peak_value = float(scores.values[peak])
             severity = (
                 Severity.CRITICAL if score >= cfg.critical_score or limit_breached
                 else Severity.WARNING if score >= cfg.warning_score
@@ -281,19 +311,28 @@ class AnomalyDetector:
             )
             planned = next((p for p in cfg.planned_events if p.covers(sensor_id, met_start, met_end)), None)
             expected = planned is not None and not limit_breached
+            floor_note = ""
             if expected:
                 severity = Severity.INFO
+            else:
+                floor = self._severity_floor(sensor_id, baseline, peak_value)
+                if floor is not None and floor[0].rank > severity.rank:
+                    floor_note = (f" Severity raised {severity.value} -> {floor[0].value} by the {floor[1]} floor "
+                                  f"({floor[2]:.1f}% change).")
+                    severity = floor[0]
 
-            peak_value = float(scores.values[peak])
             description = _describe(
                 sensor_id, unit, baseline, peak_value, float(scores.met[peak]), met_start, met_end, methods,
                 score, scores.dt, cfg.sensor_limits.get(sensor_id), limit_breached,
             )
+            if onset < start:
+                description += f" Onset backtracked to {format_met(met_start)} (first flagged at {format_met(detected_at)})."
+            description += floor_note
             if expected and planned is not None:
                 description += f" Coincides with planned event '{planned.name}' - treated as expected transient."
 
             pad = max(3, int(round(1.0 / scores.dt)))
-            idx_range = range(max(0, start - pad), min(len(original_index), end + pad + 1))
+            idx_range = range(max(0, onset - pad), min(len(original_index), end + pad + 1))
             if len(idx_range) > cfg.max_readings_per_event:
                 step = int(np.ceil(len(idx_range) / cfg.max_readings_per_event))
                 idx_range = list(idx_range)[::step]
@@ -301,7 +340,7 @@ class AnomalyDetector:
                     idx_range = sorted({*idx_range, peak})
             event_readings = [readings[int(original_index[i])] for i in idx_range]
 
-            start_ts, end_ts = timestamps.iloc[start], timestamps.iloc[end]
+            start_ts, end_ts = timestamps.iloc[onset], timestamps.iloc[end]
             events.append(
                 AnomalyEvent(
                     id=_event_id(sensor_id, start_ts.isoformat()),
@@ -313,6 +352,7 @@ class AnomalyDetector:
                     readings=event_readings,
                     unit=unit,
                     mission_elapsed_s=met_start,
+                    detected_at_s=detected_at,
                     duration_s=max(met_end - met_start, 0.0),
                     peak_value=peak_value,
                     baseline_value=baseline,
@@ -323,6 +363,43 @@ class AnomalyDetector:
                 )
             )
         return events
+
+    def _onset_index(self, scores: _SensorScores, start: int) -> int:
+        """First sample of the run leading into ``start`` that already crossed the (lower) onset threshold.
+
+        Uses the detector's own trend-compensated scores: walking back from the first flagged
+        sample, a sample still belongs to the event while its residual z-score, its derivative
+        score or its ~1 s averaged slope score is at least ``onset_threshold_sigma`` in the
+        event's direction. Never later than ``start``; looks back at most one detection window.
+        """
+        cfg = self.config
+        window = max(5, int(round(cfg.window_seconds / max(scores.dt, 1e-6))))
+        lowest = max(0, start - window)
+        direction = np.sign(scores.zscore[start]) or np.sign(scores.derivative[start]) or 1.0
+        threshold = cfg.onset_threshold_sigma
+
+        def walk(*series: np.ndarray) -> int:
+            i = start
+            while i > lowest and any(direction * x[i - 1] >= threshold for x in series):
+                i -= 1
+            return i
+
+        sample_level = walk(scores.zscore, scores.derivative)
+        # The ~1 s centred slope average responds half a window before an abrupt change; shift its
+        # result forward by that much so a sharp ramp is not dated earlier than it really started.
+        half = max(3, int(round(1.0 / max(scores.dt, 1e-6)))) // 2
+        smoothed = min(start, walk(scores.slope_z) + half)
+        return min(sample_level, smoothed)
+
+    def _severity_floor(self, sensor_id: str, baseline: float, peak: float) -> tuple[Severity, str, float] | None:
+        """Minimum severity for a relative change on this sensor type, from ``severity_floors``."""
+        if abs(baseline) < 1e-9:
+            return None
+        change = abs(peak - baseline) / abs(baseline) * 100.0
+        for pattern, minimum, severity in self.config.severity_floors:
+            if fnmatch.fnmatch(sensor_id.lower(), pattern):
+                return (severity, f"'{pattern}' >{minimum:g}%", change) if change > minimum else None
+        return None
 
     # ------------------------------------------------------------------ #
     # Triage / classification

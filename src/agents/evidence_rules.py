@@ -1,10 +1,16 @@
 """Physical-evidence rules applied to LLM hypotheses.
 
-Rule 1 - subsystem evidence: every subsystem a hypothesis names as part of its cause (title or
-causal chain) must be backed by at least one cited anomaly from a sensor that observes that
-subsystem. If the vehicle has *no* sensor for the subsystem, the claim cannot be checked: its
-confidence is capped and it is labelled "unobservable - no sensor coverage". Otherwise the
-hypothesis is rejected.
+Rule 1 - evidence for the named cause. Only the hypothesis TITLE and its PRIMARY CAUSE (the first
+sentence of the causal chain) are checked; passing mentions later in the chain are not.
+
+* Component level first: a named component (e.g. turbopump cavitation) must be backed by cited
+  anomalies on the sensors it requires (AND of OR-groups, glob patterns allowed). If a required
+  sensor exists on the vehicle but is not cited, the hypothesis is rejected. If the vehicle has
+  no such sensor, the component is "local_component_inferred" (when allowed: confidence capped
+  at ``inferred_confidence_cap``) or unobservable (capped at ``unobservable_confidence_cap``).
+* Subsystem level as fallback when no listed component is named: every named subsystem needs a
+  cited anomaly from a sensor observing it; unobservable subsystems are capped and labelled
+  "unobservable - no sensor coverage"; otherwise the hypothesis is rejected.
 
 Rule 2 - cross-subsystem coupling: when a hypothesis links anomalies from different subsystems,
 each later anomaly's subsystem must be directly reachable from an earlier cited anomaly's
@@ -18,6 +24,7 @@ stripped from the text beforehand). This is a vocabulary heuristic, not semantic
 
 from __future__ import annotations
 
+import fnmatch
 import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
@@ -79,7 +86,29 @@ DEFAULT_COUPLINGS: dict[str, list[str]] = {
     "aerodynamic": ["structural", "thermal"],
     "separation": ["structural", "propulsion", "avionics"],
 }
+#: Components with their own evidence requirements (checked before the subsystem fallback).
+DEFAULT_COMPONENTS: dict[str, dict[str, Any]] = {
+    "turbopump_cavitation": {
+        "terms": ["cavitat*"],
+        "requires": [["turbopump_vibration"], ["lox_tank_pressure", "fuel_tank_pressure"]],
+    },
+    "combustion_instability": {
+        "terms": ["combustion instabilit*", "combustion oscillat*", "chugging", "screech*"],
+        "requires": [["chamber_pressure"]],
+    },
+    "thermal_failure": {
+        "terms": ["thermal control", "thermal failure", "overheat*", "insulation", "heat soak", "cooling failure"],
+        "requires": [["engine_bay_temp"]],
+    },
+    "electrical_failure": {
+        "terms": ["battery", "batteries", "cell", "under-voltage", "undervoltage", "brownout", "short circuit",
+                  "short-circuit", "load transient", "power distribution"],
+        "requires": [["avionics_bus_voltage"]],
+    },
+    "camera_failure": {"terms": ["camera"], "requires": [["camera_*"]], "allow_inferred": True},
+}
 HYPOTHESIS_TYPES = ("root_cause", "independent_events", "insufficient_evidence")
+INFERRED_LABEL = "local_component_inferred"
 UNOBSERVABLE_LABEL = "unobservable - no sensor coverage"
 
 
@@ -92,6 +121,8 @@ class EvidenceRules:
     sensor_evidence: dict[str, list[str]] = field(default_factory=lambda: {k: list(v) for k, v in DEFAULT_SENSOR_EVIDENCE.items()})
     couplings: dict[str, list[str]] = field(default_factory=lambda: {k: list(v) for k, v in DEFAULT_COUPLINGS.items()})
     unobservable_cap: float = 0.3
+    components: dict[str, dict[str, Any]] = field(default_factory=lambda: {k: dict(v) for k, v in DEFAULT_COMPONENTS.items()})
+    inferred_cap: float = 0.5
     sensor_categories: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_SENSOR_CATEGORIES))
     sensor_category_patterns: list[tuple[str, str]] = field(default_factory=lambda: list(DEFAULT_SENSOR_CATEGORY_PATTERNS))
 
@@ -114,6 +145,16 @@ class EvidenceRules:
         if data.get("couplings"):
             rules.couplings = {str(k).lower(): [str(c).lower() for c in (v or [])] for k, v in data["couplings"].items()}
         rules.unobservable_cap = float(data.get("unobservable_confidence_cap", rules.unobservable_cap))
+        rules.inferred_cap = float(data.get("inferred_confidence_cap", rules.inferred_cap))
+        if data.get("components"):
+            rules.components = {
+                str(name).lower(): {
+                    "terms": [str(t).lower() for t in spec.get("terms", [])],
+                    "requires": [[str(s).lower() for s in group] for group in spec.get("requires", [])],
+                    "allow_inferred": bool(spec.get("allow_inferred", False)),
+                }
+                for name, spec in data["components"].items()
+            }
         if sensor_categories:
             rules.sensor_categories = dict(sensor_categories)
         if sensor_category_patterns:
@@ -135,8 +176,14 @@ class EvidenceRules:
         return {category} if category else set()
 
     # ------------------------------------------------------------------ rule 1
-    def named_subsystems(self, text: str, sensor_ids: Iterable[str]) -> set[str]:
-        """Subsystems named in ``text`` (sensor names stripped first, longest phrase first)."""
+    @staticmethod
+    def primary_cause_text(title: str, description: str) -> str:
+        """Title plus the first sentence of the causal chain - the part that states the cause."""
+        first = re.split(r"(?<=[.!?])\s+", description.strip(), maxsplit=1)[0] if description else ""
+        return f"{title}. {first}"
+
+    def _find_terms(self, text: str, sensor_ids: Iterable[str], terms: dict[str, list[str]]) -> set[str]:
+        """Keys of ``terms`` named in ``text`` (sensor names stripped first, longest phrase first)."""
         lowered = " " + text.lower().replace("_", " ") + " "
         names: set[str] = set()
         for sensor in sensor_ids:
@@ -144,7 +191,7 @@ class EvidenceRules:
             names.add(sensor_display_name(sensor).lower())
         for name in sorted(names, key=len, reverse=True):
             lowered = re.sub(rf"\b{re.escape(name)}s?\b", " ", lowered)
-        phrases = [(term, category) for category, terms in self.subsystem_terms.items() for term in terms]
+        phrases = [(term, key) for key, values in terms.items() for term in values]
         phrases += [(phrase, None) for phrase in self.neutral_phrases]
         found: set[str] = set()
         for term, category in sorted(phrases, key=lambda pair: len(pair[0].rstrip("*")), reverse=True):
@@ -155,6 +202,48 @@ class EvidenceRules:
                     found.add(category)
                 lowered = re.sub(pattern, " ", lowered)
         return found
+
+    def named_subsystems(self, text: str, sensor_ids: Iterable[str]) -> set[str]:
+        """Subsystems named in ``text``."""
+        return self._find_terms(text, sensor_ids, self.subsystem_terms)
+
+    def named_components(self, text: str, sensor_ids: Iterable[str]) -> set[str]:
+        """Components (from ``components``) named in ``text``."""
+        return self._find_terms(text, sensor_ids, {k: v.get("terms", []) for k, v in self.components.items()})
+
+    def component_check(
+        self, text: str, cited: Sequence[AnomalyEvent], vehicle_sensors: Iterable[str]
+    ) -> tuple[str | None, list[tuple[str, float]], bool]:
+        """Apply the component-level part of rule 1 to ``text`` (title + primary cause).
+
+        Returns:
+            ``(rejection_reason, [(label, confidence_cap)], any_component_named)``.
+        """
+        vehicle = list(vehicle_sensors)
+        named = sorted(self.named_components(text, vehicle))
+        cited_sensors = [a.sensor_id.lower() for a in cited]
+        caps: list[tuple[str, float]] = []
+        for name in named:
+            spec = self.components[name]
+            for group in spec.get("requires", []):
+                if any(fnmatch.fnmatch(s, p) for s in cited_sensors for p in group):
+                    continue
+                on_vehicle = sorted({s for s in vehicle for p in group if fnmatch.fnmatch(s.lower(), p)})
+                requirement = " AND ".join(
+                    "(" + " OR ".join(g) + ")" if len(g) > 1 else g[0] for g in spec.get("requires", [])
+                )
+                if on_vehicle:
+                    return (
+                        f"names {name.replace('_', ' ')} as the cause, which requires cited anomalies on {requirement}, "
+                        f"but cites none on {' / '.join(on_vehicle)} (cited: {', '.join(cited_sensors) or 'nothing'})",
+                        [], True,
+                    )
+                if spec.get("allow_inferred"):
+                    caps.append((f"{INFERRED_LABEL}: {name}", self.inferred_cap))
+                else:
+                    caps.append((f"{UNOBSERVABLE_LABEL}: {name}", self.unobservable_cap))
+                break
+        return None, caps, bool(named)
 
     def subsystem_check(
         self, text: str, cited: Sequence[AnomalyEvent], vehicle_sensors: Iterable[str]

@@ -1075,10 +1075,16 @@ class HypothesisGenerator:
                 return None
         rules = self.config.evidence_rules
         vehicle = getattr(self, "_vehicle_sensors", None) or sorted({a.sensor_id for a in all_anomalies})
-        unobservable: list[str] = []
+        caps: list[tuple[str, float]] = []
         if hypothesis_type != "insufficient_evidence":
-            # Rule 1: named subsystems need evidence (the causal chain = title + description).
-            problem, unobservable = rules.subsystem_check(f"{title}. {item.get('description', '')}", resolved, vehicle)
+            # Rule 1: the named cause (title + primary cause sentence) needs evidence - component level
+            # first, subsystem level only when no listed component is named.
+            cause_text = rules.primary_cause_text(title, str(item.get("description", "")))
+            problem, caps, component_named = rules.component_check(cause_text, resolved, vehicle)
+            if not problem and not component_named:
+                problem, unobservable = rules.subsystem_check(cause_text, resolved, vehicle)
+                if unobservable:
+                    caps.append((f"{UNOBSERVABLE_LABEL}: {', '.join(unobservable)}", rules.unobservable_cap))
             if problem:
                 reject(problem, cited_ids)
                 return None
@@ -1121,14 +1127,14 @@ class HypothesisGenerator:
         for item_drop in dropped:
             self.last_drops.append(item_drop)
             logger.info("Hypothesis '%s': dropped citation '%s' (%s)", title, item_drop.reference, item_drop.reason)
-        if unobservable:
-            label = f"{UNOBSERVABLE_LABEL}: {', '.join(unobservable)}"
-            adjusted = round(min(hypothesis.confidence, rules.unobservable_cap), 2)
-            reason = f"names {', '.join(unobservable)} but the vehicle has no sensor for it; " \
-                     f"confidence capped {hypothesis.confidence:.0%} -> {adjusted:.0%}"
+        if caps:
+            labels = [label for label, _ in caps]
+            adjusted = round(min(hypothesis.confidence, *(cap for _, cap in caps)), 2)
+            reason = f"{'; '.join(labels)} - no dedicated sensor; confidence capped " \
+                     f"{hypothesis.confidence:.0%} -> {adjusted:.0%}"
             self.last_flags.append(HypothesisFlag(title, reason, hypothesis.confidence, adjusted, cited_ids))
             logger.info("Flagged hypothesis '%s': %s", title, reason)
-            hypothesis = hypothesis.model_copy(update={"confidence": adjusted, "labels": [*hypothesis.labels, label]})
+            hypothesis = hypothesis.model_copy(update={"confidence": adjusted, "labels": [*hypothesis.labels, *labels]})
         gap = max_time_gap(resolved)
         if gap > _MAX_UNEXPLAINED_GAP_S and not _GAP_EXPLANATION.search(text):
             adjusted = round(min(hypothesis.confidence * _GAP_CONFIDENCE_FACTOR, _GAP_CONFIDENCE_CAP), 2)
