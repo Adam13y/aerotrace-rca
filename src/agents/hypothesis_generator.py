@@ -417,8 +417,13 @@ class HypothesisGenerator:
         anomalies: list[AnomalyEvent],
         analysis: TelemetryAnalysis | None = None,
         mission_context: str = "",
+        dataset_id: str | None = None,
+        source_file: str | None = None,
     ) -> list[Hypothesis]:
         """Produce hypotheses ranked by confidence (highest first).
+
+        ``dataset_id``/``source_file`` identify the dataset under analysis; past anomalies saved
+        from that same dataset are excluded from retrieval so a re-run never sees its own output.
 
         Flow: instrumentation-glitch hypotheses for sensor faults; one LLM call for the physical
         anomalies; validation; a focused coverage retry for each physical anomaly still
@@ -446,7 +451,13 @@ class HypothesisGenerator:
         hypotheses: list[Hypothesis] = []
         self.last_source = "sensor-fault-classifier"
         if physical:
-            kb_matches = {a.id: self.kb.context_for(a, k=self.config.knowledge_base_matches) for a in physical}
+            self.kb.excluded_ids = set()
+            kb_matches = {
+                a.id: self.kb.context_for(
+                    a, k=self.config.knowledge_base_matches, exclude_dataset=dataset_id, exclude_source=source_file
+                )
+                for a in physical
+            }
             if self.use_llm and self.router is not None:
                 self.last_historical_cases = self._retrieve_history(physical, self.config.historical_cases)
                 try:

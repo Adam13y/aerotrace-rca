@@ -576,3 +576,30 @@ def test_ollama_client_sends_seed_and_temperature() -> None:
     client._client = Stub()
     client.chat("sys", "prompt", temperature=0.0)
     assert sent["options"] == {"temperature": 0.0, "seed": 42, "num_ctx": 10240}
+
+
+def test_reproducible_mode_reloads_model_for_every_call() -> None:
+    calls: list[str] = []
+
+    class Stub:
+        def chat(self, **kwargs: object) -> dict:
+            calls.append(f"chat keep_alive={kwargs.get('keep_alive')}")
+            return {"message": {"content": "{}"}}
+
+    client = OllamaClient("http://localhost:1", "qwen", reproducible=True)
+    client._client = Stub()
+    client.unload = lambda: calls.append("unload")  # type: ignore[method-assign]
+    client.chat("sys", "a")
+    client.chat("sys", "a")
+    assert calls == ["unload", "chat keep_alive=0", "unload", "chat keep_alive=0"]
+
+    fast = OllamaClient("http://localhost:1", "qwen", reproducible=False)
+    fast._client = Stub()
+    fast.unload = lambda: calls.append("unload")  # type: ignore[method-assign]
+    calls.clear()
+    fast.chat("sys", "a")
+    assert calls == ["chat keep_alive=None"]
+
+
+def test_unload_failure_is_ignored() -> None:
+    OllamaClient("http://localhost:1", "qwen").unload()  # nothing listening: must not raise

@@ -123,6 +123,21 @@ def readings_to_frame(readings: Iterable[TelemetryReading]) -> pd.DataFrame:
     return frame.sort_values(["sensor_id", "timestamp"], kind="stable").reset_index(drop=True)
 
 
+def dataset_fingerprint(readings: Iterable[TelemetryReading]) -> str:
+    """Content hash identifying a telemetry dataset independently of its file name or format.
+
+    The same flight stored as NASA-style CSV, SpaceX-style CSV or JSON yields the same
+    fingerprint, because it is computed from the normalised (sensor, timestamp, value) samples.
+    """
+    import hashlib
+
+    digest = hashlib.sha256()
+    for line in sorted(f"{r.sensor_id}|{r.iso_timestamp}|{r.value:.6g}" for r in readings):
+        digest.update(line.encode("utf-8"))
+        digest.update(b"\n")
+    return digest.hexdigest()[:16]
+
+
 def robust_zscore(values: np.ndarray) -> np.ndarray:
     """Median/MAD based z-score that is insensitive to the outliers it hunts for."""
     values = np.asarray(values, dtype=float)
@@ -304,6 +319,7 @@ class OllamaClient:
         timeout: float = 120.0,
         seed: int | None = 42,
         num_ctx: int | None = 10240,
+        reproducible: bool = False,
     ) -> None:
         """Create a client.
 
@@ -313,12 +329,14 @@ class OllamaClient:
             timeout: Request timeout in seconds.
             seed: Fixed sampling seed for repeatable output (``None`` = random).
             num_ctx: Context window in tokens (``None`` = Ollama default, usually 4096).
+            reproducible: Evaluate every request on a freshly loaded model (see :meth:`chat`).
         """
         self.base_url = base_url
         self.model = model
         self.timeout = timeout
         self.seed = seed
         self.num_ctx = num_ctx
+        self.reproducible = reproducible
         self.last_prompt_tokens: int | None = None
         self._available: bool | None = None
         self._client: Any = None
@@ -341,8 +359,26 @@ class OllamaClient:
             )
         return self._available
 
+    def unload(self) -> None:
+        """Ask Ollama to unload the model (drops its KV cache). Errors are ignored."""
+        body = json.dumps({"model": self.model, "keep_alive": 0}).encode("utf-8")
+        request = urllib.request.Request(
+            self.base_url.rstrip("/") + "/api/generate", data=body, headers={"Content-Type": "application/json"}
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310 - configured URL
+                response.read()
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            logger.debug("Could not unload %s: %s", self.model, exc)
+
     def chat(self, system: str, prompt: str, *, json_mode: bool = False, temperature: float = 0.2) -> str:
         """Send a single-turn chat request and return the assistant text.
+
+        Even at temperature 0 with a fixed seed, Ollama's output depends on its KV-cache state:
+        a prompt whose prefix is already cached is computed along a slightly different numerical
+        path than a freshly evaluated one, which can flip near-tied tokens. In ``reproducible``
+        mode the model is unloaded before each request and released afterwards (``keep_alive=0``),
+        so every request starts from an empty cache. This costs a model load per call.
 
         Raises:
             LLMUnavailableError: If the ``ollama`` package is missing or the call fails.
@@ -353,6 +389,8 @@ class OllamaClient:
             except ImportError as exc:
                 raise LLMUnavailableError("The 'ollama' package is not installed") from exc
             self._client = ollama.Client(host=self.base_url, timeout=self.timeout)
+        if self.reproducible:
+            self.unload()
         try:
             response = self._client.chat(
                 model=self.model,
@@ -366,6 +404,7 @@ class OllamaClient:
                     **({"seed": self.seed} if self.seed is not None else {}),
                     **({"num_ctx": self.num_ctx} if self.num_ctx else {}),
                 },
+                **({"keep_alive": 0} if self.reproducible else {}),
             )
         except Exception as exc:  # ollama raises httpx / ResponseError variants
             self._available = None
@@ -469,7 +508,7 @@ class LLMRouter:
         return cls(
             OllamaClient(
                 settings.ollama_base_url, settings.ollama_model, settings.ollama_timeout,
-                settings.ollama_seed, settings.ollama_num_ctx,
+                settings.ollama_seed, settings.ollama_num_ctx, settings.ollama_reproducible,
             ),
             ClaudeClient(settings.claude_api_key, settings.claude_model, settings.claude_max_tokens),
         )

@@ -123,6 +123,9 @@ SEED_FAILURE_MODES: tuple[FailureMode, ...] = (
 class KnowledgeBase:
     """Similarity search over seeded failure modes and historical anomalies."""
 
+    #: Extra results fetched when excluding same-dataset records (one flight rarely has more).
+    _SELF_RECORD_HEADROOM = 50
+
     def __init__(self, persist_dir: str | Path, store: VectorStore | None = None, seed: bool = True) -> None:
         """Open the knowledge base, seeding failure modes if they are not present.
 
@@ -132,6 +135,8 @@ class KnowledgeBase:
             seed: Insert :data:`SEED_FAILURE_MODES` on first use.
         """
         self.store = store or VectorStore(persist_dir)
+        #: Record IDs skipped by the most recent same-dataset exclusions (reset by callers per run).
+        self.excluded_ids: set[str] = set()
         self._modes = {mode.id: mode for mode in SEED_FAILURE_MODES}
         if seed:
             self._seed()
@@ -170,17 +175,68 @@ class KnowledgeBase:
         """
         return self.store.query(text, k=k, min_score=min_score, where={"kind": kind} if kind else None)
 
-    def similar_to(self, anomaly: AnomalyEvent, k: int = 3, kind: str | None = None) -> list[SearchResult]:
-        """Return knowledge-base entries similar to an anomaly (excluding itself)."""
-        hits = self.search(self.anomaly_query_text(anomaly), k=k + 1, kind=kind)
-        return [h for h in hits if h.id != anomaly.id][:k]
+    @staticmethod
+    def is_same_dataset(metadata: dict[str, Any], dataset_id: str | None, source: str | None) -> bool:
+        """Whether a stored record came from the dataset being analysed.
 
-    def context_for(self, anomaly: AnomalyEvent, k: int = 3) -> list[SearchResult]:
-        """Top-``k`` failure modes plus up to two similar past anomalies from earlier runs."""
-        return self.similar_to(anomaly, k, kind="failure_mode") + self.similar_to(anomaly, 2, kind="anomaly")
+        Records carry the dataset fingerprint; legacy records without one are matched by file name.
+        """
+        stored_id = metadata.get("dataset_id")
+        if stored_id:
+            return bool(dataset_id) and stored_id == dataset_id
+        return bool(source) and metadata.get("source") == source
 
-    def record_run(self, anomalies: list[AnomalyEvent], hypotheses: list[Hypothesis], source: str) -> int:
+    def similar_to(
+        self,
+        anomaly: AnomalyEvent,
+        k: int = 3,
+        kind: str | None = None,
+        exclude_dataset: str | None = None,
+        exclude_source: str | None = None,
+    ) -> list[SearchResult]:
+        """Return knowledge-base entries similar to an anomaly.
+
+        Excludes the anomaly itself and, when ``exclude_dataset``/``exclude_source`` are given,
+        every record saved from that dataset, so a re-analysis never retrieves its own output.
+        Excluded record IDs are collected in :attr:`excluded_ids`.
+        """
+        excluding = bool(exclude_dataset or exclude_source)
+        # Over-fetch so that filtering out same-dataset records still leaves k results.
+        fetch = k + 1 + (self._SELF_RECORD_HEADROOM if excluding else 0)
+        hits = self.search(self.anomaly_query_text(anomaly), k=fetch, kind=kind)
+        kept: list[SearchResult] = []
+        for hit in hits:
+            if hit.id == anomaly.id:
+                continue
+            if excluding and self.is_same_dataset(hit.metadata, exclude_dataset, exclude_source):
+                self.excluded_ids.add(hit.id)
+                continue
+            kept.append(hit)
+        return kept[:k]
+
+    def context_for(
+        self,
+        anomaly: AnomalyEvent,
+        k: int = 3,
+        exclude_dataset: str | None = None,
+        exclude_source: str | None = None,
+    ) -> list[SearchResult]:
+        """Top-``k`` failure modes plus up to two similar past anomalies from *other* datasets."""
+        return self.similar_to(anomaly, k, kind="failure_mode") + self.similar_to(
+            anomaly, 2, kind="anomaly", exclude_dataset=exclude_dataset, exclude_source=exclude_source
+        )
+
+    def record_run(
+        self,
+        anomalies: list[AnomalyEvent],
+        hypotheses: list[Hypothesis],
+        source: str,
+        dataset_id: str | None = None,
+    ) -> int:
         """Store a run's anomalies (with their leading hypothesis) for future retrieval.
+
+        Records are keyed ``<dataset_id>:<anomaly id>`` so that different flights with
+        coinciding anomaly IDs (same sensor and timestamp) do not overwrite each other.
 
         Returns:
             Number of anomalies stored.
@@ -191,7 +247,7 @@ class KnowledgeBase:
         lead = {aid: h.title for h in hypotheses for aid in h.related_anomalies}
         timestamp = datetime.now(UTC).isoformat()
         self.store.upsert(
-            ids=[a.id for a in stored],
+            ids=[f"{dataset_id}:{a.id}" if dataset_id else a.id for a in stored],
             texts=[self.anomaly_query_text(a) for a in stored],
             metadatas=[
                 {
@@ -200,6 +256,8 @@ class KnowledgeBase:
                     "severity": a.severity.value,
                     "sensor_id": a.sensor_id,
                     "source": source,
+                    **({"dataset_id": dataset_id} if dataset_id else {}),
+                    "anomaly_id": a.id,
                     "recorded_at": timestamp,
                     "leading_hypothesis": lead.get(a.id, ""),
                 }

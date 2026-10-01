@@ -32,7 +32,7 @@ from src.ingestion import CSVParserConfig, export_normalized_csv, load_telemetry
 from src.memory.historical_rag import HistoricalRAG, OllamaEmbedder
 from src.memory.knowledge_base import KnowledgeBase
 from src.models.telemetry_schema import AnomalyEvent, Hypothesis, RCAReport, TelemetryAnalysis, TelemetryReading
-from src.utils.helpers import LLMRouter
+from src.utils.helpers import LLMRouter, dataset_fingerprint
 from src.utils.logger import get_logger
 
 logger = get_logger("agents.supervisor")
@@ -257,6 +257,8 @@ class Supervisor:
             "ingest", lambda: load_telemetry(input_path, self.parser_config), attempts=2, errors=result.errors
         )
         self.log_decision("ingestion", f"Loaded {len(result.readings)} readings", input_path.name)
+        dataset_id = dataset_fingerprint(result.readings)
+        self.log_decision("ingestion", f"Dataset fingerprint {dataset_id}", "content hash, independent of file name/format")
         self._step(
             "export_normalized",
             lambda: export_normalized_csv(result.readings, self.settings.processed_dir / f"{input_path.stem}_normalized.csv"),
@@ -311,13 +313,21 @@ class Supervisor:
 
         result.hypotheses = self._step(
             "hypothesise",
-            lambda: self.hypothesis_generator.generate(result.anomalies, result.analysis, context),
+            lambda: self.hypothesis_generator.generate(
+                result.anomalies, result.analysis, context, dataset_id=dataset_id, source_file=input_path.name
+            ),
             attempts=self.max_retries,
             fallback=lambda: HypothesisGenerator(self.knowledge_base, use_llm=False, config=self.hypothesis_generator.config)
-            .generate(result.anomalies, result.analysis, context),
+            .generate(result.anomalies, result.analysis, context, dataset_id=dataset_id, source_file=input_path.name),
             errors=result.errors,
         )
         generator = self.hypothesis_generator
+        excluded = sorted(self.knowledge_base.excluded_ids)
+        self.log_decision(
+            "knowledge_base",
+            f"Excluded {len(excluded)} past-anomaly record(s) saved from this same dataset",
+            f"dataset_id={dataset_id}; excluded={excluded}",
+        )
         if generator.last_historical_cases:
             self.log_decision(
                 "historical_rag", f"Injected {len(generator.last_historical_cases)} historical cases into the prompt",
@@ -358,7 +368,7 @@ class Supervisor:
 
         self._step(
             "remember",
-            lambda: self.knowledge_base.record_run(result.anomalies, result.hypotheses, input_path.name),
+            lambda: self.knowledge_base.record_run(result.anomalies, result.hypotheses, input_path.name, dataset_id),
             fallback=lambda: 0,
             errors=result.errors,
         )
@@ -366,6 +376,7 @@ class Supervisor:
         metadata = {
             "run_id": run_id,
             "source_file": input_path.name,
+            "dataset_id": dataset_id,
             "historical_cases": [
                 {"title": c.title, "source_file": c.source_file, "similarity": round(c.score, 3)}
                 for c in self.hypothesis_generator.last_historical_cases

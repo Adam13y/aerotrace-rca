@@ -178,6 +178,10 @@ python scripts/build_knowledge_base.py       # embeds data/historical_failures/*
 - **Context window:** the hypothesis prompt is about 7k tokens with RAG. Ollama's default 4,096-token window truncates
   it silently, so `OLLAMA_NUM_CTX` defaults to 10240, the largest window that keeps Qwen 14B Q4 fully on a 12 GB GPU.
   A warning is logged if a prompt comes close to filling the window.
+- **Reproducibility:** even at temperature 0 with a fixed seed, Ollama's output depends on its KV-cache state.
+  A prompt it has already cached can come back worded differently from a freshly computed one. With
+  `OLLAMA_REPRODUCIBLE=true` (the default), Qwen is reloaded for every call, so identical input always gives identical
+  output. Each call takes about 25-30 s longer. Set it to `false` for faster, slightly variable runs.
 
 ## Adding your own telemetry
 

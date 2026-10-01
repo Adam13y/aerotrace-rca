@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     ollama_seed: int | None = Field(default=42)
     #: Qwen 14B Q4 fits fully in a 12 GB GPU at 10240 tokens; Ollama's default (4096) truncates our prompts.
     ollama_num_ctx: int = Field(default=10240, gt=0)
+    #: Reload the model for every request so identical inputs give identical output (slower).
+    ollama_reproducible: bool = Field(default=True)
     embedding_model: str = Field(default="nomic-embed-text")
     claude_max_tokens: int = Field(default=4096, gt=0)
     data_dir: Path = Field(default=PROJECT_ROOT / "data")
