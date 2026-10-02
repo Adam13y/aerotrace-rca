@@ -1,12 +1,13 @@
 # AeroTrace-RCA: application + local Ollama (models baked into the image, no API keys needed).
 #
-#   docker compose build                    # first time: downloads ~9.5 GB of models into the Ollama image
-#   docker compose run --rm aerotrace       # full pipeline on data/raw (sample flight generated if empty)
-#   docker compose run --rm aerotrace python -m src.main data/raw/my_flight.csv --report
-#   docker compose run --rm aerotrace python scripts/run_pipeline.py --kb-stats
+#   docker compose up -d                    # first time builds both images (~9.5 GB of models), then stays up
+#   docker exec -it aerotrace python scripts/run_pipeline.py                  # full pipeline on data/raw
+#   docker exec -it aerotrace python -m src.main data/raw/my_flight.csv --report
+#   docker exec -it aerotrace python scripts/run_pipeline.py --kb-stats
+#   docker compose run --rm aerotrace python scripts/run_pipeline.py          # one-off run without `up`
 #
 # Needs an NVIDIA GPU with the NVIDIA Container Toolkit (or Docker Desktop's WSL2 GPU support).
-# CPU-only machines:  docker compose -f docker-compose.yml -f docker-compose.cpu.yml run --rm aerotrace
+# CPU-only machines:  docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d
 name: aerotrace-rca
 
 services:
@@ -36,6 +37,11 @@ services:
   aerotrace:
     build: .
     image: aerotrace-rca:latest
+    container_name: aerotrace
+    # Stay up so runs can be started with `docker exec`; the entrypoint still waits for Ollama and builds the
+    # RAG vector store first. (The image's own default command runs the pipeline once.)
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
     depends_on:
       ollama:
         condition: service_healthy

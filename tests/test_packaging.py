@@ -48,6 +48,7 @@ def test_compose_wires_app_to_baked_ollama() -> None:
     assert ollama["healthcheck"]["test"] == ["CMD", "ollama", "list"]
     assert ollama["build"]["args"]["OLLAMA_VERSION"] == "${OLLAMA_VERSION:-0.34.4}"  # pinned, not "latest"
     assert app["depends_on"]["ollama"]["condition"] == "service_healthy"
+    assert app["container_name"] == "aerotrace" and app["command"] == ["sleep", "infinity"]  # `docker exec -it aerotrace ...`
     env = app["environment"]
     assert env["OLLAMA_BASE_URL"] == "http://ollama:11434"
     assert "true" in env["OLLAMA_REPRODUCIBLE"] and "10240" in env["OLLAMA_NUM_CTX"]
