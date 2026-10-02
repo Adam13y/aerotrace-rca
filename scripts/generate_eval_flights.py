@@ -12,11 +12,13 @@ Sets (outputs are never read by the pipeline itself, only by scripts/evaluate_ge
     fresh    data/eval_fresh/flights/*.csv + data/eval_fresh/ground_truth.json
              (third unseen set, written before any pipeline run on it: new seeds 301-305, new fault
              combinations, new timings)
+    final    data/eval_final/flights/*.csv + data/eval_final/ground_truth.json
+             (fourth unseen set, written before any pipeline run on it: seeds 401-405)
     sample   data/eval/sample_ground_truth.json - ground truth for data/raw/sample_flight_nasa_long.csv
 
 Usage::
 
-    python scripts/generate_eval_flights.py [--set eval|holdout|fresh|sample]
+    python scripts/generate_eval_flights.py [--set eval|holdout|fresh|final|sample]
 """
 
 from __future__ import annotations
@@ -336,6 +338,96 @@ FRESH_FLIGHTS: list[dict] = [
 ]
 
 #: Ground truth for the original tuning flight (data/raw/sample_flight_nasa_long.csv), for regression checks.
+# ---------------------------------------------------------------------------- final held-out scenarios (seeds 401-405)
+def helium_regulator_underpressure(t: np.ndarray, s: dict[str, np.ndarray]) -> None:
+    """Fuel pressurisation regulator under-regulates: fuel tank pressure sags and stays low; chamber follows."""
+    s["fuel_tank_pressure"] -= 3.0 * _smoothstep(t, 140.0, 146.0)
+    s["chamber_pressure"] -= 45.0 * _smoothstep(t, 143.0, 146.0)
+
+
+def lox_leak_bay_cooling(t: np.ndarray, s: dict[str, np.ndarray]) -> None:
+    """LOX line leak into the engine bay: LOX tank pressure drops, then the bay cools (cryogen spill)."""
+    s["lox_tank_pressure"] -= 3.5 * _decay_after(t, 190.0, 2.0, 15.0)
+    s["engine_bay_temp"] -= 12.0 * _decay_after(t, 192.0, 4.0, 30.0)
+
+
+def injector_slow_clog(t: np.ndarray, s: dict[str, np.ndarray]) -> None:
+    """Injector / feed contamination builds up: chamber pressure creeps down ~6 % over 10 s and stays low."""
+    s["chamber_pressure"] -= 85.0 * _smoothstep(t, 228.0, 238.0)
+
+
+def imu_rate_halving(t: np.ndarray, s: dict[str, np.ndarray]) -> None:
+    """IMU internal fault: its data rate halves for 4 s; bus voltage nominal; nothing else affected."""
+    s["imu_heartbeat_hz"][(t >= 70.0) & (t < 74.0)] -= 50.0
+
+
+def bearing_plus_bus_droop(t: np.ndarray, s: dict[str, np.ndarray]) -> None:
+    """Two independent faults: a slow 15 s bus-voltage droop (battery depletion) and a turbopump vibration step."""
+    s["avionics_bus_voltage"] -= 0.6 * _smoothstep(t, 252.0, 267.0)
+    s["turbopump_vibration"] += 0.8 * _smoothstep(t, 258.0, 259.0)
+
+
+FINAL_FLIGHTS: list[dict] = [
+    {
+        "flight": "final_helium_regulator_underpressure", "seed": 401, "inject": helium_regulator_underpressure,
+        "description": "Fuel pressurisation regulator under-regulates: fuel tank pressure sags (sustained), chamber "
+                       "pressure follows.",
+        "faults": [
+            {"sensor": "fuel_tank_pressure", "start": 140.0, "end": 160.0, "cause_group": "A", "role": "root"},
+            {"sensor": "chamber_pressure", "start": 143.0, "end": 160.0, "cause_group": "A", "role": "consequence"},
+        ],
+        "top_must_cite_any_of": ["fuel_tank_pressure"],
+        "top_terms_any": ["regulator", "pressuris", "pressuriz", "pressurant", "helium", "ullage", "underpressur",
+                          "under-pressur"],
+        "top_terms_none": ["cavitat", "combustion instab", "battery"],
+    },
+    {
+        "flight": "final_lox_leak_bay_cooling", "seed": 402, "inject": lox_leak_bay_cooling,
+        "description": "LOX leak into the engine bay: LOX tank pressure drops, bay temperature falls 2 s later.",
+        "faults": [
+            {"sensor": "lox_tank_pressure", "start": 190.0, "end": 210.0, "cause_group": "A", "role": "root"},
+            {"sensor": "engine_bay_temp", "start": 192.0, "end": 225.0, "cause_group": "A", "role": "consequence"},
+        ],
+        "top_must_cite_any_of": ["lox_tank_pressure"],
+        "top_terms_any": ["leak", "ruptur", "breach", "crack", "spill"],
+        "top_terms_none": ["battery", "combustion instab"],
+    },
+    {
+        "flight": "final_injector_slow_clog", "seed": 403, "inject": injector_slow_clog,
+        "description": "Slow injector/feed contamination: chamber pressure creeps down ~6 % over 10 s and stays low.",
+        "faults": [
+            {"sensor": "chamber_pressure", "start": 228.0, "end": 245.0, "cause_group": "A", "role": "root"},
+        ],
+        "top_must_cite_any_of": ["chamber_pressure"],
+        "top_terms_any": ["clog", "block", "restrict", "feed", "filter", "flow", "injector", "starv", "contamin"],
+        "top_terms_none": ["regulator", "helium", "battery", "combustion instab"],
+    },
+    {
+        "flight": "final_imu_rate_halving", "seed": 404, "inject": imu_rate_halving,
+        "description": "IMU internal fault: data rate halves for 4 s, bus voltage nominal, nothing else affected.",
+        "faults": [
+            {"sensor": "imu_heartbeat_hz", "start": 70.0, "end": 74.0, "cause_group": "A", "role": "root"},
+        ],
+        "top_must_cite_any_of": ["imu_heartbeat_hz"],
+        "top_terms_any": ["imu", "inertial", "firmware", "software", "processor", "internal", "local"],
+        "top_terms_none": ["battery", "brownout", "turbopump"],
+    },
+    {
+        "flight": "final_bearing_plus_bus_droop", "seed": 405, "inject": bearing_plus_bus_droop,
+        "description": "Two independent faults: slow 15 s bus-voltage droop (battery depletion) and a sustained "
+                       "turbopump vibration step 6 s after it began.",
+        "faults": [
+            {"sensor": "avionics_bus_voltage", "start": 252.0, "end": 270.0, "cause_group": "A", "role": "root"},
+            {"sensor": "turbopump_vibration", "start": 258.0, "end": 270.0, "cause_group": "B", "role": "root"},
+        ],
+        "top_must_cite_any_of": ["avionics_bus_voltage", "turbopump_vibration"],
+        "top_terms_any": ["bearing", "rotor", "imbalance", "wear", "rub", "battery", "load", "depletion", "discharge",
+                          "cell", "power"],
+        "top_terms_none": ["cavitat", "combustion"],
+    },
+]
+
+
 SAMPLE_TRUTH = {
     "flight": "sample_flight_nasa_long",
     "path": "data/raw/sample_flight_nasa_long.csv",
@@ -405,7 +497,7 @@ def write_set(flights: list[dict], out_dir: Path) -> None:
 def main() -> int:
     """Write the requested evaluation set."""
     parser = argparse.ArgumentParser(description="Generate evaluation flights with known faults.")
-    parser.add_argument("--set", choices=("eval", "holdout", "fresh", "sample"), default="eval")
+    parser.add_argument("--set", choices=("eval", "holdout", "fresh", "final", "sample"), default="eval")
     args = parser.parse_args()
     if args.set == "eval":
         write_set(FLIGHTS, EVAL_DIR)
@@ -413,6 +505,8 @@ def main() -> int:
         write_set(HOLDOUT_FLIGHTS, DATA_DIR / "eval_holdout")
     elif args.set == "fresh":
         write_set(FRESH_FLIGHTS, DATA_DIR / "eval_fresh")
+    elif args.set == "final":
+        write_set(FINAL_FLIGHTS, DATA_DIR / "eval_final")
     else:
         EVAL_DIR.mkdir(parents=True, exist_ok=True)
         truth = {"rules": SCORING_RULES, "flights": {SAMPLE_TRUTH["flight"]: SAMPLE_TRUTH}}
