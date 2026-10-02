@@ -364,3 +364,42 @@ def test_insufficient_evidence_cannot_pad_with_unrelated_causes(kb: KnowledgeBas
     titles = [h.title for h in generator.generate([volt], _vehicle_analysis())]  # type: ignore[arg-type]
     assert titles == ["Battery cell loss"]
     assert any(r.title == "Turbopump Bearing Instability" for r in generator.last_rejections)
+
+
+# --------------------------------------------------------------------------- local unit faults
+def test_local_unit_fault_not_rejected_for_nominal_parent_sensor() -> None:
+    rules = EvidenceRules()
+    vehicle = [*VEHICLE, "imu_heartbeat_hz"]
+    imu, temp = _a("imu_heartbeat_hz", 95), _a("engine_bay_temp", 97)
+    for text in ("IMU Power Supply Transient Failure", "Electrical fault in IMU power supply", "IMU internal brownout"):
+        problem, _ = rules.subsystem_check(text, [imu], vehicle)
+        assert problem is None, text
+        assert rules.component_check(text, [imu], vehicle)[0] is None, text
+    assert rules.local_units_named("IMU power supply failure", [imu], vehicle) == {"imu": {"electrical", "avionics"}}
+    # The unit's own sensor must be cited: blaming the IMU's power supply for a bay temperature rise still fails.
+    assert rules.subsystem_check("IMU power supply failure", [temp], vehicle)[0] is not None
+    # A bus-level cause without naming a local unit is still rejected when the bus voltage is nominal.
+    assert rules.subsystem_check("Avionics power supply failure", [imu], vehicle)[0] is not None
+    # Other subsystems are not exempted: an IMU fault blamed on a turbopump still needs propulsion evidence.
+    assert rules.subsystem_check("Turbopump bearing shock damaged the IMU", [imu], vehicle)[0] is not None
+
+
+def test_local_unit_label_on_accepted_hypothesis(kb: KnowledgeBase) -> None:
+    imu = _a("imu_heartbeat_hz", 95)
+    generator, _ = _generator(kb, {"hypotheses": [
+        _h("IMU Power Supply Transient Failure", [imu], "The IMU internal power supply dropped out at T+95s; "
+           "IMU heartbeat hz fell to zero while the bus stayed nominal.", 0.7),
+    ]})
+    analysis = _vehicle_analysis()
+    analysis.sensors.append(type(analysis.sensors[0])(sensor_id="imu_heartbeat_hz", unit="Hz", sample_rate_hz=10.0))
+    generated = generator.generate([imu], analysis)  # type: ignore[arg-type]
+    assert [h.title for h in generated] == ["IMU Power Supply Transient Failure"]
+    assert generated[0].labels == ["local unit fault: imu"]
+
+
+def test_shipped_config_lists_local_units() -> None:
+    import yaml
+    data = yaml.safe_load(Path("config/agents.yaml").read_text(encoding="utf-8"))
+    rules = EvidenceRules.from_dict(data["hypothesis_generator"]["evidence_rules"])
+    assert {"imu", "camera", "star_tracker", "battery_cell"} <= set(rules.local_units)
+    assert rules.local_units["imu"]["local_subsystems"] == ["electrical", "avionics"]

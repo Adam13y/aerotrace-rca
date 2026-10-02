@@ -1187,6 +1187,7 @@ class HypothesisGenerator:
         if problem:
             reject(problem, cited_ids)
             return None
+        local_units = sorted(rules.local_units_named(cause_text, resolved, vehicle))
         if hypothesis_type == "root_cause":
             # Rule 2: cross-subsystem links need a listed physical coupling, whatever the time gap.
             problem = rules.coupling_check(resolved)
@@ -1223,6 +1224,8 @@ class HypothesisGenerator:
         except ValidationError as exc:
             reject(f"malformed fields ({exc.errors()[0].get('msg', exc)})", cited_ids)
             return None
+        if local_units:
+            hypothesis = hypothesis.model_copy(update={"labels": [f"local unit fault: {', '.join(local_units)}"]})
         for item_drop in dropped:
             self.last_drops.append(item_drop)
             logger.info("Hypothesis '%s': dropped citation '%s' (%s)", title, item_drop.reference, item_drop.reason)

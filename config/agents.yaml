@@ -99,6 +99,15 @@ hypothesis_generator:
         terms: [camera]
         requires: [["camera_*"]]       # e.g. camera_status or camera_frame_rate_hz
         allow_inferred: true           # no camera sensor -> local_component_inferred, capped at 50%
+    # Self-contained units. If the stated cause names a unit AND cites an anomaly on the unit's own sensor,
+    # words from its local_subsystems describe a fault inside the unit (e.g. "IMU power supply failure"), so
+    # the parent subsystem's main sensor (avionics bus voltage) may stay nominal. Labelled "local unit fault".
+    local_units:
+      imu: {terms: [imu, inertial measurement unit, inertial unit, inertial reference unit],
+            sensors: ["*imu*", "*gyro*"], local_subsystems: [electrical, avionics]}
+      camera: {terms: [camera], sensors: ["*camera*"], local_subsystems: [electrical, avionics]}
+      star_tracker: {terms: [star tracker], sensors: ["*star_tracker*"], local_subsystems: [electrical, avionics]}
+      battery_cell: {terms: [battery cell], sensors: ["*battery*", "*cell*"], local_subsystems: [electrical]}
     # Mechanism keywords per subsystem. After a component match, mechanisms from OTHER subsystems in the
     # title/primary cause make it a cross-subsystem hypothesis that needs evidence from both subsystems.
     # A term listed under several subsystems ("hot gas") needs evidence from each of them.

@@ -69,6 +69,8 @@
  "propulsion/prop-08-ignition-failure.txt",
  "propulsion/prop-09-mixture-ratio-anomaly.txt",
  "propulsion/prop-10-gas-generator-failure.txt",
+ "propulsion/prop-11-feed-line-restriction.txt",
+ "propulsion/prop-12-propellant-filter-blockage.txt",
  "separation/sep-01-stage-separation-anomaly.txt",
  "separation/sep-02-fairing-separation-failure.txt",
  "separation/sep-03-payload-deploy-malfunction.txt",

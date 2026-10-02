@@ -1,0 +1,29 @@
+Title: Propellant filter blockage reducing engine flow
+Category: propulsion
+Failure mode: Propellant filter blockage
+Source type: synthetic
+Case ID: prop-12-propellant-filter-blockage
+Note: Synthetic engineering summary of a failure mode, not a record of a specific event.
+
+FAILURE MODE
+Propellant filters protect pumps and injectors from particles. A filter that loads with debris, contamination or frozen moisture during a burn raises its pressure drop and throttles the flow to the engine. The blockage builds as particles collect, so the effect is a gradual, sustained loss of performance rather than a sudden failure.
+
+CAUSAL CHAIN
+As the filter element loads, its pressure drop rises and propellant flow to the injector falls. Chamber pressure therefore declines over a few seconds and settles at a lower level that persists, or keeps creeping down if loading continues. Tank pressures are unaffected because the restriction is downstream of the tanks. Pump inlet pressure usually stays above the cavitation limit, so turbopump vibration does not show a sustained rise; a short transient may appear while the pump adjusts. A ruptured filter element can instead release debris downstream and clog injector orifices.
+
+TELEMETRY SIGNATURES
+- Gradual chamber pressure decline over several seconds to a sustained lower level
+- Tank ullage pressures nominal throughout
+- No sustained turbopump vibration increase; no high-frequency pressure oscillation
+- If measured, filter differential pressure rises before the chamber pressure falls
+
+ROOT CAUSE
+Usual causes are inadequate cleanliness of tanks and lines, shedding of liner or seal material, contaminated propellant loads and moisture freezing in cryogenic filters. Sparse instrumentation around filters often leaves only the chamber pressure signature.
+
+HISTORICAL REFERENCE
+No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice and controlled through propellant cleanliness specifications.
+
+LESSONS LEARNED
+- Measure differential pressure across critical propellant filters
+- Sample propellant and pressurant for particulates before loading
+- Inspect filter elements after hot-fire tests for loading or damage

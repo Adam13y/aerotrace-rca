@@ -117,6 +117,26 @@ SEED_FAILURE_MODES: tuple[FailureMode, ...] = (
         "Aerodynamic buffet, wind shear and transonic shock oscillation",
         ("Compare measured loads with pre-flight load predictions and day-of-launch winds",),
     ),
+    FailureMode(
+        "FM-FEED-011", "Feed-line restriction", "propulsion/feed system",
+        "Chamber pressure drops over 1-3 s to a sustained lower level with nominal tank pressures and no sustained "
+        "turbopump vibration rise (at most a brief transient); no oscillation",
+        "Partly closed or sticking valve, collapsed flex line or bellows, or lodged debris adds feed-line pressure "
+        "loss; flow and thrust fall while pump inlet pressure stays above the cavitation limit",
+        ("Check main and prevalve position indicators at the event time",
+         "Compute feed-line pressure loss from tank and pump-inlet pressure if instrumented",
+         "Inspect flex lines and bellows for collapse; borescope lines for debris"),
+    ),
+    FailureMode(
+        "FM-FILT-012", "Propellant filter blockage", "propulsion/feed system",
+        "Gradual chamber pressure decline over several seconds to a sustained lower level; tank pressures nominal; "
+        "no sustained vibration rise and no high-frequency oscillation",
+        "Debris, contamination or frozen moisture loads a propellant filter; its pressure drop rises and throttles "
+        "engine flow",
+        ("Review filter differential pressure if measured",
+         "Sample propellant and pressurant for particulates",
+         "Inspect filter elements for loading or rupture"),
+    ),
 )
 
 

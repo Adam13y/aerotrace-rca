@@ -213,6 +213,48 @@
         "Set turbine inlet temperature redlines that act before blade damage occurs",
         "Inspect the hot-gas path between uses on reusable hardware"
       ]
+    },
+    {
+      "id": "prop-11-feed-line-restriction",
+      "title": "Feed-line restriction causing a sustained chamber pressure drop",
+      "category": "propulsion",
+      "failure_mode": "Feed-line restriction",
+      "failure_mode_description": "A feed-line restriction is a partial narrowing of the propellant flow path between the tank and the engine, from a partly closed or sticking valve, a kinked or collapsed flex line, a deformed bellows or a lodged foreign object. Flow is reduced but not stopped, and the pump still has enough inlet pressure margin to run without cavitating.",
+      "causal_chain": "The restriction adds a fixed pressure loss in the feed line, so less propellant reaches the pump and injector. Chamber pressure falls over one to a few seconds to a new, lower level and stays there for as long as the restriction remains; it does not oscillate and does not recover by itself. Tank ullage pressures stay nominal because the tanks are not the problem. Because inlet pressure stays above the cavitation limit, turbopump vibration shows at most a short transient while the pump settles at the new operating point, with no sustained rise. The engine keeps running at reduced thrust.",
+      "telemetry_signatures": [
+        "Chamber pressure drops by several percent over 1-3 s and stays at the lower level (sustained, not oscillating)",
+        "LOX and fuel tank pressures remain nominal; no pressurisation signature",
+        "No sustained turbopump vibration rise; at most a brief transient as the pump settles",
+        "Engine-bay temperature unaffected"
+      ],
+      "root_cause": "Typical causes are a main or prevalve that did not fully open or partly closed in flight, a collapsed flex hose or bellows, ice in a cryogenic line after poor purging, or debris lodged at an elbow or orifice. Distinguish it from combustion instability, which oscillates, and from cavitation, which brings a sustained vibration rise and an inlet-pressure deficit.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice for sustained thrust shortfalls with nominal tank pressures.",
+      "lessons_learned": [
+        "Monitor valve position indicators alongside chamber pressure to separate valve and line restrictions",
+        "Instrument pump inlet pressure so feed-line pressure loss can be computed directly",
+        "Inspect flex lines and bellows for collapse after pressure reversals in ground testing"
+      ]
+    },
+    {
+      "id": "prop-12-propellant-filter-blockage",
+      "title": "Propellant filter blockage reducing engine flow",
+      "category": "propulsion",
+      "failure_mode": "Propellant filter blockage",
+      "failure_mode_description": "Propellant filters protect pumps and injectors from particles. A filter that loads with debris, contamination or frozen moisture during a burn raises its pressure drop and throttles the flow to the engine. The blockage builds as particles collect, so the effect is a gradual, sustained loss of performance rather than a sudden failure.",
+      "causal_chain": "As the filter element loads, its pressure drop rises and propellant flow to the injector falls. Chamber pressure therefore declines over a few seconds and settles at a lower level that persists, or keeps creeping down if loading continues. Tank pressures are unaffected because the restriction is downstream of the tanks. Pump inlet pressure usually stays above the cavitation limit, so turbopump vibration does not show a sustained rise; a short transient may appear while the pump adjusts. A ruptured filter element can instead release debris downstream and clog injector orifices.",
+      "telemetry_signatures": [
+        "Gradual chamber pressure decline over several seconds to a sustained lower level",
+        "Tank ullage pressures nominal throughout",
+        "No sustained turbopump vibration increase; no high-frequency pressure oscillation",
+        "If measured, filter differential pressure rises before the chamber pressure falls"
+      ],
+      "root_cause": "Usual causes are inadequate cleanliness of tanks and lines, shedding of liner or seal material, contaminated propellant loads and moisture freezing in cryogenic filters. Sparse instrumentation around filters often leaves only the chamber pressure signature.",
+      "historical_reference": "No single public incident is cited for this summary; it describes a generic failure mode recognised in launch-vehicle engineering practice and controlled through propellant cleanliness specifications.",
+      "lessons_learned": [
+        "Measure differential pressure across critical propellant filters",
+        "Sample propellant and pressurant for particulates before loading",
+        "Inspect filter elements after hot-fire tests for loading or damage"
+      ]
     }
   ]
 }

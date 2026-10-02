@@ -129,6 +129,18 @@ DEFAULT_MECHANISM_TERMS: dict[str, list[str]] = {
     "aerodynamic": ["buffet*", "flutter", "wind shear", "aerodynamic*"],
     "separation": ["pyrotechnic*", "pyro", "separation"],
 }
+#: Self-contained units with their own sensors. When the stated cause names one of these units and the
+#: hypothesis cites an anomaly on the unit's own sensor, words from its ``local_subsystems`` (e.g. "power
+#: supply" for an IMU) describe a fault inside the unit, so the parent subsystem's main sensor (the
+#: avionics bus) need not deviate.
+DEFAULT_LOCAL_UNITS: dict[str, dict[str, list[str]]] = {
+    "imu": {"terms": ["imu", "inertial measurement unit", "inertial unit", "inertial reference unit"],
+            "sensors": ["*imu*", "*gyro*"], "local_subsystems": ["electrical", "avionics"]},
+    "camera": {"terms": ["camera"], "sensors": ["*camera*"], "local_subsystems": ["electrical", "avionics"]},
+    "star_tracker": {"terms": ["star tracker"], "sensors": ["*star_tracker*"],
+                     "local_subsystems": ["electrical", "avionics"]},
+    "battery_cell": {"terms": ["battery cell"], "sensors": ["*battery*", "*cell*"], "local_subsystems": ["electrical"]},
+}
 _UNIT_WORDS = frozenset({"hz", "psi", "v", "degc", "g", "k", "pa", "kpa", "a", "w", "rpm", "s"})
 HYPOTHESIS_TYPES = ("root_cause", "independent_events", "insufficient_evidence")
 INFERRED_LABEL = "local_component_inferred"
@@ -149,6 +161,9 @@ class EvidenceRules:
     })
     inferred_cap: float = 0.5
     mechanism_terms: dict[str, list[str]] = field(default_factory=lambda: {k: list(v) for k, v in DEFAULT_MECHANISM_TERMS.items()})
+    local_units: dict[str, dict[str, list[str]]] = field(default_factory=lambda: {
+        k: {f: list(v) for f, v in spec.items()} for k, spec in DEFAULT_LOCAL_UNITS.items()
+    })
     sensor_categories: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_SENSOR_CATEGORIES))
     sensor_category_patterns: list[tuple[str, str]] = field(default_factory=lambda: list(DEFAULT_SENSOR_CATEGORY_PATTERNS))
 
@@ -184,6 +199,12 @@ class EvidenceRules:
             }
         if data.get("mechanism_terms"):
             rules.mechanism_terms = {str(k).lower(): [str(t).lower() for t in v] for k, v in data["mechanism_terms"].items()}
+        if data.get("local_units"):
+            rules.local_units = {
+                str(name).lower(): {f: [str(x).lower() for x in spec.get(f, [])]
+                                    for f in ("terms", "sensors", "local_subsystems")}
+                for name, spec in data["local_units"].items()
+            }
         if sensor_categories:
             rules.sensor_categories = dict(sensor_categories)
         if sensor_category_patterns:
@@ -253,6 +274,19 @@ class EvidenceRules:
         """Components (from ``components``) named in ``text``."""
         return set(self._find_terms(text, sensor_ids, {k: v.get("terms", []) for k, v in self.components.items()}))
 
+    def local_units_named(self, text: str, cited: Sequence[AnomalyEvent], vehicle_sensors: Iterable[str]) -> dict[str, set[str]]:
+        """Local units named in ``text`` whose own sensor has a cited anomaly -> their local subsystems."""
+        named = self._find_terms(text, vehicle_sensors, {k: v.get("terms", []) for k, v in self.local_units.items()})
+        cited_sensors = [a.sensor_id.lower() for a in cited]
+        return {
+            unit: set(self.local_units[unit].get("local_subsystems", []))
+            for unit in named
+            if any(fnmatch.fnmatch(s, p) for s in cited_sensors for p in self.local_units[unit].get("sensors", []))
+        }
+
+    def _local_exemptions(self, text: str, cited: Sequence[AnomalyEvent], vehicle: Iterable[str]) -> set[str]:
+        return set().union(*self.local_units_named(text, cited, vehicle).values())
+
     def component_check(
         self, text: str, cited: Sequence[AnomalyEvent], vehicle_sensors: Iterable[str]
     ) -> tuple[str | None, list[tuple[str, float]], bool]:
@@ -265,8 +299,11 @@ class EvidenceRules:
         named = sorted(self.named_components(text, vehicle))
         cited_sensors = [a.sensor_id.lower() for a in cited]
         caps: list[tuple[str, float]] = []
+        local = self._local_exemptions(text, cited, vehicle)
         for name in named:
             spec = self.components[name]
+            if spec.get("subsystem") in local:
+                continue  # e.g. "IMU brownout": a fault inside the unit, not on the vehicle bus
             for group in spec.get("requires", []):
                 if any(fnmatch.fnmatch(s, p) for s in cited_sensors for p in group):
                     continue
@@ -288,7 +325,7 @@ class EvidenceRules:
             # Cross-subsystem mechanism check: a component in subsystem A whose stated cause also uses a
             # mechanism from subsystem B needs evidence from B as well.
             home = spec.get("subsystem")
-            others = {k: v for k, v in self.mechanism_terms.items() if k != home}
+            others = {k: v for k, v in self.mechanism_terms.items() if k != home and k not in local}
             cited_evidence = set().union(*(self.evidence_categories(a.sensor_id) for a in cited)) if cited else set()
             observable = set().union(*(self.evidence_categories(s) for s in vehicle)) if vehicle else set()
             for subsystem, term in sorted(self._find_terms(text, vehicle, others).items()):
@@ -317,8 +354,9 @@ class EvidenceRules:
         cited_evidence = set().union(*(self.evidence_categories(a.sensor_id) for a in cited)) if cited else set()
         observable = set().union(*(self.evidence_categories(s) for s in vehicle_sensors)) if vehicle_sensors else set()
         unobservable: list[str] = []
+        local = self._local_exemptions(text, cited, vehicle_sensors)
         for subsystem in sorted(named):
-            if subsystem in cited_evidence:
+            if subsystem in cited_evidence or subsystem in local:
                 continue
             if subsystem in observable:
                 sensors = sorted(s for s in vehicle_sensors if subsystem in self.evidence_categories(s))

@@ -41,7 +41,7 @@ CATEGORIES = (
     "propulsion", "pressurization", "structural", "thermal",
     "electrical", "avionics", "separation", "aerodynamic",
 )
-CASES_PER_CATEGORY = 10
+CASES_PER_CATEGORY = 10  # minimum synthetic cases per category
 HISTORICAL_CASES = 20
 WORD_LIMITS = {"synthetic": (250, 350), "historical": (400, 500)}
 
@@ -160,8 +160,8 @@ def generate(sources_dir: Path, output_dir: Path) -> int:
     problems += [f"duplicate case id '{i}'" for i, n in ids.items() if n > 1]
     per_category = Counter(c.get("category") for c in synthetic)
     problems += [
-        f"category '{cat}' has {per_category.get(cat, 0)} synthetic cases, expected {CASES_PER_CATEGORY}"
-        for cat in CATEGORIES if per_category.get(cat, 0) != CASES_PER_CATEGORY
+        f"category '{cat}' has {per_category.get(cat, 0)} synthetic cases, expected at least {CASES_PER_CATEGORY}"
+        for cat in CATEGORIES if per_category.get(cat, 0) < CASES_PER_CATEGORY
     ]
     if len(historical) != HISTORICAL_CASES:
         problems.append(f"{len(historical)} historical cases, expected {HISTORICAL_CASES}")

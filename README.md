@@ -187,13 +187,13 @@ Before Qwen writes hypotheses, the pipeline retrieves the 3 most similar past ae
 to the prompt as **Historical Context**. Qwen treats them as prior art, not as evidence about the current flight.
 
 ```bash
-python scripts/acquire_aerospace_data.py     # renders the 100-case knowledge base from scripts/kb_sources/*.json
+python scripts/acquire_aerospace_data.py     # renders the 102-case knowledge base from scripts/kb_sources/*.json
 ollama pull nomic-embed-text                 # local embedding model (~270 MB)
 python scripts/build_knowledge_base.py       # embeds data/historical_failures/**.txt into data/vector_store/
 python scripts/run_pipeline.py --kb-stats    # cases by category and source type, on disk vs. indexed
 ```
 
-- **Contents:** 80 *synthetic* failure-mode summaries (10 per category: propulsion, pressurization, structural,
+- **Contents:** 82 *synthetic* failure-mode summaries (10 per category, 12 for propulsion: propulsion, pressurization, structural,
   thermal, electrical, avionics, separation, aerodynamic) and 20 *historical* summaries of real incidents
   (`historical/`). Synthetic cases are generic engineering write-ups, not records of real events. They name a real
   incident only where one genuinely exhibited the failure mode, and Qwen's prompt labels them as synthetic.

@@ -275,11 +275,12 @@ def real_documents() -> list:
     return load_documents(KB_DIR)
 
 
-def test_real_kb_has_100_cases_in_expected_layout(real_documents: list) -> None:
+def test_real_kb_has_102_cases_in_expected_layout(real_documents: list) -> None:
     synthetic = [d for d in real_documents if d.source_type == "synthetic"]
     historical = [d for d in real_documents if d.source_type == "historical"]
-    assert len(synthetic) == 80 and len(historical) == 20
-    assert Counter(d.category for d in synthetic) == {c: 10 for c in KB_CATEGORIES}
+    assert len(synthetic) == 82 and len(historical) == 20
+    # 10 per category, plus feed-line restriction and filter blockage in propulsion
+    assert Counter(d.category for d in synthetic) == {c: 12 if c == "propulsion" else 10 for c in KB_CATEGORIES}
     assert all(d.source_file.startswith(f"{d.category}/") for d in synthetic)
     assert all(d.source_file.startswith("historical/") for d in historical)
     assert all(d.category in KB_CATEGORIES for d in historical)
@@ -301,7 +302,7 @@ def test_real_kb_case_lengths_and_sections(real_documents: list) -> None:
 def test_real_kb_builds_and_retrieves_offline(real_documents: list, tmp_path: Path) -> None:
     store = HistoricalRAG(tmp_path / "vs", FakeEmbedder())
     stats = store.build(KB_DIR)
-    assert stats["documents"] == 100 and stats["chunks"] >= 100
+    assert stats["documents"] == 102 and stats["chunks"] >= 102
     cases = store.search("bus undervoltage battery cell short circuit voltage sag", k=5, prefer_categories={"electrical"})
     assert len(cases) == 5 and cases[0].category == "electrical"
 
