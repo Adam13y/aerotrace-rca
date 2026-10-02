@@ -352,6 +352,66 @@ def test_slow_ramp_onset_precedes_later_sharp_event() -> None:
     assert events["bay_temp"].mission_elapsed_s < events["tank_pressure"].mission_elapsed_s
 
 
+def _smoothstep(t: np.ndarray, start: float, end: float) -> np.ndarray:
+    x = np.clip((t - start) / (end - start), 0.0, 1.0)
+    return x * x * (3 - 2 * x)
+
+
+def test_slow_shift_catches_gradual_drop_with_true_onset() -> None:
+    rng = np.random.default_rng(21)
+    t = np.arange(0, 300, 0.1)
+    values = 1400 + rng.normal(0, 4.0, t.size) - 140 * _smoothstep(t, 245.0, 248.0)  # -10 % over 3 s
+    plain = AnomalyDetector(DetectorConfig(slow_shift=False), use_llm=False).detect(_series(values, "chamber_pressure"))
+    assert all(e.severity != Severity.CRITICAL for e in plain)     # spike detectors see at most a weak fragment
+    events = AnomalyDetector(use_llm=False).detect(_series(values, "chamber_pressure"))
+    assert len(events) == 1
+    event = events[0]
+    assert "slow_shift" in event.detection_methods
+    assert abs(event.mission_elapsed_s - 245.0) <= 1.0 and event.detected_at_s >= event.mission_elapsed_s
+    assert event.severity == Severity.CRITICAL                      # graded on the full 140 psi shift
+    assert event.recovery == "sustained"
+    assert "Gradual fall of" in event.description or "Severity graded on the total shift" in event.description
+
+
+def test_slow_shift_only_event_when_spike_detectors_miss() -> None:
+    rng = np.random.default_rng(24)
+    t = np.arange(0, 300, 0.1)
+    values = 1400 + rng.normal(0, 4.0, t.size) - 140 * _smoothstep(t, 245.0, 251.0)  # slower: 6 s
+    assert AnomalyDetector(DetectorConfig(slow_shift=False), use_llm=False).detect(_series(values, "chamber_pressure")) == []
+    events = AnomalyDetector(use_llm=False).detect(_series(values, "chamber_pressure"))
+    assert [e.detection_methods for e in events] == [["slow_shift"]]
+    event = events[0]
+    assert abs(event.mission_elapsed_s - 245.0) <= 1.0 and event.detected_at_s > event.mission_elapsed_s
+    assert event.severity == Severity.CRITICAL and abs((event.baseline_value - event.peak_value) - 140) < 15
+    assert "Gradual fall of" in event.description
+
+
+def test_slow_shift_on_drifting_trend_and_normal_drift_ignored() -> None:
+    rng = np.random.default_rng(22)
+    t = np.arange(0, 300, 0.1)
+    warming = 20 + 100 * (1 - np.exp(-t / 90.0)) + rng.normal(0, 0.4, t.size)
+    tank = 50 + 0.6 * np.sin(2 * np.pi * t / 37.0) - 0.004 * t + rng.normal(0, 0.12, t.size)
+    assert AnomalyDetector(use_llm=False).detect(_series(warming, "engine_bay_temp", "degC")) == []
+    assert AnomalyDetector(use_llm=False).detect(_series(tank, "lox_tank_pressure")) == []
+    heated = warming + 20 * _smoothstep(t, 96.5, 102.5)             # +20 degC over 6 s on top of the warm-up
+    events = AnomalyDetector(use_llm=False).detect(_series(heated, "engine_bay_temp", "degC"))
+    assert [e.detection_methods for e in events] == [["slow_shift"]]
+    assert abs(events[0].mission_elapsed_s - 96.5) <= 1.0
+    assert 15 < events[0].peak_value - events[0].baseline_value < 25  # shift measured against the extrapolated trend
+
+
+def test_slow_shift_skips_planned_events_and_already_detected_anomalies() -> None:
+    rng = np.random.default_rng(23)
+    t = np.arange(0, 300, 0.1)
+    values = 1400 + rng.normal(0, 4.0, t.size) - 140 * _smoothstep(t, 150.0, 153.0)
+    planned = DetectorConfig(planned_events=[PlannedEvent("Throttle", 148.0, 156.0, ["chamber_pressure"])])
+    assert [e for e in AnomalyDetector(planned, use_llm=False).detect(_series(values, "chamber_pressure"))
+            if not e.expected] == []
+    values[1500:1503] += 60.0                                       # sharp spike at the same time: detected once
+    events = AnomalyDetector(use_llm=False).detect(_series(values, "chamber_pressure"))
+    assert len(events) == 1 and "Gradual" not in events[0].description  # one event, not a second slow-shift copy
+
+
 def test_startup_transients_suppressed_and_reported() -> None:
     rng = np.random.default_rng(12)
     values = 50 + rng.normal(0, 0.1, 1000)
@@ -384,6 +444,7 @@ def test_severity_floor_raises_large_relative_changes() -> None:
 def test_shipped_config_has_floors_and_startup_filter(agents_config: dict) -> None:
     config = DetectorConfig.from_dict(agents_config["anomaly_detector"])
     assert config.startup_ignore_seconds == 5.0 and config.onset_backtrack
+    assert config.slow_shift and config.slow_shift_lags_seconds == [5.0, 10.0] and config.slow_shift_threshold == 8.0
     assert {p: m for p, m, _ in config.severity_floors} == {"*pressure*": 5, "*temp*": 10, "*vib*": 20, "*voltage*": 3}
 
 

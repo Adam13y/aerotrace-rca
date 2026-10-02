@@ -9,6 +9,11 @@ Detection runs per sensor and combines four independent detectors:
 * **derivative** - robust z-score of the first time derivative against its rolling
   median; catches steps and spikes that are small in amplitude but abrupt.
 * **limits** - hard engineering limits from ``agents.yaml``; any breach is CRITICAL.
+* **slow shift** - the ~1 s smoothed value against its value N seconds earlier (N = 5 s and
+  10 s), after removing the drift the preceding window's slope predicts, in units of the
+  sensor's normal N-second drift. Catches gradual level shifts that the rolling median
+  absorbs; graded by the total size of the shift. Windows touching startup, planned events
+  or an already-detected anomaly on the same sensor are skipped.
 
 Flagged samples are merged into contiguous :class:`AnomalyEvent` intervals, scored in
 sigma units, and graded CRITICAL / WARNING / INFO. Detections overlapping planned
@@ -109,6 +114,14 @@ class DetectorConfig:
     #: An anomaly is "transient" if the ~1 s smoothed signal returns within 1 sigma of the pre-onset
     #: baseline (sigma of the window before onset) within this many seconds of onset; else "sustained".
     recovery_window_seconds: float = 10.0
+    #: Slow-shift channel: catches gradual level shifts that the rolling-median trend absorbs.
+    slow_shift: bool = True
+    #: Lags N (s): the ~1 s smoothed value now is compared with its value N seconds ago.
+    slow_shift_lags_seconds: list[float] = field(default_factory=lambda: [5.0, 10.0])
+    #: Window (s) before t-N whose slope is extrapolated over the lag, so normal flight drift cancels.
+    slow_shift_reference_seconds: float = 10.0
+    #: Detection threshold, in sigmas of the sensor's normal trend-compensated N-second change.
+    slow_shift_threshold: float = 8.0
     sensor_limits: dict[str, tuple[float | None, float | None]] = field(default_factory=dict)
     planned_events: list[PlannedEvent] = field(default_factory=list)
     #: (sensor glob, minimum relative change in %, minimum severity) - first matching pattern applies.
@@ -156,6 +169,19 @@ class _SensorScores:
     dt: float
     #: Robust z-score of the ~1 s averaged rate of change (vs. its rolling median); used for onset backtracking.
     slope_z: np.ndarray
+
+
+@dataclass(slots=True)
+class _EventContext:
+    """Per-sensor data shared by the spike and slow-shift event builders."""
+
+    sensor_id: str
+    unit: str
+    scores: _SensorScores
+    smoothed: np.ndarray
+    original_index: np.ndarray
+    timestamps: pd.Series
+    readings: Sequence[TelemetryReading]
 
 
 class AnomalyDetector:
@@ -267,8 +293,6 @@ class AnomalyDetector:
         d_flag = np.abs(scores.derivative) >= cfg.derivative_threshold
         m_flag = np.abs(scores.moving_average) >= cfg.moving_average_threshold
         flagged = z_flag | d_flag | m_flag | scores.limit_breach
-        if not flagged.any():
-            return []
 
         # Normalised per-sample score in sigma units (max over detectors).
         combined = np.maximum.reduce([
@@ -281,6 +305,10 @@ class AnomalyDetector:
         smoothed = pd.Series(scores.values).rolling(smooth_k, center=True, min_periods=1).median().to_numpy()
         original_index = group["index"].to_numpy()
         timestamps = group["timestamp"].reset_index(drop=True)
+        ctx = _EventContext(sensor_id, unit, scores, smoothed, original_index, timestamps, readings)
+
+        # Slow-shift scores with only startup/planned windows blocked: used to grade spike-detected events.
+        z_free = self._slow_shift_z(ctx, []) if cfg.slow_shift and cfg.slow_shift_lags_seconds else None
 
         events: list[AnomalyEvent] = []
         for start, end in _segments(np.flatnonzero(flagged), scores.met, cfg.merge_gap_seconds):
@@ -307,76 +335,253 @@ class AnomalyDetector:
 
             onset = self._onset_index(scores, start) if cfg.onset_backtrack else start
             baseline = _baseline(scores.values, onset, scores.dt, cfg.window_seconds)
-            met_start, met_end = float(scores.met[onset]), float(scores.met[end])
-            peak_value = float(scores.values[peak])
-            severity = (
-                Severity.CRITICAL if score >= cfg.critical_score or limit_breached
-                else Severity.WARNING if score >= cfg.warning_score
-                else Severity.INFO
-            )
-            planned = next((p for p in cfg.planned_events if p.covers(sensor_id, met_start, met_end)), None)
-            expected = planned is not None and not limit_breached
-            floor_note = ""
-            if expected:
-                severity = Severity.INFO
-            else:
-                floor = self._severity_floor(sensor_id, baseline, peak_value)
-                if floor is not None and floor[0].rank > severity.rank:
-                    floor_note = (f" Severity raised {severity.value} -> {floor[0].value} by the {floor[1]} floor "
-                                  f"({floor[2]:.1f}% change).")
-                    severity = floor[0]
-
-            description = _describe(
-                sensor_id, unit, baseline, peak_value, float(scores.met[peak]), met_start, met_end, methods,
-                score, scores.dt, cfg.sensor_limits.get(sensor_id), limit_breached,
-            )
-            recovery, recovery_s, settled = self._recovery(scores, smoothed, onset, peak, baseline)
-            if recovery == "transient":
-                description += f" Transient: recovered within {recovery_s:.1f} s."
-            else:
-                description += (f" Sustained: value remained at {settled:.4g} {unit} {cfg.recovery_window_seconds:g} s "
-                                f"after onset (baseline {baseline:.4g} {unit}).")
-            if onset < start:
-                description += f" Onset backtracked to {format_met(met_start)} (first flagged at {format_met(detected_at)})."
-            description += floor_note
-            if expected and planned is not None:
-                description += f" Coincides with planned event '{planned.name}' - treated as expected transient."
-
-            pad = max(3, int(round(1.0 / scores.dt)))
-            idx_range = range(max(0, onset - pad), min(len(original_index), end + pad + 1))
-            if len(idx_range) > cfg.max_readings_per_event:
-                step = int(np.ceil(len(idx_range) / cfg.max_readings_per_event))
-                idx_range = list(idx_range)[::step]
-                if peak not in idx_range:
-                    idx_range = sorted({*idx_range, peak})
-            event_readings = [readings[int(original_index[i])] for i in idx_range]
-
-            start_ts, end_ts = timestamps.iloc[onset], timestamps.iloc[end]
-            events.append(
-                AnomalyEvent(
-                    id=_event_id(sensor_id, start_ts.isoformat()),
-                    timestamp=start_ts.to_pydatetime(),
-                    end_timestamp=end_ts.to_pydatetime(),
-                    sensor_id=sensor_id,
-                    severity=severity,
-                    description=description,
-                    readings=event_readings,
-                    unit=unit,
-                    mission_elapsed_s=met_start,
-                    detected_at_s=detected_at,
-                    recovery=recovery,
-                    recovery_s=recovery_s,
-                    settled_value=settled,
-                    duration_s=max(met_end - met_start, 0.0),
-                    peak_value=peak_value,
-                    baseline_value=baseline,
-                    score=round(score, 2),
-                    detection_methods=methods,
-                    consecutive_samples=_longest_run(amplitude_flag[sl]),
-                    expected=expected,
-                )
-            )
+            # Below CRITICAL, grade by the total shift when the slow-shift channel also sees this event and
+            # rates it larger (a gradual shift caught only weakly by the instantaneous detectors).
+            note = ""
+            direction = float(np.sign(scores.values[peak] - baseline)) or 1.0
+            graded = self._slow_shift_grade(ctx, z_free, onset, end, direction) if score < cfg.critical_score else None
+            if graded is not None and graded[0] > score:
+                score, note = graded[0], graded[1] + " Severity graded on the total shift."
+                methods = [*methods, "slow_shift"]
+            events.append(self._build_event(
+                ctx, onset=onset, detected=start, end=end, peak=peak, score=score, methods=methods,
+                baseline=baseline, limit_breached=limit_breached, amplitude_run=_longest_run(amplitude_flag[sl]),
+                note=note,
+            ))
+        if cfg.slow_shift:
+            events.extend(self._slow_shift_events(ctx, events))
         return events
+
+    def _build_event(
+        self, ctx: _EventContext, *, onset: int, detected: int, end: int, peak: int, score: float,
+        methods: list[str], baseline: float, limit_breached: bool, amplitude_run: int, note: str = "",
+    ) -> AnomalyEvent:
+        """Grade, describe and package one detected interval as an :class:`AnomalyEvent`."""
+        cfg, scores = self.config, ctx.scores
+        detected_at = float(scores.met[detected])
+        met_start, met_end = float(scores.met[onset]), float(scores.met[end])
+        peak_value = float(scores.values[peak])
+        severity = (
+            Severity.CRITICAL if score >= cfg.critical_score or limit_breached
+            else Severity.WARNING if score >= cfg.warning_score
+            else Severity.INFO
+        )
+        planned = next((p for p in cfg.planned_events if p.covers(ctx.sensor_id, met_start, met_end)), None)
+        expected = planned is not None and not limit_breached
+        floor_note = ""
+        if expected:
+            severity = Severity.INFO
+        else:
+            floor = self._severity_floor(ctx.sensor_id, baseline, peak_value)
+            if floor is not None and floor[0].rank > severity.rank:
+                floor_note = (f" Severity raised {severity.value} -> {floor[0].value} by the {floor[1]} floor "
+                              f"({floor[2]:.1f}% change).")
+                severity = floor[0]
+
+        unit = ctx.unit
+        description = _describe(
+            ctx.sensor_id, unit, baseline, peak_value, float(scores.met[peak]), met_start, met_end, methods,
+            score, scores.dt, cfg.sensor_limits.get(ctx.sensor_id), limit_breached,
+        ) + note
+        recovery, recovery_s, settled = self._recovery(scores, ctx.smoothed, onset, peak, baseline)
+        if recovery == "transient":
+            description += f" Transient: recovered within {recovery_s:.1f} s."
+        else:
+            description += (f" Sustained: value remained at {settled:.4g} {unit} {cfg.recovery_window_seconds:g} s "
+                            f"after onset (baseline {baseline:.4g} {unit}).")
+        if onset < detected:
+            description += f" Onset backtracked to {format_met(met_start)} (first flagged at {format_met(detected_at)})."
+        description += floor_note
+        if expected and planned is not None:
+            description += f" Coincides with planned event '{planned.name}' - treated as expected transient."
+
+        pad = max(3, int(round(1.0 / scores.dt)))
+        idx_range = range(max(0, onset - pad), min(len(ctx.original_index), end + pad + 1))
+        if len(idx_range) > cfg.max_readings_per_event:
+            step = int(np.ceil(len(idx_range) / cfg.max_readings_per_event))
+            idx_range = list(idx_range)[::step]
+            if peak not in idx_range:
+                idx_range = sorted({*idx_range, peak})
+        event_readings = [ctx.readings[int(ctx.original_index[i])] for i in idx_range]
+
+        start_ts, end_ts = ctx.timestamps.iloc[onset], ctx.timestamps.iloc[end]
+        return AnomalyEvent(
+            id=_event_id(ctx.sensor_id, start_ts.isoformat()),
+            timestamp=start_ts.to_pydatetime(),
+            end_timestamp=end_ts.to_pydatetime(),
+            sensor_id=ctx.sensor_id,
+            severity=severity,
+            description=description,
+            readings=event_readings,
+            unit=unit,
+            mission_elapsed_s=met_start,
+            detected_at_s=detected_at,
+            recovery=recovery,
+            recovery_s=recovery_s,
+            settled_value=settled,
+            duration_s=max(met_end - met_start, 0.0),
+            peak_value=peak_value,
+            baseline_value=baseline,
+            score=round(score, 2),
+            detection_methods=methods,
+            consecutive_samples=amplitude_run,
+            expected=expected,
+        )
+
+    def _slow_shift_z(
+        self, ctx: _EventContext, blocked: list[tuple[float, float]],
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Slow-shift score per sample: the larger of the lags' trend-compensated changes, in drift sigmas.
+
+        For lag N, ``change(t) = s(t) - s(t-N) - N * slope``, where ``s`` is the ~1 s median-smoothed
+        signal and ``slope`` its average rate over the reference window before ``t-N``: the part of
+        the last N seconds' change that the sensor's own recent drift does not predict. It is scaled
+        by its robust spread over the flight (the sensor's normal N-second drift, not raw noise).
+        Samples whose look-back touches startup, planned events for this sensor or ``blocked`` score 0.
+
+        Returns:
+            ``(z, lag, drift)`` per sample: signed score, the lag that produced it, and that lag's drift sigma.
+        """
+        cfg, met, s = self.config, ctx.scores.met, ctx.smoothed
+        ref = cfg.slow_shift_reference_seconds
+        lags = sorted(float(n) for n in cfg.slow_shift_lags_seconds if n > 0)
+        planned = [(p.start, p.end) for p in cfg.planned_events if p.covers(ctx.sensor_id, -np.inf, np.inf)]
+        z_rows, drifts = [], []
+        for lag in lags:
+            past = np.interp(met - lag, met, s)
+            before = np.interp(met - lag - ref, met, s)
+            change = s - past - (past - before) * (lag / ref)
+            usable = (met - lag - ref >= max(met[0], cfg.startup_ignore_seconds)) & ~_window_hits(met, lag + ref, planned)
+            drift = _robust_sigma(change[usable]) if usable.sum() >= cfg.min_points else np.inf
+            valid = usable & ~_window_hits(met, lag + ref, blocked)
+            z_rows.append(np.where(valid, change / drift, 0.0))
+            drifts.append(drift)
+        z_stack = np.vstack(z_rows)
+        best = np.argmax(np.abs(z_stack), axis=0)
+        return z_stack[best, np.arange(met.size)], np.asarray(lags)[best], np.asarray(drifts)[best]
+
+    def _slow_shift_events(self, ctx: _EventContext, existing: list[AnomalyEvent]) -> list[AnomalyEvent]:
+        """New events for gradual level shifts that the rolling-median detectors absorbed.
+
+        Anomalies already found on this sensor (plus their recovery window) are blocked, so they are
+        not reported twice; their grading by total shift happens in :meth:`_slow_shift_grade`. After a
+        slow-shift event, flags are ignored until the look-back clears it (they are its own echoes).
+        """
+        cfg, met = self.config, ctx.scores.met
+        if not cfg.slow_shift_lags_seconds or met.size < cfg.min_points:
+            return []
+        blocked = [(e.mission_elapsed_s, e.mission_elapsed_s + e.duration_s + cfg.recovery_window_seconds)
+                   for e in existing]
+        z, lag_at, drift_at = self._slow_shift_z(ctx, blocked)
+        lookback = max(cfg.slow_shift_lags_seconds) + cfg.slow_shift_reference_seconds
+        events: list[AnomalyEvent] = []
+        i, n = 0, met.size
+        while i < n:
+            if abs(z[i]) < cfg.slow_shift_threshold:
+                i += 1
+                continue
+            direction = float(np.sign(z[i]))
+            j = i
+            while j + 1 < n and direction * z[j + 1] >= cfg.slow_shift_threshold:
+                j += 1
+            event = self._slow_shift_event(ctx, i, j, direction, float(lag_at[i]), float(drift_at[i]))
+            if event is not None:
+                events.append(event)
+                horizon = met[j] + lookback
+                while i < n and met[i] <= horizon:
+                    i += 1
+                continue
+            i = j + 1
+        return events
+
+    def _slow_shift_grade(
+        self, ctx: _EventContext, z_free: tuple[np.ndarray, np.ndarray, np.ndarray] | None, onset: int, end: int,
+        direction: float,
+    ) -> tuple[float, str] | None:
+        """Total-shift score for an event the spike detectors found, if the slow channel also sees it.
+
+        Returns ``(score, note)`` when the slow-shift score (in drift sigmas) crosses the threshold
+        in the event's direction between its onset and one lag after its end.
+        """
+        if z_free is None:
+            return None
+        cfg, met = self.config, ctx.scores.met
+        z, lag_at, drift_at = z_free
+        horizon = met[end] + max(cfg.slow_shift_lags_seconds)
+        span = np.flatnonzero((met >= met[onset]) & (met <= horizon) & (direction * z >= cfg.slow_shift_threshold))
+        if span.size == 0:
+            return None
+        first = int(span[0])
+        measured = self._measure_shift(ctx, first, direction, float(lag_at[first]))
+        if measured is None:
+            return None
+        shift, lag = measured[3], float(lag_at[first])
+        score = shift / max(float(drift_at[first]), 1e-9)
+        note = (f" Total shift {shift:.3g} {ctx.unit} against the extrapolated pre-event trend ({lag:g} s slow-shift "
+                f"channel; normal {lag:g} s drift is {drift_at[first]:.3g} {ctx.unit}).")
+        return score, note
+
+    def _measure_shift(
+        self, ctx: _EventContext, first: int, direction: float, lag: float,
+    ) -> tuple[int, int, int, float, float] | None:
+        """Pre-shift trend, true onset, end and total size of a slow shift first flagged at ``first``.
+
+        Returns:
+            ``(onset, end, peak, shift, baseline)`` - indices, the shift size (>0, in the event's
+            direction) and the extrapolated trend value at the peak - or ``None``.
+        """
+        cfg, scores = self.config, ctx.scores
+        met, s = scores.met, ctx.smoothed
+        t_flag = met[first]
+        # Pre-shift trend: line through the reference window that ended where the lag window began.
+        pre = np.flatnonzero((met >= t_flag - lag - cfg.slow_shift_reference_seconds) & (met <= t_flag - lag))
+        if pre.size < 5:
+            return None
+        slope, intercept = np.polyfit(met[pre], s[pre], 1)
+        trend = slope * met + intercept
+        deviation = direction * (s - trend)
+        k = max(3, int(round(1.0 / max(scores.dt, 1e-6))))
+        sigma = max(_robust_sigma(s[pre] - trend[pre]), scores.noise_sigma / np.sqrt(k))
+        # Total shift: the largest deviation from the extrapolated trend within one lag of the flag.
+        span = np.flatnonzero((met >= t_flag - lag) & (met <= t_flag + lag))
+        peak = int(span[np.argmax(deviation[span])])
+        shift = float(deviation[peak])
+        if shift <= 0:
+            return None
+        # True onset: walk back from the first flag while the signal is still >= 3 sigma off the trend.
+        lowest = int(np.searchsorted(met, t_flag - lag))
+        onset = first
+        while onset > lowest and deviation[onset - 1] >= cfg.onset_threshold_sigma * sigma:
+            onset -= 1
+        # End of the shift: first time it reaches 90 % of its total size.
+        reached = np.flatnonzero(deviation[onset:] >= 0.9 * shift)
+        end = max(first, onset + int(reached[0])) if reached.size else first
+        return onset, end, peak, shift, float(trend[peak])
+
+    def _slow_shift_event(
+        self, ctx: _EventContext, first: int, last: int, direction: float, lag: float, drift: float,
+    ) -> AnomalyEvent | None:
+        """Event for slow-shift flags ``first..last``, graded by the total size of the shift."""
+        cfg, scores = self.config, ctx.scores
+        measured = self._measure_shift(ctx, first, direction, lag)
+        if measured is None:
+            return None
+        onset, end, peak, shift, baseline = measured
+        score = shift / max(drift, 1e-9)
+        limit_breached = bool(scores.limit_breach[onset:end + 1].any())
+        if limit_breached:
+            score = max(score, cfg.critical_score)
+        if score < cfg.info_score and not limit_breached:
+            return None
+        met = scores.met
+        note = (f" Gradual {'rise' if direction > 0 else 'fall'} of {shift:.3g} {ctx.unit} over "
+                f"~{met[end] - met[onset]:.1f} s against the extrapolated pre-shift trend ({lag:g} s slow-shift "
+                f"channel; normal {lag:g} s drift is {drift:.3g} {ctx.unit}).")
+        return self._build_event(
+            ctx, onset=onset, detected=first, end=end, peak=peak, score=score,
+            methods=["slow_shift"] + (["limit"] if limit_breached else []), baseline=baseline,
+            limit_breached=limit_breached, amplitude_run=last - first + 1, note=note,
+        )
 
     def _onset_index(self, scores: _SensorScores, start: int) -> int:
         """First sample of the run leading into ``start`` that already crossed the (lower) onset threshold.
@@ -604,6 +809,14 @@ def _segments(indices: np.ndarray, met: np.ndarray, merge_gap: float) -> list[tu
         prev = idx
     segments.append((start, prev))
     return segments
+
+
+def _window_hits(met: np.ndarray, lookback: float, intervals: list[tuple[float, float]]) -> np.ndarray:
+    """For each time t, whether the look-back window ``[t - lookback, t]`` overlaps any interval."""
+    hits = np.zeros(met.size, dtype=bool)
+    for start, end in intervals:
+        hits |= (met >= start) & (met - lookback <= end)
+    return hits
 
 
 def _baseline(values: np.ndarray, start: int, dt: float, window_seconds: float) -> float:

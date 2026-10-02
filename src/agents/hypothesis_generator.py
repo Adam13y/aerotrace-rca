@@ -594,8 +594,9 @@ class HypothesisGenerator:
         from that same dataset are excluded from retrieval so a re-run never sees its own output.
 
         Flow: instrumentation-glitch hypotheses for sensor faults; one LLM call for the physical
-        anomalies; validation; a focused coverage retry for each physical anomaly still
-        unexplained; rule-based fallback if the LLM yields nothing usable.
+        anomalies; validation; removal of reworded duplicates; follow-ups for each physical anomaly
+        still unexplained (placeholder if they all fail); a validated rule-based fallback only if
+        the LLM is unavailable.
 
         Args:
             anomalies: Classified, contextualised anomaly events.
@@ -644,16 +645,20 @@ class HypothesisGenerator:
                 try:
                     self.last_leading_group = self.category_preference(physical).leading_group
                     hypotheses = self._llm_hypotheses(anomalies, physical, kb_matches, analysis, mission_context)
-                    if hypotheses:
-                        hypotheses += self._coverage_retries(anomalies, physical, hypotheses, kb_matches, mission_context)
-                        hypotheses = self._drop_duplicate_competitors(hypotheses, self.last_leading_group)
+                    # Rewordings are removed BEFORE coverage is checked, so an anomaly cited only by a dropped
+                    # rewording still gets its follow-ups. Follow-ups also run when every first-round
+                    # hypothesis was rejected - the rule-based fallback is only for an unavailable LLM.
+                    hypotheses = self._drop_duplicate_competitors(hypotheses, self.last_leading_group)
+                    hypotheses += self._coverage_retries(anomalies, physical, hypotheses, kb_matches, mission_context)
+                    if any(h.hypothesis_type != "unresolved" for h in hypotheses):
                         hypotheses += self._alternative_retries(
                             anomalies, physical, hypotheses, self.last_leading_group, kb_matches, mission_context
                         )
                 except (LLMUnavailableError, ValidationError, ValueError) as exc:
                     logger.warning("LLM hypothesis generation failed, using knowledge-base fallback: %s", exc)
+                    hypotheses = []
             if not hypotheses:
-                hypotheses = self._rule_based(physical, kb_matches)
+                hypotheses = self._validated_rule_based(anomalies, physical, kb_matches)
                 self.last_source = "rule-based"
 
         competing = self.competing(hypotheses, self.last_leading_group)
@@ -1039,7 +1044,8 @@ class HypothesisGenerator:
         return Hypothesis(
             title=f"Unresolved: {target.label} - insufficient evidence to determine root cause",
             description=(f"No root cause for {target.label} passed validation after {attempts} follow-up request(s). "
-                         f"{target.description}"),
+                         if attempts else f"No rule-based root cause for {target.label} passed validation. ")
+            + target.description,
             confidence=0.0,
             subsystem=", ".join(sorted(self.config.evidence_rules.evidence_categories(target.sensor_id))) or "unknown",
             related_anomalies=[target.id],
@@ -1169,18 +1175,18 @@ class HypothesisGenerator:
         rules = self.config.evidence_rules
         vehicle = getattr(self, "_vehicle_sensors", None) or sorted({a.sensor_id for a in all_anomalies})
         caps: list[tuple[str, float]] = []
-        if hypothesis_type != "insufficient_evidence":
-            # Rule 1: the named cause (title + primary cause sentence) needs evidence - component level
-            # first, subsystem level only when no listed component is named.
-            cause_text = rules.primary_cause_text(title, str(item.get("description", "")))
-            problem, caps, component_named = rules.component_check(cause_text, resolved, vehicle)
-            if not problem and not component_named:
-                problem, unobservable = rules.subsystem_check(cause_text, resolved, vehicle)
-                if unobservable:
-                    caps.append((f"{UNOBSERVABLE_LABEL}: {', '.join(unobservable)}", rules.unobservable_cap))
-            if problem:
-                reject(problem, cited_ids)
-                return None
+        # Rule 1 (every type, insufficient_evidence included, so it cannot pad with unrelated causes): the
+        # named cause (title + primary cause sentence) needs evidence - component level first, subsystem
+        # level only when no listed component is named.
+        cause_text = rules.primary_cause_text(title, str(item.get("description", "")))
+        problem, caps, component_named = rules.component_check(cause_text, resolved, vehicle)
+        if not problem and not component_named:
+            problem, unobservable = rules.subsystem_check(cause_text, resolved, vehicle)
+            if unobservable:
+                caps.append((f"{UNOBSERVABLE_LABEL}: {', '.join(unobservable)}", rules.unobservable_cap))
+        if problem:
+            reject(problem, cited_ids)
+            return None
         if hypothesis_type == "root_cause":
             # Rule 2: cross-subsystem links need a listed physical coupling, whatever the time gap.
             problem = rules.coupling_check(resolved)
@@ -1244,6 +1250,26 @@ class HypothesisGenerator:
                 }
             )
         return hypothesis
+
+    def _validated_rule_based(
+        self, anomalies: list[AnomalyEvent], physical: list[AnomalyEvent], kb_matches: dict[str, list[SearchResult]],
+    ) -> list[Hypothesis]:
+        """Rule-based fallback, put through the same validation as LLM hypotheses.
+
+        Rejected candidates are recorded like any other rejection; a physical anomaly left without a
+        root cause gets an "Unresolved" placeholder (when enabled) instead of an unvalidated guess.
+        """
+        group_of = {a.id: i for i, group in enumerate(TelemetryAnalyst.correlation_groups(physical)) for a in group}
+        accepted: list[Hypothesis] = []
+        for candidate in self._rule_based(physical, kb_matches):
+            item = candidate.model_dump(mode="json")
+            item["type"] = "insufficient_evidence" if candidate.title.startswith("Unexplained ") else "root_cause"
+            validated = self._validate(item, physical, "rule-based", group_of, anomalies)
+            if validated is not None:
+                accepted.append(validated)
+        if self.config.unresolved_placeholders:
+            accepted += [self._unresolved_placeholder(a, 0) for a in physical if not self._explained(a, accepted)]
+        return accepted
 
     def _rule_based(self, actionable: list[AnomalyEvent], kb_matches: dict[str, list[SearchResult]]) -> list[Hypothesis]:
         """Deterministic hypotheses: one per correlation group, driven by knowledge-base matches."""

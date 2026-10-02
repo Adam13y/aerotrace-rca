@@ -222,8 +222,9 @@ def test_validation_rejects_mislabelled_pressurisation_hypothesis(kb: KnowledgeB
     router = LLMRouter(FakeClient("qwen", json.dumps(payload)), None)  # type: ignore[arg-type]
     generator = HypothesisGenerator(kb, router=router)
     generated = generator.generate(events)
-    assert all(h.source in {"rule-based", "sensor-fault-classifier"} for h in generated)  # rejected -> fallback
-    assert len(generator.last_rejections) == 1
+    # Rejected -> follow-ups (same bad answer) -> "Unresolved" placeholders; never an unvalidated fallback.
+    assert all(h.hypothesis_type == "unresolved" or h.source == "sensor-fault-classifier" for h in generated)
+    assert generator.last_retries and generator.last_unresolved
     reason = generator.last_rejections[0].reason
     assert reason.startswith("no valid citations remain")
     assert "Engine bay temperature" in reason and "instrumentation glitch" in reason

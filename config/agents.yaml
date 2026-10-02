@@ -22,6 +22,12 @@ anomaly_detector:
   onset_threshold_sigma: 3.0
   startup_ignore_seconds: 5.0       # anomalies first detected before T+5s are suppressed (and logged)
   recovery_window_seconds: 10.0     # transient = back within 1 sigma of baseline within this time of onset
+  # Slow-shift channel: gradual level shifts the rolling median absorbs. Smoothed value now vs. N s ago, minus
+  # the drift the preceding reference window's slope predicts, in sigmas of the sensor's normal N-s drift.
+  slow_shift: true
+  slow_shift_lags_seconds: [5.0, 10.0]
+  slow_shift_reference_seconds: 10.0
+  slow_shift_threshold: 8.0
   # Minimum severity for large relative changes (first matching sensor pattern wins; not applied to planned events).
   severity_floors:
     - {pattern: "*pressure*", min_change_pct: 5, severity: WARNING}

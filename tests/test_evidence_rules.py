@@ -309,3 +309,58 @@ def test_single_cause_answer_citing_other_anomalies_is_not_accepted(kb: Knowledg
     assert generator.last_unresolved == [volt.id]
     assert any("single-cause answer cites other anomalies" in r.reason for r in generator.last_rejections)
     assert all(h.hypothesis_type != "root_cause" or volt.id not in h.related_anomalies for h in generated)
+
+
+# --------------------------------------------------------------------------- validator ordering / fallback / padding
+def _vehicle_analysis() -> object:
+    """Minimal dataset overview so the generator knows every sensor the vehicle has."""
+    from types import SimpleNamespace
+    sensors = [SimpleNamespace(sensor_id=s, unit="", sample_rate_hz=10.0) for s in VEHICLE]
+    return SimpleNamespace(sensors=sensors, duration_s=300.0, total_readings=18000, data_quality_notes=[])
+def test_rewording_dropped_before_coverage_so_its_anomaly_gets_a_follow_up(kb: KnowledgeBase) -> None:
+    lox, fuel = _pair(_a("lox_tank_pressure", 150), _a("fuel_tank_pressure", 151))
+    generator, _ = _generator(kb, {"hypotheses": [
+        _h("LOX Tank Pressurisation Leak", [lox], "LOX tank pressure fell at T+150s from a pressurisation leak.", 0.8),
+        _h("LOX Tank Pressurization System Leak", [lox, fuel],
+           "LOX tank pressure at T+150s and fuel tank pressure at T+151s fell from a pressurization leak.", 0.6),
+    ]}, {"hypotheses": [_h("Fuel regulator droop", [fuel], "Fuel tank pressure fell at T+151s from regulator droop.")]},
+        coverage_retries=1)
+    titles = [h.title for h in generator.generate([lox, fuel])]
+    assert "LOX Tank Pressurization System Leak" not in titles     # the rewording is dropped ...
+    assert [r.label for r in generator.last_retries] == [fuel.label]  # ... before coverage is checked
+    assert "Fuel regulator droop" in titles
+
+
+def test_all_rejected_runs_follow_ups_instead_of_unvalidated_fallback(kb: KnowledgeBase) -> None:
+    temp = _a("engine_bay_temp", 165)
+    generator, _ = _generator(kb, {"hypotheses": [
+        _h("Turbopump hot gas leak", [temp], "Engine bay temperature rose at T+165s from a turbopump hot gas leak."),
+    ]}, {"hypotheses": [_h("Bay thermal control failure", [temp], "Engine bay temperature rose at T+165s; thermal "
+                                                                   "control failed.")]}, coverage_retries=1)
+    generated = generator.generate([temp], _vehicle_analysis())  # type: ignore[arg-type]
+    assert [h.title for h in generated] == ["Bay thermal control failure"]
+    assert generator.last_source != "rule-based" and generator.last_retries
+
+
+def test_rule_based_fallback_is_validated(kb: KnowledgeBase, monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.models.telemetry_schema import Hypothesis
+    temp = _a("engine_bay_temp", 165)
+    bad = Hypothesis(title="Turbopump hot gas leak", description="Engine bay temperature rose at T+165s from a "
+                     "turbopump hot gas leak.", confidence=0.6, related_anomalies=[temp.id], source="rule-based")
+    generator = HypothesisGenerator(kb, use_llm=False)
+    monkeypatch.setattr(generator, "_rule_based", lambda physical, kb_matches: [bad])
+    generated = generator.generate([temp], _vehicle_analysis())  # type: ignore[arg-type]
+    assert [h.hypothesis_type for h in generated] == ["unresolved"]   # rejected by rule 1, not passed through
+    assert generator.last_rejections and generator.last_rejections[0].title == "Turbopump hot gas leak"
+
+
+def test_insufficient_evidence_cannot_pad_with_unrelated_causes(kb: KnowledgeBase) -> None:
+    volt = _a("avionics_bus_voltage", 230)
+    generator, _ = _generator(kb, {"hypotheses": [
+        _h("Battery cell loss", [volt], "Bus voltage stepped down at T+230s after losing a battery cell.", 0.7),
+        _h("Turbopump Bearing Instability", [volt], "Bus voltage dip at T+230s; could be turbopump bearing wear.",
+           0.3, kind="insufficient_evidence"),
+    ]})
+    titles = [h.title for h in generator.generate([volt], _vehicle_analysis())]  # type: ignore[arg-type]
+    assert titles == ["Battery cell loss"]
+    assert any(r.title == "Turbopump Bearing Instability" for r in generator.last_rejections)
