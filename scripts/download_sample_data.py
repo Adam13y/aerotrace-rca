@@ -1,7 +1,7 @@
 """Obtain sample telemetry for AeroTrace-RCA.
 
 By default this generates a realistic synthetic 300-second ascent (no network needed)
-in three layouts: NASA-style long CSV, SpaceX-style wide CSV and channel JSON. Real
+in three layouts: NASA-style long CSV, wide-format CSV and channel JSON. Real
 launch telemetry is rarely published as raw sensor data, so the synthetic flight -
 with known injected faults - is the reference dataset for demos and tests.
 

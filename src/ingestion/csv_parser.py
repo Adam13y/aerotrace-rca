@@ -9,7 +9,7 @@ Two layouts are supported and detected automatically:
 
   Column aliases such as ``mnemonic``/``channel`` and ``eng_value``/``units`` are accepted.
 
-* **Wide / SpaceX-webcast-style** - one row per time step, one column per sensor,
+* **Wide-format** - one row per time step, one column per sensor,
   units embedded in the header (``Chamber Pressure (psi)`` or ``chamber_pressure_psi``)
   and a relative time column such as ``T+ (s)``, ``time_s`` or ``MET``.
 
@@ -381,8 +381,8 @@ def to_long_format(wide: pd.DataFrame) -> pd.DataFrame:
     return long_frame[["timestamp", "sensor_id", "value", "unit"]]
 
 
-def to_spacex_style(wide: pd.DataFrame) -> pd.DataFrame:
-    """Convert generator output to a SpaceX-webcast-style wide layout (``T+ (s)``, ``Name (unit)``)."""
+def to_wide_style(wide: pd.DataFrame) -> pd.DataFrame:
+    """Convert generator output to a wide-format layout (``T+ (s)``, ``Name (unit)``)."""
     renamed = {"met_s": "T+ (s)"}
     for sensor, unit in SENSOR_UNITS.items():
         renamed[f"{sensor}_{unit}"] = f"{sensor.replace('_', ' ').title()} ({unit})"
@@ -390,7 +390,7 @@ def to_spacex_style(wide: pd.DataFrame) -> pd.DataFrame:
 
 
 def write_sample_files(output_dir: str | Path, seed: int = 42) -> dict[str, Path]:
-    """Write the synthetic flight in long (NASA) and wide (SpaceX) CSV layouts.
+    """Write the synthetic flight in long (NASA-style) and wide-format CSV layouts.
 
     Returns:
         Mapping of layout name to written path.
@@ -400,9 +400,9 @@ def write_sample_files(output_dir: str | Path, seed: int = 42) -> dict[str, Path
     wide = generate_sample_telemetry(seed=seed)
     paths = {
         "nasa_long": output_dir / "sample_flight_nasa_long.csv",
-        "spacex_wide": output_dir / "sample_flight_spacex_wide.csv",
+        "wide": output_dir / "sample_flight_wide.csv",
     }
     to_long_format(wide).to_csv(paths["nasa_long"], index=False)
-    to_spacex_style(wide).to_csv(paths["spacex_wide"], index=False)
+    to_wide_style(wide).to_csv(paths["wide"], index=False)
     logger.info("Sample telemetry written to %s (generated %s)", output_dir, datetime.now(UTC).isoformat())
     return paths

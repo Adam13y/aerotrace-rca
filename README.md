@@ -3,7 +3,7 @@
 **Local-first root-cause analysis for launch-vehicle telemetry: statistical anomaly detection, then hypotheses from a
 local LLM (Qwen 2.5 14B via Ollama) that are checked against sensor evidence and a physical coupling table.**
 
-No API keys, no cloud calls. Every hypothesis cites the anomalies it explains, and the validator rejects causes
+Local by default (Qwen 2.5 14B via Ollama); optional Claude fallback via `ANTHROPIC_API_KEY`, off unless you set it. Every hypothesis cites the anomalies it explains, and the validator rejects causes
 the telemetry cannot support.
 
 ![Anomaly and hypothesis tables from a run on the sample flight](docs/images/pipeline_output.svg)
@@ -57,7 +57,7 @@ telemetry ─► ingest ─► analyst ─► detector ─► sensor-fault ─�
 ```
 
 **Ingestion**
-- Long (NASA-style) and wide (SpaceX-style) CSV, JSON / JSON-Lines / channel documents, and FITS binary tables.
+- Long (NASA-style) and wide-format (one row per timestamp, one column per channel) CSV, JSON / JSON-Lines / channel documents, and FITS binary tables.
 - ISO-8601, epoch or relative (`T+12.5`) timestamps.
 - Gaps are interpolated and flagged.
 

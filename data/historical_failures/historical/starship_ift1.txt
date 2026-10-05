@@ -4,24 +4,24 @@ Failure mode: Aft-section propellant leak and fire causing engine losses and los
 Source type: historical
 Case ID: starship_ift1
 Date: 20 April 2023
-Vehicle: SpaceX Starship / Super Heavy (Ship 24, Booster 7)
-Sources: SpaceX Starship Flight Test summary and mishap investigation update (2023); FAA statements (2023)
+Vehicle: Starship / Super Heavy (Ship 24, Booster 7)
+Sources: the launch provider's Starship Flight Test summary and mishap investigation update (2023); FAA statements (2023)
 
 FAILURE MODE
 On the first integrated flight of Starship and Super Heavy from Starbase, Texas, several booster Raptor engines were lost during ascent, the vehicle lost attitude control, the planned stage separation did not occur, and the autonomous flight termination system was activated. The vehicle broke up over the Gulf of Mexico about four minutes after liftoff. The launch also severely damaged the launch pad, which had no flame deflector or water deluge system.
 
 CAUSAL CHAIN
-Several Raptor engines were not running or shut down early in the ascent, and more were lost as the flight continued. SpaceX's investigation, overseen by the FAA, identified the most likely root cause for the loss of control as propellant leaks in the aft section of the Super Heavy booster. The leaks led to fires in the engine bay that severed connections with the primary flight computer. That caused loss of communication with most booster engines and, ultimately, loss of control of the vehicle. The vehicle tumbled, and stage separation was not achieved. The flight termination system was triggered, but the vehicle took considerably longer than expected to break up after activation, which SpaceX also addressed. Debris from the damaged pad was widely discussed as a possible contributor to early engine problems, but SpaceX's public summary attributed the loss of control to the aft-section leak and fire; the exact contribution of pad debris is less certain.
+Several Raptor engines were not running or shut down early in the ascent, and more were lost as the flight continued. The launch provider's investigation, overseen by the FAA, identified the most likely root cause for the loss of control as propellant leaks in the aft section of the Super Heavy booster. The leaks led to fires in the engine bay that severed connections with the primary flight computer. That caused loss of communication with most booster engines and, ultimately, loss of control of the vehicle. The vehicle tumbled, and stage separation was not achieved. The flight termination system was triggered, but the vehicle took considerably longer than expected to break up after activation, which the launch provider also addressed. Debris from the damaged pad was widely discussed as a possible contributor to early engine problems, but the launch provider's public summary attributed the loss of control to the aft-section leak and fire; the exact contribution of pad debris is less certain.
 
 TELEMETRY SIGNATURES
 - Engine-out indications on several booster Raptors from liftoff through early ascent, with the count growing over time.
-- Indications consistent with fire in the booster aft section (SpaceX reported fires there) before engine communication was lost.
+- Indications consistent with fire in the booster aft section (the launch provider reported fires there) before engine communication was lost.
 - Loss of communication between the flight computer and many engines at once: a shared-cause signature (wiring or avionics damage) rather than independent engine faults.
 - Attitude and trajectory departures, then tumbling, without the planned stage separation event.
 - Flight termination activation followed by a delay of tens of seconds before breakup and loss of signal.
 
 ROOT CAUSE
-SpaceX identified the most likely root cause as propellant leaks in the booster aft section that caused fires, severing connections to the primary flight computer and leading to loss of engine communication and vehicle control. The FAA closed the mishap investigation with a list of required corrective actions, including vehicle hardware redesigns to prevent leaks and fires, flight termination system changes, and launch pad improvements such as a water-cooled steel flame deflector.
+The launch provider identified the most likely root cause as propellant leaks in the booster aft section that caused fires, severing connections to the primary flight computer and leading to loss of engine communication and vehicle control. The FAA closed the mishap investigation with a list of required corrective actions, including vehicle hardware redesigns to prevent leaks and fires, flight termination system changes, and launch pad improvements such as a water-cooled steel flame deflector.
 
 LESSONS LEARNED
 - Many engines dropping out together points to a shared cause (fire, power, data bus) rather than many independent engine failures.

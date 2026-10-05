@@ -259,7 +259,7 @@ def test_prompt_includes_context(kb: KnowledgeBase, anomalies: list[AnomalyEvent
 def test_supervisor_end_to_end_offline(tmp_path: Path) -> None:
     settings = Settings(data_dir=tmp_path / "data", report_dir=tmp_path / "data" / "reports")
     settings.ensure_directories()
-    sample = write_sample_files(settings.raw_dir)["spacex_wide"]
+    sample = write_sample_files(settings.raw_dir)["wide"]
     kb = KnowledgeBase(tmp_path, store=VectorStore(tmp_path / "kb", prefer_chroma=False))
     result = Supervisor(settings=settings, use_llm=False, knowledge_base=kb).run(sample, output_formats=("markdown", "json"))
     assert not result.errors

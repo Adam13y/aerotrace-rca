@@ -4,14 +4,14 @@ Failure mode: COPV support strut failure causing helium release and LOX tank ove
 Source type: historical
 Case ID: falcon9_strut_failure
 Date: 28 June 2015
-Vehicle: SpaceX Falcon 9 (CRS-7 cargo mission)
-Sources: SpaceX CRS-7 investigation update (July 2015); NASA Independent Review Team summary (2018)
+Vehicle: Falcon 9 (CRS-7 cargo mission)
+Sources: the launch provider's CRS-7 investigation update (July 2015); NASA Independent Review Team summary (2018)
 
 FAILURE MODE
 The second-stage liquid oxygen (LOX) tank overpressurised and burst about 139 seconds into flight, while the first stage was still firing, after a high-pressure helium bottle mounted inside the tank broke loose. The vehicle broke up and the Dragon cargo spacecraft bound for the International Space Station was lost.
 
 CAUSAL CHAIN
-Helium pressurant for the second stage is stored in composite overwrapped pressure vessels (COPVs) mounted inside the LOX tank with steel struts. Under the high axial acceleration of late first-stage flight (around 3.2 g), the buoyant helium bottle pulls hard on its struts. SpaceX's investigation found that one strut most likely failed at roughly 2,000 lbf, far below its 10,000 lbf rating. The bottle broke free, its plumbing failed, and high-pressure helium flooded the LOX tank faster than the relief system could vent it. The tank overpressurised and burst. From the first sign of trouble to loss of telemetry was under one second. The Dragon capsule survived the breakup and continued transmitting for some time, but its software at the time did not include a contingency mode to deploy its parachutes, so it was lost on impact with the ocean. NASA's Independent Review Team agreed that the strut failure was a credible cause, and also attributed the failure to a design error: the use of an industrial-grade cast part in a critical load path without adequate screening, testing or margin.
+Helium pressurant for the second stage is stored in composite overwrapped pressure vessels (COPVs) mounted inside the LOX tank with steel struts. Under the high axial acceleration of late first-stage flight (around 3.2 g), the buoyant helium bottle pulls hard on its struts. The launch provider's investigation found that one strut most likely failed at roughly 2,000 lbf, far below its 10,000 lbf rating. The bottle broke free, its plumbing failed, and high-pressure helium flooded the LOX tank faster than the relief system could vent it. The tank overpressurised and burst. From the first sign of trouble to loss of telemetry was under one second. The Dragon capsule survived the breakup and continued transmitting for some time, but its software at the time did not include a contingency mode to deploy its parachutes, so it was lost on impact with the ocean. NASA's Independent Review Team agreed that the strut failure was a credible cause, and also attributed the failure to a design error: the use of an industrial-grade cast part in a critical load path without adequate screening, testing or margin.
 
 TELEMETRY SIGNATURES
 - A sudden pressure drop in the second-stage helium pressurisation system.
@@ -20,7 +20,7 @@ TELEMETRY SIGNATURES
 - An extremely short timeline (well under one second) from first anomaly to loss of signal.
 
 ROOT CAUSE
-SpaceX identified the most probable cause as structural failure of a COPV support strut under flight loads, releasing helium into the LOX tank. The NASA review team considered the strut a credible cause but noted that other contributing failure paths could not be fully excluded, and emphasised the design and part-qualification decisions. Corrective actions included replacing the struts and qualifying parts individually.
+The launch provider identified the most probable cause as structural failure of a COPV support strut under flight loads, releasing helium into the LOX tank. The NASA review team considered the strut a credible cause but noted that other contributing failure paths could not be fully excluded, and emphasised the design and part-qualification decisions. Corrective actions included replacing the struts and qualifying parts individually.
 
 LESSONS LEARNED
 - Simultaneous opposite-sign pressure changes in connected volumes indicate an internal leak path between them.

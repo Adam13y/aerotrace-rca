@@ -75,7 +75,7 @@ def _series(values: np.ndarray, sensor: str = "test_sensor", unit: str = "psi", 
 # --------------------------------------------------------------------------- #
 def test_both_csv_layouts_parse_identically(sample_files: dict[str, Path]) -> None:
     long_readings = load_telemetry(sample_files["nasa_long"])
-    wide_readings = load_telemetry(sample_files["spacex_wide"])
+    wide_readings = load_telemetry(sample_files["wide"])
     assert len(long_readings) == len(wide_readings) == 18000
     assert {(r.sensor_id, r.unit) for r in long_readings} == {(r.sensor_id, r.unit) for r in wide_readings}
     assert all(r.timestamp.tzinfo is not None for r in long_readings[:100])

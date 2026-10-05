@@ -4,14 +4,14 @@ Failure mode: Booster engine shutdowns during return burns; ship roll control lo
 Source type: historical
 Case ID: starship_ift3
 Date: 14 March 2024
-Vehicle: SpaceX Starship / Super Heavy (Ship 28, Booster 10)
-Sources: SpaceX Starship Flight 3 summary (2024); FAA statements (2024)
+Vehicle: Starship / Super Heavy (Ship 28, Booster 10)
+Sources: the launch provider's Starship Flight 3 summary (2024); FAA statements (2024)
 
 FAILURE MODE
 The third integrated flight achieved a full ascent and hot-stage separation, and the Ship reached its planned coast trajectory for the first time. Both stages were then lost: the Super Heavy booster had engine shutdowns during its return burns and was lost before splashdown in the Gulf of Mexico, and the Ship was lost during re-entry after it was unable to control its roll attitude.
 
 CAUSAL CHAIN
-After hot staging, the booster performed its boostback burn, during which some engines shut down early. During the landing burn attempt, the booster did not achieve the planned engine operation and was lost a few hundred metres above the water. SpaceX's post-flight summary attributed the booster engine problems most likely to blockage in the oxidizer supply to the engines, a theme similar to Flight 2; the exact mechanism is less certain in public sources. The Ship completed its ascent burn and coasted, performing a payload door test and an in-flight propellant transfer demonstration. During the coast it developed roll rates higher than expected, and the planned in-space Raptor relight was skipped. SpaceX attributed the roll control problem most likely to clogging of valves used for roll control. Without proper attitude control, the Ship entered the atmosphere in an off-nominal orientation, experienced higher-than-planned heating, and signal was lost roughly 49 minutes into flight, well before the planned splashdown in the Indian Ocean. The FAA oversaw the SpaceX-led mishap investigation and accepted its findings.
+After hot staging, the booster performed its boostback burn, during which some engines shut down early. During the landing burn attempt, the booster did not achieve the planned engine operation and was lost a few hundred metres above the water. The launch provider's post-flight summary attributed the booster engine problems most likely to blockage in the oxidizer supply to the engines, a theme similar to Flight 2; the exact mechanism is less certain in public sources. The Ship completed its ascent burn and coasted, performing a payload door test and an in-flight propellant transfer demonstration. During the coast it developed roll rates higher than expected, and the planned in-space Raptor relight was skipped. The launch provider attributed the roll control problem most likely to clogging of valves used for roll control. Without proper attitude control, the Ship entered the atmosphere in an off-nominal orientation, experienced higher-than-planned heating, and signal was lost roughly 49 minutes into flight, well before the planned splashdown in the Indian Ocean. The FAA oversaw the provider-led mishap investigation and accepted its findings.
 
 TELEMETRY SIGNATURES
 - Booster: engine shutdowns during the boostback burn, followed by an incomplete or failed landing burn and loss of signal at low altitude.
@@ -21,7 +21,7 @@ TELEMETRY SIGNATURES
 - Ship: off-nominal attitude during re-entry, rising heating indications and loss of signal well before planned splashdown.
 
 ROOT CAUSE
-SpaceX identified clogging of roll control valves as the most likely cause of the Ship's attitude control loss, leading to an uncontrolled re-entry; reported corrective actions included adding roll control thrusters and improving resilience to clogging. For the booster, SpaceX attributed the engine shutdowns most likely to oxidizer supply blockage and reported hardware improvements to filtration; this detail is less certain than the Ship finding.
+The launch provider identified clogging of roll control valves as the most likely cause of the Ship's attitude control loss, leading to an uncontrolled re-entry; reported corrective actions included adding roll control thrusters and improving resilience to clogging. For the booster, the launch provider attributed the engine shutdowns most likely to oxidizer supply blockage and reported hardware improvements to filtration; this detail is less certain than the Ship finding.
 
 LESSONS LEARNED
 - A flight can fail in independent ways on each stage; build separate timelines before searching for common causes.

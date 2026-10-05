@@ -21,7 +21,7 @@ ROOT CAUSE
 Root causes include regulators or solenoid valves failing open, control software errors, undersized relief capacity, failure of pressurant lines or bottle mounts inside the tank, and boil-off above prediction due to insulation damage.
 
 HISTORICAL REFERENCE
-Comparable to the 2015 loss of Falcon 9 on the CRS-7 mission; SpaceX's public summary attributed it to failure of a strut retaining a helium pressure vessel inside the second-stage liquid oxygen tank, leading to helium release and overpressurisation of that tank.
+Comparable to the 2015 loss of Falcon 9 on the CRS-7 mission; the launch provider's public summary attributed it to failure of a strut retaining a helium pressure vessel inside the second-stage liquid oxygen tank, leading to helium release and overpressurisation of that tank.
 
 LESSONS LEARNED
 - Size relief capacity for the worst credible pressurant inflow, including an internal line or bottle failure

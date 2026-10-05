@@ -21,7 +21,7 @@ ROOT CAUSE
 Root causes include loading conditions not represented in qualification, such as particular cryogenic loading sequences or temperatures, underestimated composite stress-rupture life, manufacturing defects in liner or overwrap, handling damage, and insufficient understanding of oxygen compatibility at the liner-overwrap interface.
 
 HISTORICAL REFERENCE
-Comparable to the 2016 AMOS-6 Falcon 9 pad anomaly during propellant loading; SpaceX's public summary attributed it to a breach of a helium COPV in the second-stage liquid oxygen tank, likely involving oxygen accumulating in buckles or voids under the overwrap.
+Comparable to the 2016 AMOS-6 Falcon 9 pad anomaly during propellant loading; the launch provider's public summary attributed it to a breach of a helium COPV in the second-stage liquid oxygen tank, likely involving oxygen accumulating in buckles or voids under the overwrap.
 
 LESSONS LEARNED
 - Qualify COPVs under flight-representative cryogenic loading sequences and temperatures

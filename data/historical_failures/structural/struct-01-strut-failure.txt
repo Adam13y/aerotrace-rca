@@ -21,7 +21,7 @@ ROOT CAUSE
 Typical causes are a defective batch of rod ends or castings with strength below specification, reliance on vendor certification without lot testing, margins that ignore material scatter, and fatigue or handling damage introduced during integration. Fracture usually occurs well below the predicted rated load.
 
 HISTORICAL REFERENCE
-SpaceX's public account of the Falcon 9 CRS-7 loss in June 2015 attributed it to a failed steel strut supporting a helium bottle inside the second-stage liquid oxygen tank, leading to over-pressurization of that tank.
+The launch provider's public account of the Falcon 9 CRS-7 loss in June 2015 attributed it to a failed steel strut supporting a helium bottle inside the second-stage liquid oxygen tank, leading to over-pressurization of that tank.
 
 LESSONS LEARNED
 - Test every flight lot of critical structural hardware rather than relying solely on supplier certification

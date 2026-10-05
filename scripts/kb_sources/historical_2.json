@@ -103,15 +103,15 @@
       ]
     },
     {
-      "id": "spacex_crs1",
-      "title": "SpaceX CRS-1 - Falcon 9 first-stage engine-out during ascent",
+      "id": "falcon9_crs1",
+      "title": "Falcon 9 CRS-1 - first-stage engine-out during ascent",
       "category": "propulsion",
       "failure_mode": "Single Merlin engine loss of pressure and commanded shutdown",
       "date": "8 October 2012 (UTC; evening of 7 October local time)",
       "vehicle": "Falcon 9 v1.0 with Dragon CRS-1, secondary payload Orbcomm OG2 prototype",
-      "sources": "SpaceX post-flight statements (2012); NASA and Orbcomm statements",
+      "sources": "the launch provider's post-flight statements (2012); NASA and Orbcomm statements",
       "failure_mode_description": "On the first operational Commercial Resupply Services flight to the ISS, one of the nine Merlin 1C first-stage engines suffered a sudden loss of pressure roughly 79 seconds after lift-off. The flight computer shut that engine down and the remaining eight engines burned longer to compensate. Dragon reached its planned orbit and later berthed with the ISS. The secondary Orbcomm satellite, however, was left in a lower than intended orbit and re-entered within days.",
-      "causal_chain": "Ascent was nominal until about T+79 s, near the period of high aerodynamic pressure. Engine 1 experienced an abrupt pressure loss; video showed a flash and debris, which SpaceX later said was mainly the engine's aerodynamic fairing being shed and that the engine did not explode. The flight computer detected the anomaly and commanded engine shutdown. The vehicle's guidance recomputed the trajectory, extending the burn of the remaining engines, and the second stage delivered Dragon to its target orbit. A planned second-stage restart to raise the Orbcomm satellite was not performed because the remaining propellant margin did not meet the probability threshold NASA required for operations near the ISS, so the satellite was deployed into the lower insertion orbit.",
+      "causal_chain": "Ascent was nominal until about T+79 s, near the period of high aerodynamic pressure. Engine 1 experienced an abrupt pressure loss; video showed a flash and debris, which the launch provider later said was mainly the engine's aerodynamic fairing being shed and that the engine did not explode. The flight computer detected the anomaly and commanded engine shutdown. The vehicle's guidance recomputed the trajectory, extending the burn of the remaining engines, and the second stage delivered Dragon to its target orbit. A planned second-stage restart to raise the Orbcomm satellite was not performed because the remaining propellant margin did not meet the probability threshold NASA required for operations near the ISS, so the satellite was deployed into the lower insertion orbit.",
       "telemetry_signatures": [
         "Single-engine chamber pressure drop to near zero while the other eight engines remain nominal",
         "Engine shutdown command for the affected engine immediately after the pressure loss",
@@ -119,7 +119,7 @@
         "Longer-than-planned first-stage burn and adjusted staging time",
         "Reduced upper-stage propellant reserve at insertion, leading to cancellation of a later burn"
       ],
-      "root_cause": "SpaceX reported that the most probable cause was a flaw in the material of the engine's combustion chamber jacket, leading to a breach and loss of chamber pressure. Detailed failure analysis was not fully published. The engine-out tolerance designed into the nine-engine first stage allowed the primary mission to continue, while the ISS-related safety constraint on the second-stage restart, rather than any further hardware fault, caused the secondary payload loss.",
+      "root_cause": "The launch provider reported that the most probable cause was a flaw in the material of the engine's combustion chamber jacket, leading to a breach and loss of chamber pressure. Detailed failure analysis was not fully published. The engine-out tolerance designed into the nine-engine first stage allowed the primary mission to continue, while the ISS-related safety constraint on the second-stage restart, rather than any further hardware fault, caused the secondary payload loss.",
       "lessons_learned": [
         "In clustered-engine stages, isolate per-engine chamber pressure; one channel collapsing while others hold steady points to a local engine fault",
         "Visible debris or flashes do not by themselves indicate catastrophic failure; correlate with pressure and shutdown data",

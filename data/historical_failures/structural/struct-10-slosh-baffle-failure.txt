@@ -21,7 +21,7 @@ ROOT CAUSE
 Underestimated slosh mass or damping, baffles designed only for static loads, fatigue of baffle welds, inadequate control-system filtering at the slosh frequency, and propellant fill levels outside the analysed range are common root causes.
 
 HISTORICAL REFERENCE
-SpaceX's account of the second Falcon 1 flight in March 2007 attributed the early second-stage shutdown to liquid oxygen slosh coupling with the control system, causing a roll oscillation. That event was a control-structure interaction rather than a baffle structural failure.
+The launch provider's account of the second Falcon 1 flight in March 2007 attributed the early second-stage shutdown to liquid oxygen slosh coupling with the control system, causing a roll oscillation. That event was a control-structure interaction rather than a baffle structural failure.
 
 LESSONS LEARNED
 - Verify slosh damping devices by test and analyse their fatigue under expected slosh cycles

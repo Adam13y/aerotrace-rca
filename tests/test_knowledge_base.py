@@ -42,7 +42,7 @@ def sample_files(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
 # Dataset fingerprint
 # --------------------------------------------------------------------------- #
 def test_fingerprint_is_format_independent(sample_files: dict[str, Path], tmp_path: Path) -> None:
-    """The same flight as NASA CSV, SpaceX CSV and JSON is one dataset."""
+    """The same flight as NASA-style CSV, wide-format CSV and JSON is one dataset."""
     channels = tmp_path / "flight.json"
     wide = generate_sample_telemetry()
     channels.write_text(json.dumps({"base_time": wide["timestamp"].iloc[0], "sensors": {
@@ -52,7 +52,7 @@ def test_fingerprint_is_format_independent(sample_files: dict[str, Path], tmp_pa
     }}), encoding="utf-8")
     fingerprints = {
         dataset_fingerprint(load_telemetry(sample_files["nasa_long"])),
-        dataset_fingerprint(load_telemetry(sample_files["spacex_wide"])),
+        dataset_fingerprint(load_telemetry(sample_files["wide"])),
         dataset_fingerprint(load_telemetry(channels)),
     }
     assert len(fingerprints) == 1
@@ -133,7 +133,7 @@ def test_rerun_does_not_retrieve_own_output(tmp_path: Path) -> None:
 
     second = supervisor.run(paths["nasa_long"], output_formats=("json",))
     assert kb.excluded_ids, "second run must skip the records saved by the first"
-    third = supervisor.run(paths["spacex_wide"], output_formats=("json",))  # same flight, other format
+    third = supervisor.run(paths["wide"], output_formats=("json",))  # same flight, other format
     assert kb.excluded_ids
 
     signature = lambda r: [(h.title, h.confidence, h.related_anomalies, h.description) for h in r.hypotheses]  # noqa: E731

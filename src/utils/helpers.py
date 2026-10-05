@@ -126,7 +126,7 @@ def readings_to_frame(readings: Iterable[TelemetryReading]) -> pd.DataFrame:
 def dataset_fingerprint(readings: Iterable[TelemetryReading]) -> str:
     """Content hash identifying a telemetry dataset independently of its file name or format.
 
-    The same flight stored as NASA-style CSV, SpaceX-style CSV or JSON yields the same
+    The same flight stored as NASA-style long CSV, wide-format CSV or JSON yields the same
     fingerprint, because it is computed from the normalised (sensor, timestamp, value) samples.
     """
     import hashlib

@@ -16,7 +16,7 @@
         "Abrupt ullage pressure loss, acceleration transient and telemetry dropout if the tank fails"
       ],
       "root_cause": "Root causes include regulators or solenoid valves failing open, control software errors, undersized relief capacity, failure of pressurant lines or bottle mounts inside the tank, and boil-off above prediction due to insulation damage.",
-      "historical_reference": "Comparable to the 2015 loss of Falcon 9 on the CRS-7 mission; SpaceX's public summary attributed it to failure of a strut retaining a helium pressure vessel inside the second-stage liquid oxygen tank, leading to helium release and overpressurisation of that tank.",
+      "historical_reference": "Comparable to the 2015 loss of Falcon 9 on the CRS-7 mission; the launch provider's public summary attributed it to failure of a strut retaining a helium pressure vessel inside the second-stage liquid oxygen tank, leading to helium release and overpressurisation of that tank.",
       "lessons_learned": [
         "Size relief capacity for the worst credible pressurant inflow, including an internal line or bottle failure",
         "Qualify internal mounts and struts with lot-level testing rather than relying only on supplier certification",
@@ -147,7 +147,7 @@
         "Loss of telemetry within milliseconds to seconds"
       ],
       "root_cause": "Root causes include loading conditions not represented in qualification, such as particular cryogenic loading sequences or temperatures, underestimated composite stress-rupture life, manufacturing defects in liner or overwrap, handling damage, and insufficient understanding of oxygen compatibility at the liner-overwrap interface.",
-      "historical_reference": "Comparable to the 2016 AMOS-6 Falcon 9 pad anomaly during propellant loading; SpaceX's public summary attributed it to a breach of a helium COPV in the second-stage liquid oxygen tank, likely involving oxygen accumulating in buckles or voids under the overwrap.",
+      "historical_reference": "Comparable to the 2016 AMOS-6 Falcon 9 pad anomaly during propellant loading; the launch provider's public summary attributed it to a breach of a helium COPV in the second-stage liquid oxygen tank, likely involving oxygen accumulating in buckles or voids under the overwrap.",
       "lessons_learned": [
         "Qualify COPVs under flight-representative cryogenic loading sequences and temperatures",
         "Account for oxygen compatibility and trapped propellant at liner-overwrap interfaces",
