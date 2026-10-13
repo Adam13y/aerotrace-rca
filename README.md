@@ -15,12 +15,27 @@ elided). The run also writes a Markdown report, a JSON export, plots and a decis
 
 ## Quick start
 
-Requires Docker with an NVIDIA GPU (≥ 12 GB VRAM) and the
+**Try the detection on your own log: no GPU, no LLM, nothing leaves your machine** (Python 3.11+):
+
+```bash
+git clone https://github.com/Adam13y/aerotrace-rca.git && cd aerotrace-rca
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python -m src.main --test                                   # offline self-test, no LLM
+python -m src.main path/to/flight.csv --analyze --offline   # anomaly table for your own CSV
+```
+
+`--analyze --offline` runs only the statistical detection (onset, duration, severity, recovery) on the CPU. It needs
+no GPU, no Ollama and no API key. Reports go to `data/reports/` (or `REPORT_DIR`). Thresholds and planned events are
+tuned to the demo vehicle, so for another vehicle set `flight_phases` and `planned_events` in `config/agents.yaml`
+(see Customization), otherwise deployments, staging and cutoff show up as anomalies.
+
+**Full pipeline (LLM hypotheses and validator).** Requires Docker with an NVIDIA GPU (≥ 12 GB VRAM) and the
 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/) (Linux), or Docker
 Desktop with WSL2 GPU support (Windows).
 
 ```bash
-git clone https://github.com/<you>/AeroTrace-RCA.git && cd AeroTrace-RCA
+git clone https://github.com/Adam13y/aerotrace-rca.git && cd aerotrace-rca
 docker compose up -d
 docker exec -it aerotrace python scripts/run_pipeline.py
 ```
